@@ -14,6 +14,14 @@
 
 未列入上表的命令按 Claude Code 默认模式处理（首次执行时询问）。
 
+## agents/ 与 commands/（七角色流水线）
+
+本目录还承载七角色 Subagent 流水线（说明见仓库 README「七角色 Subagent 研发流水线」章节）：
+
+- `agents/*.md`：7 个角色子代理定义。frontmatter 的 `tools` 白名单已按职责最小化；上方 allow/ask/deny 规则对子代理的工具调用**同样生效**（如 engineer 跑 `dotnet ef` 仍会弹确认、任何角色读不了 `.env`）。
+- `commands/*.md`：`/feature` 编排命令 + 6 个单步命令。frontmatter 的 `allowed-tools` 仅对本次调用免确认，不改变 settings.json 的权限规则。
+- 一致性自检：`python3 tools/check-config.py`（Windows 无 python3 时用 `python` 或 `py`）。改动角色 / 命令 / 协议文档后重跑。
+
 ## 按实际仓库调整
 
 1. **前端目录**：模板假设前端在仓库根。若在 `frontend/` 子目录，把 deny 中的 `./src/components/ui/**` 改为 `./frontend/src/components/ui/**`。
@@ -26,6 +34,7 @@
 - **前缀匹配**：权限规则按命令前缀匹配。`git push -f` 写在命令末尾（如 `git push origin main -f`）时 deny 规则拦不住——但所有 push 都已列入 ask，人工确认时能看到完整命令，这是最终防线。
 - **Windows 原生命令与参数顺序绕过**：PowerShell（`Remove-Item -Recurse -Force`）、CMD（`del /s /q`）等原生命令已列入 ask 兜底，但 deny 无法识别其内部参数；`rm -r -f` 同理可绕过 `rm -rf` deny——所有 `rm *` 均会触发 ask 人工确认。
 - **deny 只拦 AI 的工具调用**：`npx shadcn-vue add`（ask 放行后）由 CLI 进程写入 `ui/` 目录，不会触发 Edit/Write 拦截；靠规范 3.2 约束。
+- **子代理命中 ask 规则的行为**：后台子代理自 v2.1.186 起把确认请求转发主会话等待批准（Enter 批准该次 / Esc 拒绝该次）；此前版本静默自动拒绝。有人值守时流水线是**暂停等确认**而非静默失败；但**非交互 / 无人值守模式（`-p` / dontAsk）直接按配置拒绝**，ask 类命令会失败。官方 sub-agents 文档页未更新此行为（issue #70143）。
 
 ## 全局开关说明
 
