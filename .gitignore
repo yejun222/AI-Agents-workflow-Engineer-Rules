@@ -1,0 +1,22 @@
+# Claude Code 个人本地配置（不随仓库提交，见 docs/development-spec.md 附录 C）
+.claude/settings.local.json
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+
+# 以下条目为「Use this template」直接建新项目时兜底（规范包自身无这些产物）
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+# 后端构建产物
+bin/
+obj/
