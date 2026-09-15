@@ -46,7 +46,7 @@
 | --- | --- | --- |
 | ASP.NET Core Web API | .NET 10.0 LTS | 使用 `[ApiController]`，顶层路由统一前缀 |
 | EF Core | 10.0 | Code First，迁移管理表结构 |
-| Microting.EntityFrameworkCore.MySql | 10.0.11 | Pomelo 尚无 EF Core 10 适配版（9.0.0 仅支持 EF Core 9）。**实测 Pomelo 9 + EF Core 10 组合运行期崩溃**：`NoWarn` 只能压住 NU1608 警告，压不住运行期的 `TypeLoadException` / `MissingMethodException`，而且 `build` 与生成迁移都能通过，要到真连库查询才暴露——所以**"编译通过"不能作为选型依据，必须真跑一次迁移 + 真查一次库**。改用 Microting 分支（10.x）：`UseMySql` API 一致，仅换包名与命名空间。禁止跨大版本混用 |
+| Microting.EntityFrameworkCore.MySql | 10.0.11 | Pomelo 尚无 EF Core 10 适配版（9.0.0 仅支持 EF Core 9）。**实测 Pomelo 9 + EF Core 10 组合运行期崩溃**：`NoWarn` 只能压住 NU1608 警告，压不住运行期的 `TypeLoadException` / `MissingMethodException`，而且 `build` 与生成迁移都能通过，要到真连库查询才暴露——所以**"编译通过"不能作为选型依据，必须真跑一次迁移 + 真查一次库**。改用 Microting 分支（10.x）：`UseMySql` API 一致，仅换包名与命名空间。禁止跨大版本混用。**回迁条件**：Pomelo 官方发布支持 EF Core 10 的稳定适配版后可回迁；回迁前必须按同一标准实测（生成迁移 + 真连库查询），并走规范第四章「先确认再动手」的依赖变更确认 |
 | JWT Bearer | 框架内置 | 接口默认需要认证，公开接口显式标记 `[AllowAnonymous]` |
 | FluentValidation | 最新版 | 后端 DTO 入参校验（见 8.2） |
 | Serilog | 最新版 | 结构化日志：请求链路、异常堆栈、业务日志 |
@@ -445,12 +445,14 @@ Conventional Commits：`feat|fix|docs|style|refactor|test|chore(scope): 描述`
 ### 12.1 流水线（每次 MR 自动触发）
 
 ```
-lint → build → test（单测+集成）→ 覆盖率卡点 → 镜像构建（只构建不推送，验证 Dockerfile 可构建）
+lint → build → test（单测+集成）→ 覆盖率卡点 → E2E（Playwright）→ OpenAPI 契约校验 → 镜像构建（只构建不推送，验证 Dockerfile 可构建）
 ```
 
 - 镜像仓库：Harbor / 阿里云 ACR
 - 镜像 tag：`{语义化版本}-{git短sha}`，禁止覆盖已推送的 tag
 - 镜像推送时机：MR 阶段只构建不推送；合入 main 后构建并推送正式 tag（避免 MR 临时镜像堆积）
+- E2E：`npx playwright test`（`tests/e2e/**`）。CI 中起前端构建产物 + 后端容器（docker compose 冒烟环境）跑核心路径冒烟；全量 E2E 放夜间 / 发版前。按变更路径触发（无 e2e 用例变更时跳过，省 CI 时长）
+- OpenAPI 契约校验：后端用框架内置 Microsoft.AspNetCore.OpenApi 生成 `openapi.json`，与仓库基线 `docs/openapi.baseline.json` diff，漂移即失败；接口变更必须同步更新基线（升 v2 时旧版本基线保留，与 6.1 版本控制呼应）
 
 ### 12.2 环境与发布
 
