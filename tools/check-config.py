@@ -248,9 +248,17 @@ check("T7 code-reviewer 具备 Write", "Write" in (get_field(parse_frontmatter(c
 # T8：README 60-review 去向含「已接受（用户决断）」旁路
 check("T8 README 60去向含旁路", "已接受（用户决断）" in readme and "60-review 的去向" in readme,
       "README 60-review 去向未反映已接受旁路")
-# T8：README 区分两条接受路径（REV vs BUG）
-check("T8 README 区分两条接受路径", "两条接受路径不要混" in readme and "REV-xx" in readme and "BUG-xx" in readme,
-      "README 未区分 REV/BUG 两条接受路径")
+# T8：README 区分三条接受路径（REV / BUG / 覆盖缺口）
+check("T8 README 区分三条接受路径", "三条接受路径不要混" in readme and "REV-xx" in readme and "BUG-xx" in readme,
+      "README 未区分 REV / BUG / 覆盖缺口 三条接受路径")
+# T8：覆盖缺口接受路径须在 README 与状态机修复循环出口双向登记
+# 锚点用「既不是 REV 也不是 BUG」而非「覆盖缺口 / 行 3.5」——后者在回边图里也出现，
+# 删掉三条清单中的条目后仍会被图那行满足（假通过，已实测）。
+check("T8 README 覆盖缺口路径在三条清单内",
+      "既不是 REV 也不是 BUG" in readme and "行 3.5" in readme,
+      "README 的「三条接受路径」清单缺覆盖缺口条目（状态机行 3.5）")
+check("T8 state-machine 接受覆盖缺口出口", "「**接受覆盖缺口**」" in sm,
+      "state-machine 修复循环 c 缺「接受覆盖缺口」出口 —— 有判定行却无入口，F6 永远无法触发（死分支）")
 # T8：60-review 不流向测试设计
 check("T8 README 不流向测试设计", "不流向测试设计" in readme, "README 未声明 60 不流向测试设计")
 # T8：审查回边说明
@@ -302,6 +310,42 @@ check("T10 Microting 回迁条件", re.search(r"Microting\.EntityFrameworkCore\.
       "development-spec 2.2 Microting 行缺回迁条件")
 check("T10 并行优化已记录", "test-designer 与 engineer 并行" in cc,
       "config-checklist 缺 test-designer/engineer 并行优化记录（E 节）")
+
+# ---- 11. 状态机行 3.5（覆盖缺口接受路径）守护 ----
+# 行 3.5 的约束与行 0.5 / 行 5 同源：位置错了就永远不可达或抢走别的行，条件漏了就静默降级。
+sm = read(DOCS / "state-machine.md") or ""
+tex = read(AGENTS / "test-executor.md") or ""
+
+check("T11 定义 F6", re.search(r"\*\*F6\*\*", sm) is not None,
+      "state-machine 未定义事实变量 F6（覆盖缺口接受路径的输入事实）")
+
+row_pos = {m.group(1): m.start() for m in
+           re.finditer(r"^\|\s*\*{0,2}([0-9]+(?:\.[0-9]+)?)\*{0,2}\s*\|", sm, re.M)}
+check("T11 行3.5 存在", "3.5" in row_pos,
+      f"判定表未找到行 3.5（已找到行号：{sorted(row_pos)}）")
+
+m35 = re.search(r"^\|\s*\*{0,2}3\.5\*{0,2}\s*\|.*$", sm, re.M)
+row35 = m35.group(0) if m35 else ""
+check("T11 行3.5 含 F6=已转达", re.search(r"F6\s*=\s*已转达", row35) is not None,
+      "行 3.5 缺少「F6 = 已转达」条件（否则它不是接受路径，只是一句废话）")
+check("T11 行3.5 含无未闭环致命/严重前提",
+      re.search(r"无未闭环致命\s*/\s*严重", row35) is not None,
+      "行 3.5 缺少「无未闭环致命 / 严重」前提 —— 省略后 "
+      "F1=是 + 覆盖不达标 + F6=已转达 + F4=已指示 会被它抢先判为「有条件发布」，"
+      "使行 5「有条件发布（含残留缺陷）」沦为死分支、残留致命/严重缺陷被降级静默吸收")
+check("T11 行3.5 复用既有结论枚举",
+      "有条件发布" in row35 and "含残留缺陷" not in row35,
+      "行 3.5 的结论须复用既有枚举成员「有条件发布」，不得自造，也不得抢占「有条件发布（含残留缺陷）」")
+if all(k in row_pos for k in ("3", "3.5", "4")):
+    check("T11 行3.5 位于行3之后", row_pos["3"] < row_pos["3.5"],
+          "行 3.5 须位于行 3 之后 —— 否则「未转达接受的一般缺陷」会被它一并放行")
+    check("T11 行3.5 位于行4之前", row_pos["3.5"] < row_pos["4"],
+          "行 3.5 须位于行 4 之前 —— 行 4 的条件是其真超集，置于其后将永远不可达")
+else:
+    check("T11 行号 3/3.5/4 齐备", False, f"未同时找到行 3 / 3.5 / 4（已找到：{sorted(row_pos)}）")
+check("T11 test-executor 声明行3.5不在建议范围",
+      "行 3.5" in tex and "不在你的建议范围内" in tex,
+      "test-executor 未声明行 3.5 须主对话转达 F6 后才由其在重调度中落盘")
 
 print(f"共 {len(checks)} 项检查")
 if failures:
