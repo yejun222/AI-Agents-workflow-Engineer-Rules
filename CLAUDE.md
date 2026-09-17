@@ -47,6 +47,11 @@
 
 - 前端：Vue 3 + TypeScript(strict) + Tailwind CSS + shadcn-vue + TanStack Table + Zod + Pinia + Vite，目录结构见全量规范 3.1。
 - 后端：.NET 10 四层架构 `Api → Application → Infrastructure → Domain`，EF Core (MySQL) + JWT 双 token + Redis，分层原则见全量规范 4.1。
+- **测试布局（前后端是两套并存的约定，不是同一个目录，别互相找）**：
+  - 后端 xUnit：测试是**独立编译单元**（独立 `.csproj`、独立程序集），必须放 `src/` 之外 → 顶层 `tests/unit/**`、`tests/integration/**`，用 `dotnet test` 跑。
+  - 前端 Vitest：与源码**共用同一 tsconfig 与构建管线**，就近放 `src/frontend/src/**/__tests__/*.spec.ts` → 用 `npm run test:unit` 跑。`.spec.ts` 无人 import，**不会进生产产物**（Vite 只沿入口图打包）。
+  - E2E（Playwright）：统一放顶层 `tests/e2e/**`。
+  - 三者分区不重叠。`src/frontend/src/` 下**没有**总的 `tests/` 或 `__tests__/` 目录，用例散在各自模块旁的 `__tests__/` 里。
 - 接口：RESTful，URL 统一 `/api/v1/[controller]` 小写；响应统一 `ApiResult<T>`（`code=0` 成功）。
 - 关键封装（优先复用）：前端 `utils/request` 请求实例、`api/` 接口定义、`stores/` 状态、`components/business/` 业务组件；后端 `ApiResult` 与全局 Filter、`BusinessException`、`PageQuery` 分页基类、公共审计/缓存服务。
 

@@ -113,7 +113,9 @@ src/
 | 仅单页面内部状态 | `ref` / `reactive` |
 | 可复用的有状态逻辑 | 抽成 `composables/useXxx.ts` |
 
-- access token 持久化到 localStorage，退出登录同步清空
+- **access token 仅存内存**（不落 localStorage / sessionStorage）：页面刷新或新标签页打开后，由**受保护路由**触发一次静默刷新恢复会话，退出登录同步清空
+  - 理由：localStorage 里的 access token 一次 XSS 即可被读走；仅存内存把凭证的生命周期限制在当前页面上下文内。代价是刷新后必须有一次静默恢复
+  - 恢复逻辑必须做到「**只在受保护路由触发，公开页不触发**」——否则每次进入公开页都会白打一次刷新接口；反过来，若改用标签页级存储（sessionStorage）缓存登录态，会导致**新标签页即使 refresh Cookie 有效也被强制登出**
 - **refresh token 禁止存 localStorage**，必须走 httpOnly + Secure + SameSite=Strict Cookie（一次 XSS 即可窃取 7 天长期凭证），刷新时由浏览器自动携带
 - 禁止把页面私有状态塞进全局 Store
 
@@ -186,7 +188,7 @@ public class ApiResult<T>
 
 ### 4.3 认证与授权
 
-- JWT 双 token 机制：access token 2 小时（localStorage）+ refresh token 7 天（httpOnly Cookie，见 3.3）
+- JWT 双 token 机制：access token 2 小时（**仅存内存**，不落 localStorage / sessionStorage，见 3.3）+ refresh token 7 天（httpOnly Cookie，见 3.3）
 - refresh token 一次性使用（轮换），旧 token 刷新后立即失效，防止重放
 - 密码使用 BCrypt 哈希存储，禁止明文存储和传输
 - Token Claims 只包含：用户ID、角色、DataScope（**权限标识不入 Claims**，防 JWT 膨胀——权限多的用户每个请求都携带大 token）

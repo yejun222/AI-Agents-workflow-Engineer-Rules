@@ -20,3 +20,14 @@ dist/
 # 后端构建产物
 bin/
 obj/
+
+# E2E（Playwright）运行产物：失败截图 / trace / 报告，均不入库
+# 注：tests/e2e/logs/ 是交付证据（被 docs/51、docs/52 逐条引用），刻意入库，不在此列
+tests/e2e/.artifacts/
+test-results/
+playwright-report/
+
+# E2E 部署产物：dotnet publish 输出（可重建），不入库
+# 该目录下的 appsettings.Testing.json 会把 testing 签名密钥复制多份，
+# 且每次重建内容都变、持续制造 diff 噪声
+tests/e2e/deploy/
