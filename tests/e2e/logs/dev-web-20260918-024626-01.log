@@ -1,0 +1,50 @@
+[33mThe project root contains the "#" character ([36mC:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend[33m), which may not work when running Vite. Consider renaming the directory without the characters.[39m
+
+  [32m[1mVITE[22m v8.3.0[39m  [2mready in [0m[1m4871[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[31m(!) Failed to run dependency scan. Skipping dependency pre-bundling. Error: [31m  Failed to scan for dependencies from entries:
+  C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/index.html
+
+  [31mBuild failed with 1 error:
+
+[31m[UNLOADABLE_DEPENDENCY] [0mCould not load ../../../../template for C
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m index.html:1:8 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m1 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m"/src/main.ts"
+ [38;5;240m  │[0m        ───────┬──────  
+ [38;5;240m  │[0m               ╰──────── 系统找不到指定的文件。 (os error 2)
+[38;5;246m───╯[0m
+
+    at aggregateBindingErrorsIntoJsError (file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/rolldown/dist/shared/error-CGhV1ebk.mjs:48:18)
+    at unwrapBindingResult (file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/rolldown/dist/shared/error-CGhV1ebk.mjs:18:128)
+    at scan (file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/rolldown/dist/experimental-index.mjs:238:3)
+    at async Object.build (file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/vite/dist/node/chunks/node.js:27504:3)
+    at async scan (file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/vite/dist/node/chunks/node.js:27443:4)
+    at async file:///C:/%E5%8F%B6%E5%90%9B%E8%B5%84%E6%96%99/%E7%B3%BB%E7%BB%9F%E4%BB%A3%E7%A0%81/template%20for%20C%23/AI-Agents-workflow-Engineer-Rules/src/frontend/node_modules/vite/dist/node/chunks/node.js:35201:15[39m
+[2m02:47:24[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:49:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:49:50[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:50:07[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:50:24[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:50:54[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:51:00[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:51:31[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:52:02[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:52:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:53:03[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:53:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:53:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:53:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:54:22[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:54:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:54:48[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:55:19[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:55:35[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:55:35[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:55:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:56:07[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:56:13[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:56:13[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?
+[2m02:56:16[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/main.ts (resolved id: C:/叶君资料/系统代码/template for C#/AI-Agents-workflow-Engineer-Rules/src/frontend/src/main.ts). Does the file exist?

@@ -1,0 +1,5 @@
+[02:47:46 INF] Now listening on: http://localhost:5191
+[02:47:46 INF] Application started. Press Ctrl+C to shut down.
+[02:47:46 INF] Hosting environment: Production
+[02:47:46 INF] Content root path: C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\deploy\publish-tc76
+[02:47:46 INF] HTTP GET /api/v1/prizes responded 401 in 73.0889 ms

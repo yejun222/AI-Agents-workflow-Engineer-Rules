@@ -1,0 +1,30 @@
+[02:50:43 ERR] Hosting failed to start
+Microsoft.Extensions.Options.OptionsValidationException: Prize:WeightOverrides 仅允许在 Development / Testing 环境使用；当前环境为 Production，应用拒绝启动（D-06 / PRD R5）。
+   at Microsoft.Extensions.Options.OptionsFactory`1.Create(String name)
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Microsoft.Extensions.Options.OptionsCache`1.GetOrAdd[TArg](String name, Func`3 createOptions, TArg factoryArgument)
+   at Microsoft.Extensions.Options.OptionsMonitor`1.Get(String name)
+   at Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.<>c__DisplayClass0_1`1.<ValidateOnStart>b__1()
+   at Microsoft.Extensions.Options.StartupValidator.Validate()
+--- End of stack trace from previous location ---
+   at Microsoft.Extensions.Options.StartupValidator.Validate()
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+Unhandled exception. Microsoft.Extensions.Options.OptionsValidationException: Prize:WeightOverrides 仅允许在 Development / Testing 环境使用；当前环境为 Production，应用拒绝启动（D-06 / PRD R5）。
+   at Microsoft.Extensions.Options.OptionsFactory`1.Create(String name)
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Microsoft.Extensions.Options.OptionsCache`1.GetOrAdd[TArg](String name, Func`3 createOptions, TArg factoryArgument)
+   at Microsoft.Extensions.Options.OptionsMonitor`1.Get(String name)
+   at Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.<>c__DisplayClass0_1`1.<ValidateOnStart>b__1()
+   at Microsoft.Extensions.Options.StartupValidator.Validate()
+--- End of stack trace from previous location ---
+   at Microsoft.Extensions.Options.StartupValidator.Validate()
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\src\backend\src\LuckyDraw.Api\Program.cs:line 201

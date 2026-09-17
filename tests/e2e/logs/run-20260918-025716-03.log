@@ -1,0 +1,233 @@
+
+Running 58 tests using 1 worker
+
+TC-23 :: 首次恢复失败 → 引导登录（refresh 请求数=1，静置 6s 后=1）；恢复后再次导航 → URL=http://localhost:5173/draw，徽标="今日剩余次数： 3 次 每日上限 3 次"
+  ok  1 [chromium] › tests\e2e\coverage.spec.ts:91:3 › 覆盖补做（回归轮） › TC-23 恢复失败后可再试一次，且不得定时器循环重试 (8.2s)
+TC-25 :: refresh 响应缺 user → URL=http://localhost:5173/login?redirect=/draw；refresh 请求数=1；页面文本长度=83（不白屏）
+  ok  2 [chromium] › tests\e2e\coverage.spec.ts:126:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） (824ms)
+TC-38b :: 徽标（抽奖回写后）="今日剩余次数： 1 次 每日上限 3 次"；随后的次数刷新请求数=1（均注入失败）
+  ok  3 [chromium] › tests\e2e\coverage.spec.ts:153:3 › 覆盖补做（回归轮） › TC-38b 抽奖响应先回写次数，随后的次数刷新失败不覆盖已确认值 (4.8s)
+TC-48c :: 后端返回 itemId=3（快照外条目 id=3）；弹层文案="恭喜获得 三等奖 · 定制马克杯  已记入我的中奖记录  今日剩余次数：2 次  查看我的中奖记录 继续抽奖 Close"；抽奖后奖池重拉次数=1（50 原文期望「重拉奖池一次再定位」）
+  ok  4 [chromium] › tests\e2e\coverage.spec.ts:181:3 › 覆盖补做（回归轮） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、结果反馈不被阻塞） (5.8s)
+TC-76 :: 生产基线 appsettings.json：Deterministic.Enabled=false，ForcedResults=0 项，WeightOverrides=0 项
+TC-76 :: 生产配置启动：未登录访问 /api/v1/prizes → HTTP=401（期望 401）；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-prod-start-20260918-025738-01.log；停止=killed(exit)
+TC-76 :: 注入「Deterministic.Enabled=true」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-1-20260918-025739-02.log
+TC-76 :: 注入「ForcedResults 非空」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-2-20260918-025739-03.log
+TC-76 :: 注入「WeightOverrides 非空」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-3-20260918-025740-04.log
+TC-76 :: 生产产物确定性键取值 → Draw:Deterministic:Enabled=false（期望 false）、Draw:Deterministic:ForcedResults.length=0（期望 0）、Prize:WeightOverrides 键数=0（期望 0）
+  ok  5 [chromium] › tests\e2e\coverage.spec.ts:332:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-76 生产配置：正常启动 + 任意确定性注入 fail fast + 生产产物配置节 (3.5s)
+TC-77 :: Testing 实例就绪（HTTP=401）；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc77-testing-20260918-025743-05.log
+TC-77 :: AC-08 强制命中 → itemId=2（期望 2）isWin=true remaining=2；库存 1→0；记录数=1（奖品名="??? � ????"）
+TC-77 :: AC-09 强制未中奖 → itemId=5（期望 5）isWin=false remaining=2；记录数=0
+TC-77 :: 权重覆盖判别（库内权重全 0 + Prize__WeightOverrides__prize-coupon=5）→ itemId=4（覆盖生效应为 4；未生效将回退末位 5）
+TC-77 :: 实例已停止（killed(exit)）；独立测试库奖池已还原为 FR-03 默认值
+  ok  6 [chromium] › tests\e2e\coverage.spec.ts:418:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-77 测试环境（Testing）：确定性强制命中 / 权重覆盖 / 库存夹具场景生效 (6.3s)
+TC-85 :: vue-tsc --noEmit exit=0
+TC-85 :: vite build exit=0
+✓ 2680 modules transformed.
+✓ built in 1.20s
+TC-85 :: 入口 chunk = index-DSVEbnte.js；全部 JS 分包 = auth-BvKBOVOU.js, AuthLayout-GLYH98oJ.js, button-NOAWyLM-.js, CardContent-x-NP-aMP.js, datetime-xtCsPtzz.js, DrawView-DLDbtu8s.js, index-DSVEbnte.js, LoginView-BkQHVKFw.js, RegisterView-C9uve35h.js, rolldown-runtime-DK3Fl9T5.js, useId-CK7zRkZ4.js, WinningRecordsView-BNBLQjTC.js
+TC-85 :: 视图分包 RegisterView：RegisterView-C9uve35h.js（3822 B）
+TC-85 :: 视图分包 LoginView：LoginView-BkQHVKFw.js（3088 B）
+TC-85 :: 视图分包 DrawView：DrawView-DLDbtu8s.js（44328 B）
+TC-85 :: 视图分包 WinningRecordsView：WinningRecordsView-BNBLQjTC.js（53270 B）
+TC-85 :: 主 chunk index-DSVEbnte.js：raw=28501 B，gzip=11297 B（预算 ≤ 512000 B，规范十四）
+TC-85 :: 列表强制分页：视图传参 pageIndex/pageSize=true；api 走 PageQuery 分页=true（tC-67 运行时已验证单页 ≤10）
+  ok  7 [chromium] › tests\e2e\coverage.spec.ts:504:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-85 生产构建产物：路由懒加载分包 + 主 chunk gzip 预算 + 列表强制分页 (4.8s)
+  ok  8 [chromium] › tests\e2e\qa.spec.ts:107:3 › M1 注册 › TC-01 注册成功 → 自动登录并落地 /draw，剩余 3 次 (1.0s)
+TC-02 :: 变体用户名=E026QKOHMI5；落地 URL=http://localhost:5173/register；invalid 锚点=1；错误元素数=0；文案="(无错误元素)"；新建同名用户数=0
+  ok  9 [chromium] › tests\e2e\qa.spec.ts:120:3 › M1 注册 › TC-02 已存在用户名的大小写变体 → 就地提示「用户名已被占用」并停留注册页 (2.5s)
+  ok 10 [chromium] › tests\e2e\qa.spec.ts:146:3 › M1 注册 › TC-03 密码缺大写/小写/数字 → 本地拦截不提交；TC-05 两次输入不一致 (2.4s)
+TC-04 :: len8:放行(期望 放行) | len20:放行(期望 放行) | len7:拦截(期望 拦截) | len21:拦截(期望 拦截)
+  ok 11 [chromium] › tests\e2e\qa.spec.ts:167:3 › M1 注册 › TC-04 密码长度边界：8/20 位通过本地校验，7/21 位被拒 (3.4s)
+TC-06 :: "abc"→拦截 | "aaaaaaaaaaaaaaaaaaaaa"→拦截 | "中文用户名"→拦截 | "user-name"→拦截 | "user name"→拦截 | "user@name"→拦截
+  ok 12 [chromium] › tests\e2e\qa.spec.ts:191:3 › M1 注册 › TC-06 用户名规则就地拦截（3/21/中文/连字符/空格/@） (3.3s)
+  x  13 [chromium] › tests\e2e\qa.spec.ts:212:3 › M1 注册 › TC-07 提交中按钮 disabled 并显示加载指示（人工延迟） (16.0s)
+  ok 14 [chromium] › tests\e2e\qa.spec.ts:235:3 › M2 登录与登出 › TC-10 登录成功 → /draw 且剩余 3 次 (1.4s)
+TC-11 :: 登录后落地 URL=http://localhost:5173/records（期望含 /records）
+  ok 15 [chromium] › tests\e2e\qa.spec.ts:248:3 › M2 登录与登出 › TC-11 未登录访问 /records → 登录后回跳 /records (3.4s)
+TC-12 :: 统一文案="用户名或密码错误 请检查后重试。为防账号枚举，此处不区分「用户名不存在」与「密码错误」。"
+  ok 16 [chromium] › tests\e2e\qa.spec.ts:265:3 › M2 登录与登出 › TC-12 登录失败统一文案（存在/不存在/空密码）且不签发凭证 (2.3s)
+  ok 17 [chromium] › tests\e2e\qa.spec.ts:291:3 › M2 登录与登出 › TC-14 / TC-15 未登录访问 /draw → 守卫跳转携带 redirect，登录后回跳原目标页 (2.5s)
+  ok 18 [chromium] › tests\e2e\qa.spec.ts:307:3 › M2 登录与登出 › TC-16 登录提交中按钮禁用并显示加载指示 (3.2s)
+  ok 19 [chromium] › tests\e2e\qa.spec.ts:325:3 › M2 登录与登出 › TC-18 登出 → 回到登录页、会话态清空、再访受保护页需重新登录 (1.9s)
+  ok 20 [chromium] › tests\e2e\qa.spec.ts:344:3 › M3 会话与恢复 › TC-19 新标签页直接打开 /draw → 静默恢复放行，不闪登录页 (2.0s)
+  ok 21 [chromium] › tests\e2e\qa.spec.ts:367:3 › M3 会话与恢复 › TC-20 refresh 无效 → /records 重定向登录页并携带 redirect，不白屏 (871ms)
+  ok 22 [chromium] › tests\e2e\qa.spec.ts:384:3 › M3 会话与恢复 › TC-21 公开页 /login、/register 进入不触发刷新请求 (2.3s)
+TC-22 :: 同一 BrowserContext 下两个页面实例并发进入 /draw 与 /records，refresh 请求数=2（同一页面实例内应为 1；跨页面实例各自持内存态，§2.8-4 的一次性闸门为「每页面实例」语义）
+  ok 23 [chromium] › tests\e2e\qa.spec.ts:399:3 › M3 会话与恢复 › TC-22 并发进入两个受保护路由 → 全程仅 1 次刷新请求 (3.9s)
+  ok 24 [chromium] › tests\e2e\qa.spec.ts:420:3 › M3 会话与恢复 › TC-24 凭证仅存内存：本地存储无 token，refresh 仅 httpOnly Cookie (1.1s)
+  ok 25 [chromium] › tests\e2e\qa.spec.ts:444:3 › M4 奖池展示 › TC-26 转盘扇区与后端启用的奖池条目一一对应（默认 5 条） (2.4s)
+  x  26 [chromium] › tests\e2e\qa.spec.ts:466:3 › M4 奖池展示 › TC-29 奖池加载态：展示 page-draw--loading 后替换为 default (30.1s)
+TC-30 :: 错误态文案="奖池加载失败 | 系统繁忙，请稍后重试 | 重试"
+  ok 27 [chromium] › tests\e2e\qa.spec.ts:478:3 › M4 奖池展示 › TC-30 奖池错误态 + 重试（纯只读，不影响次数） (1.1s)
+  ok 28 [chromium] › tests\e2e\qa.spec.ts:501:3 › M4 奖池展示 › TC-31 奖池空态：page-draw--empty 且抽奖按钮禁用 (754ms)
+TC-33 :: 抽奖前徽标="今日剩余次数： 3 次 每日上限 3 次"
+TC-34 :: 抽奖后 lose 弹层元素数=1；当前页文本片段="转盘抽奖 幸运抽奖 我的中奖记录 e338n4haanm 登出 一等奖 二等奖 三等奖 幸运奖 谢谢参与 1 2 3 4 5 转盘抽奖 今日剩余次数：2 次 今日剩余次数： 2 次 每日上限 3 次 开始抽奖 奖池 1 一等奖 · 机械键盘 实物 2 二等奖 · 蓝牙耳机 实物 3 三等奖 · 定制马克杯 实物 4 幸"
+TC-33 :: 抽奖后徽标="今日剩余次数： 2 次 每日上限 3 次"（期望 2）
+  ok 29 [chromium] › tests\e2e\qa.spec.ts:518:3 › M5 剩余次数 › TC-33 / TC-34 抽奖前 3 次、抽奖后 2 次；未中奖同样消耗次数 (6.3s)
+  ok 30 [chromium] › tests\e2e\qa.spec.ts:541:3 › M5 剩余次数 › TC-35 次数用尽：noquota 锚点 + 按钮真实 disabled + 文案 (1.5s)
+  ok 31 [chromium] › tests\e2e\qa.spec.ts:556:3 › M5 剩余次数 › TC-37 次数未知不得当作 0：不展示 noquota、按钮可用、徽标为占位 (757ms)
+  ok 32 [chromium] › tests\e2e\qa.spec.ts:572:3 › M5 剩余次数 › TC-38 次数未知态下抽奖收 1501 → 权威置 0 并切 noquota (1.5s)
+TC-38c :: resetAt=2026-09-18T16:00:00+00:00（UTC）= 2026-09-18T16:00:00.000Z，为 UTC+8 次日 00:00
+  ok 33 [chromium] › tests\e2e\qa.spec.ts:589:3 › M5 剩余次数 › TC-38c(E2E) 次数徽标含「明日 0 点重置」引导，与接口 resetAt 口径一致 (1.9s)
+TC-39 :: 后端返回={"itemId":1,"isWin":true,"remainingAttempts":2}；弹层文案=恭喜获得 一等奖 · 机械键盘  已记入我的中奖记录  今日剩余次数：2 次  查看我的中奖记录 继续抽奖 Close
+  ok 34 [chromium] › tests\e2e\qa.spec.ts:612:3 › M6 抽奖执行与动画 › TC-39 / TC-39b 确定命中：转盘落点与后端结果一致，弹层显示奖品名与入账提示 (5.0s)
+  ok 35 [chromium] › tests\e2e\qa.spec.ts:635:3 › M6 抽奖执行与动画 › TC-40(E2E) 中奖后：次数 -1、库存 -1、记录 +1，页面对应 (5.6s)
+  ok 36 [chromium] › tests\e2e\qa.spec.ts:656:3 › M6 抽奖执行与动画 › TC-41 闭合弹层回到 default 且次数已刷新 (4.6s)
+  x  37 [chromium] › tests\e2e\qa.spec.ts:670:3 › M6 抽奖执行与动画 › TC-42 未中奖：落在「谢谢参与」、弹层 lose、次数 -1、记录不新增 (30.1s)
+  ok 38 [chromium] › tests\e2e\qa.spec.ts:688:3 › M6 抽奖执行与动画 › TC-43 / TC-44 点击瞬间即 disabled 并进入 drawing；动画期重复点击不产生第二次提交 (6.1s)
+  ok 39 [chromium] › tests\e2e\qa.spec.ts:712:3 › M6 抽奖执行与动画 › TC-45 抽奖请求失败：不播动画、进入 drawfail、次数不变、不白屏 (1.2s)
+  ok 40 [chromium] › tests\e2e\qa.spec.ts:726:3 › M6 抽奖执行与动画 › TC-46(E2E) 限流 429：展示「系统繁忙，请稍后重试」且不误判为次数用尽 (1.2s)
+  ok 41 [chromium] › tests\e2e\qa.spec.ts:747:3 › M6 抽奖执行与动画 › TC-48(E2E) 候选集为空 → 前端进入 empty 态且次数不扣 (2.2s)
+TC-60 :: 表头文本="奖品名称	中奖时间 | "
+TC-60 :: 行数=2，表格文本=三等奖 · 定制马克杯	2026-09-18 03:00 | 三等奖 · 定制马克杯	2026-09-18 02:59，单元格=三等奖 · 定制马克杯 / 2026-09-18 03:00 / 三等奖 · 定制马克杯 / 2026-09-18 02:59
+  ok 42 [chromium] › tests\e2e\qa.spec.ts:778:3 › M9 中奖记录 › TC-60 记录隔离：仅返回本人记录、时间倒序、列含奖品名与中奖时间 (1.5s)
+TC-61 :: 第1页=10 第2页=1，第2页 id=["records-row-18"]
+  ok 43 [chromium] › tests\e2e\qa.spec.ts:817:3 › M9 中奖记录 › TC-61 分页：11 条记录，每页 10 条、不重不漏、跨页倒序连续 (2.3s)
+TC-63 :: 接口 winTime=2026-09-17T19:00:34+00:00（无时区标识）；DB(UTC)=2026-09-17 19:00:34.000000；期望展示(UTC+8)=2026-09-18 03:00；若按本地时间误解析则为=2026-09-17 19:00；页面含期望值=true
+  ok 44 [chromium] › tests\e2e\qa.spec.ts:840:3 › M9 中奖记录 › TC-63(E2E) 接口时间 ISO 8601，页面按 UTC+8 yyyy-MM-dd HH:mm 展示且换算一致 (1.2s)
+  ok 45 [chromium] › tests\e2e\qa.spec.ts:861:3 › M9 中奖记录 › TC-64 空态：page-records--empty 文案正确 (948ms)
+TC-65 :: 加载态文本=	 |  |  | 	 |  |  | 	 |  | 加载中…；骨架/行元素计数=4
+  ok 46 [chromium] › tests\e2e\qa.spec.ts:870:3 › M9 中奖记录 › TC-65 加载态：表头保留 + 表体 3 行骨架 (3.0s)
+  x  47 [chromium] › tests\e2e\qa.spec.ts:893:3 › M9 中奖记录 › TC-66 错误态 + 重试成功 (30.1s)
+TC-67 :: 15 条记录时单页渲染行数=10
+  ok 48 [chromium] › tests\e2e\qa.spec.ts:910:3 › M9 中奖记录 › TC-67(E2E) 单页渲染行数 ≤ 10（强制分页） (13.8s)
+TC-68 :: 越界后行数=1，是否出现空态=false（下一页按钮可用=false）
+  ok 49 [chromium] › tests\e2e\qa.spec.ts:922:3 › M9 中奖记录 › TC-68 翻页越界回退（第 2 页再点下一页） (2.3s)
+  ok 50 [chromium] › tests\e2e\qa.spec.ts:942:3 › M9 中奖记录 › TC-68b 记录只读：无修改/删除入口 (1.2s)
+TC-69 :: 首次失败后 remaining=2（服务端已执行则应为 2）
+TC-70 :: 幂等键序列=["db46cada-b544-47f7-8648-9cb4dc9506f0","db46cada-b544-47f7-8648-9cb4dc9506f0"]，重试后 remaining=2
+  ok 51 [chromium] › tests\e2e\qa.spec.ts:961:3 › M10 异常与错误提示 › TC-69 / TC-70 服务端已执行但响应丢失：重试沿用同键，不重复扣次 (4.3s)
+TC-71 :: code=1501 → 页面含「今日抽奖次数已用完」=true
+TC-71 :: code=1502 → 页面含「奖品已抽完」=true
+TC-71 :: code=409 → 页面含「请勿重复提交」=true
+  ok 52 [chromium] › tests\e2e\qa.spec.ts:994:3 › M10 异常与错误提示 › TC-71 已知业务拒绝直接展示后端文案（1501 / 1502 / 409） (5.5s)
+TC-72 :: 未知码 9999 时页面文本片段=转盘抽奖 幸运抽奖 我的中奖记录 e72bjp4gd8a 登出 一等奖 二等奖 三等奖 幸运奖 谢谢参与 1 2 3 4 5 转盘抽奖 今日剩余次数：— 次 今日剩余次数： — 次 开始抽奖 奖池 1 一等奖 · 机械键盘 实物 2 二等奖
+  ok 53 [chromium] › tests\e2e\qa.spec.ts:1017:3 › M10 异常与错误提示 › TC-72 前端未知业务错误码 → 通用错误展示，不白屏 (1.9s)
+TC-73 :: data.items=null 时页面非空=true，错误边界元素数=0
+  ok 54 [chromium] › tests\e2e\qa.spec.ts:1031:3 › M10 异常与错误提示 › TC-73 错误边界：接口返回异常结构不导致白屏 (1.9s)
+  ok 55 [chromium] › tests\e2e\qa.spec.ts:1045:3 › M10 异常与错误提示 › TC-73b 文案一致性抽查：抽奖页与记录页「明日 0 点重置」口径一致 (3.3s)
+  ok 56 [chromium] › tests\e2e\qa.spec.ts:1074:3 › M8 / M14 其余 › TC-59b 判定不受客户端时间影响（客户端时间改到次日） (1.2s)
+TC-86 :: 375px 下 抽奖页横向溢出=0px，记录页横向溢出=0px
+  ok 57 [chromium] › tests\e2e\qa.spec.ts:1103:3 › M8 / M14 其余 › TC-86 移动端宽度 375–428px 主链路不溢出 (1.5s)
+  x  58 [chromium] › tests\e2e\tc48c-regression.spec.ts:91:3 › TC-48c 回归复跑（BUG-04 修复验证，网络改写后端） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称） (923ms)
+
+
+  1) [chromium] › tests\e2e\qa.spec.ts:212:3 › M1 注册 › TC-07 提交中按钮 disabled 并显示加载指示（人工延迟） ──────────
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/draw$/
+    Received string:  "http://localhost:5173/register"
+    Timeout: 15000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 15000ms
+        33 × locator resolved to <html lang="zh-CN">…</html>
+           - unexpected value "http://localhost:5173/register"
+
+
+      225 |     await expect.soft(submit).toBeDisabled();
+      226 |     await submit.click({ force: true }).catch(() => undefined);
+    > 227 |     await expect(page).toHaveURL(/\/draw$/, { timeout: 15000 });
+          |                        ^
+      228 |   });
+      229 | });
+      230 |
+        at C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\qa.spec.ts:227:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M1-注册-TC-07-提交中按钮-disabled-并显示加载指示（人工延迟）-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\qa-M1-注册-TC-07-提交中按钮-disabled-并显示加载指示（人工延迟）-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M1-注册-TC-07-提交中按钮-disabled-并显示加载指示（人工延迟）-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\qa-M1-注册-TC-07-提交中按钮-disabled-并显示加载指示（人工延迟）-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\qa.spec.ts:466:3 › M4 奖池展示 › TC-29 奖池加载态：展示 page-draw--loading 后替换为 default 
+
+    Test timeout of 30000ms exceeded.
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M4-奖池展示-TC-29-奖池加载态：展示-page-draw--loading-后替换为-default-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\qa-M4-奖池展示-TC-29-奖池加载态：展示-page-draw--loading-后替换为-default-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M4-奖池展示-TC-29-奖池加载态：展示-page-draw--loading-后替换为-default-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\qa-M4-奖池展示-TC-29-奖池加载态：展示-page-draw--loading-后替换为-default-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests\e2e\qa.spec.ts:670:3 › M6 抽奖执行与动画 › TC-42 未中奖：落在「谢谢参与」、弹层 lose、次数 -1、记录不新增 ─
+
+    Test timeout of 30000ms exceeded.
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M6-抽奖执行与动画-TC-42-未中奖：落在「谢谢参与」、弹层-lose、次数--1、记录不新增-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\qa-M6-抽奖执行与动画-TC-42-未中奖：落在「谢谢参与」、弹层-lose、次数--1、记录不新增-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M6-抽奖执行与动画-TC-42-未中奖：落在「谢谢参与」、弹层-lose、次数--1、记录不新增-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\qa-M6-抽奖执行与动画-TC-42-未中奖：落在「谢谢参与」、弹层-lose、次数--1、记录不新增-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests\e2e\qa.spec.ts:893:3 › M9 中奖记录 › TC-66 错误态 + 重试成功 ──────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M9-中奖记录-TC-66-错误态-重试成功-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\qa-M9-中奖记录-TC-66-错误态-重试成功-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\qa-M9-中奖记录-TC-66-错误态-重试成功-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\qa-M9-中奖记录-TC-66-错误态-重试成功-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests\e2e\tc48c-regression.spec.ts:91:3 › TC-48c 回归复跑（BUG-04 修复验证，网络改写后端） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称） 
+
+    TypeError: fetch failed
+    [cause]: Error: connect ECONNREFUSED 127.0.0.1:5197
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\tc48c-regression-TC-48c-回归-c9f29-在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称）-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\tc48c-regression-TC-48c-回归-c9f29-在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称）-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\tc48c-regression-TC-48c-回归-c9f29-在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称）-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\tc48c-regression-TC-48c-回归-c9f29-在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称）-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › tests\e2e\qa.spec.ts:212:3 › M1 注册 › TC-07 提交中按钮 disabled 并显示加载指示（人工延迟） ───────────
+    [chromium] › tests\e2e\qa.spec.ts:466:3 › M4 奖池展示 › TC-29 奖池加载态：展示 page-draw--loading 后替换为 default 
+    [chromium] › tests\e2e\qa.spec.ts:670:3 › M6 抽奖执行与动画 › TC-42 未中奖：落在「谢谢参与」、弹层 lose、次数 -1、记录不新增 ──
+    [chromium] › tests\e2e\qa.spec.ts:893:3 › M9 中奖记录 › TC-66 错误态 + 重试成功 ───────────────────────────
+    [chromium] › tests\e2e\tc48c-regression.spec.ts:91:3 › TC-48c 回归复跑（BUG-04 修复验证，网络改写后端） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、重拉一次、弹层含名称） 
+  53 passed (4.5m)

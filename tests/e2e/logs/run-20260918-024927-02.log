@@ -1,0 +1,49 @@
+
+Running 58 tests using 1 worker
+
+  x   1 [chromium] › tests\e2e\coverage.spec.ts:91:3 › 覆盖补做（回归轮） › TC-23 恢复失败后可再试一次，且不得定时器循环重试 (15.6s)
+  x   2 [chromium] › tests\e2e\coverage.spec.ts:126:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） (15.5s)
+  x   3 [chromium] › tests\e2e\coverage.spec.ts:153:3 › 覆盖补做（回归轮） › TC-38b 抽奖响应先回写次数，随后的次数刷新失败不覆盖已确认值 (16.5s)
+  x   4 [chromium] › tests\e2e\coverage.spec.ts:181:3 › 覆盖补做（回归轮） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、结果反馈不被阻塞） (16.3s)
+TC-76 :: 生产基线 appsettings.json：Deterministic.Enabled=false，ForcedResults=0 项，WeightOverrides=0 项
+TC-76 :: 生产配置启动：未登录访问 /api/v1/prizes → HTTP=401（期望 401）；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-prod-start-20260918-025041-01.log；停止=killed(exit)
+TC-76 :: 注入「Deterministic.Enabled=true」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-1-20260918-025042-02.log
+TC-76 :: 注入「ForcedResults 非空」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-2-20260918-025042-03.log
+TC-76 :: 注入「WeightOverrides 非空」→ exit=3762504530；拒绝启动标记=true；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-3-20260918-025043-04.log
+TC-76 :: 生产产物确定性键取值 → Draw:Deterministic:Enabled=false（期望 false）、Draw:Deterministic:ForcedResults.length=0（期望 0）、Prize:WeightOverrides 键数=0（期望 0）
+  ok  5 [chromium] › tests\e2e\coverage.spec.ts:332:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-76 生产配置：正常启动 + 任意确定性注入 fail fast + 生产产物配置节 (3.5s)
+TC-77 :: Testing 实例就绪（HTTP=401）；日志=C:\叶君资料\系统代码\template for C#\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc77-testing-20260918-025046-05.log
+TC-77 :: AC-08 强制命中 → itemId=2（期望 2）isWin=true remaining=2；库存 1→0；记录数=1（奖品名="??? � ????"）
+TC-77 :: AC-09 强制未中奖 → itemId=5（期望 5）isWin=false remaining=2；记录数=0
+TC-77 :: 权重覆盖判别（库内权重全 0 + Prize__WeightOverrides__prize-coupon=5）→ itemId=4（覆盖生效应为 4；未生效将回退末位 5）
+TC-77 :: 实例已停止（killed(exit)）；独立测试库奖池已还原为 FR-03 默认值
+  ok  6 [chromium] › tests\e2e\coverage.spec.ts:418:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-77 测试环境（Testing）：确定性强制命中 / 权重覆盖 / 库存夹具场景生效 (6.5s)
+TC-85 :: vue-tsc --noEmit exit=0
+TC-85 :: vite build exit=0
+✓ 2680 modules transformed.
+✓ built in 1.03s
+TC-85 :: 入口 chunk = index-DSVEbnte.js；全部 JS 分包 = auth-BvKBOVOU.js, AuthLayout-GLYH98oJ.js, button-NOAWyLM-.js, CardContent-x-NP-aMP.js, datetime-xtCsPtzz.js, DrawView-DLDbtu8s.js, index-DSVEbnte.js, LoginView-BkQHVKFw.js, RegisterView-C9uve35h.js, rolldown-runtime-DK3Fl9T5.js, useId-CK7zRkZ4.js, WinningRecordsView-BNBLQjTC.js
+TC-85 :: 视图分包 RegisterView：RegisterView-C9uve35h.js（3822 B）
+TC-85 :: 视图分包 LoginView：LoginView-BkQHVKFw.js（3088 B）
+TC-85 :: 视图分包 DrawView：DrawView-DLDbtu8s.js（44328 B）
+TC-85 :: 视图分包 WinningRecordsView：WinningRecordsView-BNBLQjTC.js（53270 B）
+TC-85 :: 主 chunk index-DSVEbnte.js：raw=28501 B，gzip=11297 B（预算 ≤ 512000 B，规范十四）
+TC-85 :: 列表强制分页：视图传参 pageIndex/pageSize=true；api 走 PageQuery 分页=true（tC-67 运行时已验证单页 ≤10）
+  ok  7 [chromium] › tests\e2e\coverage.spec.ts:504:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-85 生产构建产物：路由懒加载分包 + 主 chunk gzip 预算 + 列表强制分页 (4.6s)
+  x   8 [chromium] › tests\e2e\qa.spec.ts:107:3 › M1 注册 › TC-01 注册成功 → 自动登录并落地 /draw，剩余 3 次 (5.2s)
+  x   9 [chromium] › tests\e2e\qa.spec.ts:120:3 › M1 注册 › TC-02 已存在用户名的大小写变体 → 就地提示「用户名已被占用」并停留注册页 (30.1s)
+  x  10 [chromium] › tests\e2e\qa.spec.ts:146:3 › M1 注册 › TC-03 密码缺大写/小写/数字 → 本地拦截不提交；TC-05 两次输入不一致 (30.1s)
+  x  11 [chromium] › tests\e2e\qa.spec.ts:167:3 › M1 注册 › TC-04 密码长度边界：8/20 位通过本地校验，7/21 位被拒 (30.1s)
+  x  12 [chromium] › tests\e2e\qa.spec.ts:191:3 › M1 注册 › TC-06 用户名规则就地拦截（3/21/中文/连字符/空格/@） (30.1s)
+  x  13 [chromium] › tests\e2e\qa.spec.ts:212:3 › M1 注册 › TC-07 提交中按钮 disabled 并显示加载指示（人工延迟） (30.1s)
+  x  14 [chromium] › tests\e2e\qa.spec.ts:235:3 › M2 登录与登出 › TC-10 登录成功 → /draw 且剩余 3 次 (5.4s)
+  x  15 [chromium] › tests\e2e\qa.spec.ts:248:3 › M2 登录与登出 › TC-11 未登录访问 /records → 登录后回跳 /records (10.4s)
+  x  16 [chromium] › tests\e2e\qa.spec.ts:265:3 › M2 登录与登出 › TC-12 登录失败统一文案（存在/不存在/空密码）且不签发凭证 (30.1s)
+  x  17 [chromium] › tests\e2e\qa.spec.ts:291:3 › M2 登录与登出 › TC-14 / TC-15 未登录访问 /draw → 守卫跳转携带 redirect，登录后回跳原目标页 (25.5s)
+  x  18 [chromium] › tests\e2e\qa.spec.ts:307:3 › M2 登录与登出 › TC-16 登录提交中按钮禁用并显示加载指示 (30.1s)
+  x  19 [chromium] › tests\e2e\qa.spec.ts:325:3 › M2 登录与登出 › TC-18 登出 → 回到登录页、会话态清空、再访受保护页需重新登录 (15.5s)
+  x  20 [chromium] › tests\e2e\qa.spec.ts:344:3 › M3 会话与恢复 › TC-19 新标签页直接打开 /draw → 静默恢复放行，不闪登录页 (15.4s)
+  x  21 [chromium] › tests\e2e\qa.spec.ts:367:3 › M3 会话与恢复 › TC-20 refresh 无效 → /records 重定向登录页并携带 redirect，不白屏 (15.3s)
+  x  22 [chromium] › tests\e2e\qa.spec.ts:384:3 › M3 会话与恢复 › TC-21 公开页 /login、/register 进入不触发刷新请求 (5.2s)
+TC-22 :: 同一 BrowserContext 下两个页面实例并发进入 /draw 与 /records，refresh 请求数=0（同一页面实例内应为 1；跨页面实例各自持内存态，§2.8-4 的一次性闸门为「每页面实例」语义）
+  ok 23 [chromium] › tests\e2e\qa.spec.ts:399:3 › M3 会话与恢复 › TC-22 并发进入两个受保护路由 → 全程仅 1 次刷新请求 (3.5s)
