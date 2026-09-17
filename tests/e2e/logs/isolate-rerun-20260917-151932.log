@@ -1,0 +1,13 @@
+
+Running 6 tests using 1 worker
+
+TC-02 :: 变体用户名=E028OTP9HFF；落地 URL=http://localhost:5173/register；invalid 锚点=1；错误元素数=0；文案="(无错误元素)"；新建同名用户数=0
+  ok 1 [chromium] › tests\e2e\qa.spec.ts:120:3 › M1 注册 › TC-02 已存在用户名的大小写变体 → 就地提示「用户名已被占用」并停留注册页 (2.5s)
+TC-04 :: len8:放行(期望 放行) | len20:放行(期望 放行) | len7:拦截(期望 拦截) | len21:拦截(期望 拦截)
+  ok 2 [chromium] › tests\e2e\qa.spec.ts:167:3 › M1 注册 › TC-04 密码长度边界：8/20 位通过本地校验，7/21 位被拒 (3.2s)
+  ok 3 [chromium] › tests\e2e\qa.spec.ts:212:3 › M1 注册 › TC-07 提交中按钮 disabled 并显示加载指示（人工延迟） (2.6s)
+  ok 4 [chromium] › tests\e2e\qa.spec.ts:466:3 › M4 奖池展示 › TC-29 奖池加载态：展示 page-draw--loading 后替换为 default (2.2s)
+  ok 5 [chromium] › tests\e2e\qa.spec.ts:670:3 › M6 抽奖执行与动画 › TC-42 未中奖：落在「谢谢参与」、弹层 lose、次数 -1、记录不新增 (4.5s)
+  ok 6 [chromium] › tests\e2e\qa.spec.ts:893:3 › M9 中奖记录 › TC-66 错误态 + 重试成功 (1.0s)
+
+  6 passed (16.9s)

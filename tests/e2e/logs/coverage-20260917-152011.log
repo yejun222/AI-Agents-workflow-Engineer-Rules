@@ -1,0 +1,48 @@
+
+Running 4 tests using 1 worker
+
+TC-23 :: 首次恢复失败 → 引导登录（refresh 请求数=1，静置 6s 后=1）；恢复后再次导航 → URL=http://localhost:5173/draw，徽标="今日剩余次数： 3 次 每日上限 3 次"
+  ok 1 [chromium] › tests\e2e\coverage.spec.ts:79:3 › 覆盖补做（回归轮） › TC-23 恢复失败后可再试一次，且不得定时器循环重试 (7.6s)
+TC-25 :: refresh 响应缺 user → URL=http://localhost:5173/login?redirect=/draw；refresh 请求数=1；页面文本长度=83（不白屏）
+  x  2 [chromium] › tests\e2e\coverage.spec.ts:114:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） (907ms)
+TC-38b :: 徽标（抽奖回写后）="今日剩余次数： 1 次 每日上限 3 次"；随后的次数刷新请求数=1（均注入失败）
+  ok 3 [chromium] › tests\e2e\coverage.spec.ts:140:3 › 覆盖补做（回归轮） › TC-38b 抽奖响应先回写次数，随后的次数刷新失败不覆盖已确认值 (26.4s)
+TC-48c :: 后端返回 itemId=3（快照外条目 id=3）；弹层文案="恭喜获得  已记入我的中奖记录  今日剩余次数：2 次  查看我的中奖记录 继续抽奖 Close"；抽奖后奖池重拉次数=0（50 原文期望「重拉奖池一次再定位」）
+  ok 4 [chromium] › tests\e2e\coverage.spec.ts:168:3 › 覆盖补做（回归轮） › TC-48c 结果条目不在奖池快照时的落点渲染（不白屏、结果反馈不被阻塞） (3.1s)
+
+
+  1) [chromium] › tests\e2e\coverage.spec.ts:114:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） 
+
+    Error: 不得以残缺会话放行到受保护页
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /\/draw$/
+    Received string:      "http://localhost:5173/login?redirect=/draw"
+
+      132 |     const bodyText = (await page.locator('body').innerText()).trim();
+      133 |     expect.soft(bodyText.length, '不得白屏').toBeGreaterThan(0);
+    > 134 |     expect.soft(page.url(), '不得以残缺会话放行到受保护页').not.toMatch(/\/draw$/);
+          |                                                   ^
+      135 |     console.log(
+      136 |       `TC-25 :: refresh 响应缺 user → URL=${page.url()}；refresh 请求数=${refreshCalls}；页面文本长度=${bodyText.length}（不白屏）`
+      137 |     );
+        at D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\coverage.spec.ts:134:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\coverage-覆盖补做（回归轮）-TC-25-旧-ba67c--字段-→-按恢复失败处理并引导登录（不白屏、不放行）-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: tests\e2e\.artifacts\coverage-覆盖补做（回归轮）-TC-25-旧-ba67c--字段-→-按恢复失败处理并引导登录（不白屏、不放行）-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    tests\e2e\.artifacts\coverage-覆盖补做（回归轮）-TC-25-旧-ba67c--字段-→-按恢复失败处理并引导登录（不白屏、不放行）-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace tests\e2e\.artifacts\coverage-覆盖补做（回归轮）-TC-25-旧-ba67c--字段-→-按恢复失败处理并引导登录（不白屏、不放行）-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests\e2e\coverage.spec.ts:114:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） 
+  3 passed (39.3s)

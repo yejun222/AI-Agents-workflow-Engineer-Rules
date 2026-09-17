@@ -1,0 +1,383 @@
+══ TC-56b 事务中途失败 → 三方一致回滚 ══
+实例 = http://127.0.0.1:5198/api/v1 ；库 = luckydraw_test ；时间 = 2026-09-17T10:27:21.518Z
+
+── 阶段 0：实例健康 + 注册取证（复核签发路径可用） ──
+注册成功：userName=tc56b_y71r3r0w userId=631 token=已签发
+GET /draw/quota → http=200 body={"code":0,"message":"","data":{"remainingAttempts":30000,"dailyLimit":30000,"resetAt":"2026-09-17T16:00:00+00:00"}}
+
+── 阶段 1：FK 事实复核（SHOW CREATE TABLE 实测） ──
+  DrawRequest: （无 FK）
+  UserDrawQuota: （无 FK）
+  WinningRecord: CONSTRAINT `FK_WinningRecord_PrizeItem_PrizeItemId` FOREIGN KEY ; CONSTRAINT `FK_WinningRecord_User_UserId` FOREIGN KEY
+  AuditLog: （无 FK）
+
+── 阶段 2：夹具（候选集收窄至 prize-mug，避免 no-prize 导致 ⑥ 不可达） ──
+候选集（SQL 枚举）= [prize-mug]
+奖池实测 = [{"id":1,"code":"prize-keyboard","type":1,"weight":1,"stock":3,"enabled":0,"deleted":0},{"id":2,"code":"prize-earbuds","type":1,"weight":3,"stock":10,"enabled":0,"deleted":0},{"id":3,"code":"prize-mug","type":1,"weight":10,"stock":5,"enabled":1,"deleted":0},{"id":4,"code":"prize-coupon","type":2,"weight":20,"stock":200,"enabled":0,"deleted":0},{"id":5,"code":"no-prize","type":3,"weight":66,"stock":0,"enabled":0,"deleted":0}]
+
+── 阶段 3：探针抽奖（建立配额行；验证会走到 ⑥ 中奖记录） ──
+探针抽奖 → http=200 body={"code":0,"message":"","data":{"itemId":3,"isWin":true,"remainingAttempts":29999}} elapsed=241ms
+
+── 阶段 4：基线快照（读库原文） ──
+  UserDrawQuota = {"drawDate":"2026-09-17","usedCount":1,"raw":"2026-09-17\t1"}
+  prize-mug.Stock = 4 ；WinningRecord(user) = 1 ；DrawRequest(user) = 1 ；AuditLog(Draw) = 1
+  AUTO_INCREMENT: DrawRequest=17637 WinningRecord=5390
+
+── 阶段 5：注入 —— 另一连接对 User(631) 持 X 锁（hold=300s） ──
+  锁持有连接 id = 23438（经 processlist 标记 'tc56b_lock_holder' 定位）
+  User 行锁探测（FOR UPDATE NOWAIT）→ locked=true raw=__ERR__Command failed: docker exec luckydraw-mysql mysql -uroot -pdevonly -D luckydraw_test -N -B -e START TRANSACTION; SELECT Id FROM User WHERE Id = 631 FOR U
+
+── 阶段 6：触发抽奖（中途失败注入） ──
+  t+0.4s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:00\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+2.2s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:02\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+4.1s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:04\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+5.9s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:05\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+7.7s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:07\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+9.6s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:09\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+11.5s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:11\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+13.3s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:13\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+15.1s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:15\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+16.9s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:16\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+18.7s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:18\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+20.5s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:20\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+22.3s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:22\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+24.1s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:24\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+25.9s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:25\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+27.7s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:27\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+29.5s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:29\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+31.3s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:31\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+33.1s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:33\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+34.9s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:34\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+36.7s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:36\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+38.5s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:38\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+40.3s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:40\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+42.1s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:42\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+43.9s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:43\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+45.7s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:45\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+47.4s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:47\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+49.2s | lockWaits="46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:49\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)" | waiterTrx(id=46596)="LOCK WAIT\t4\t4\t2026-09-17 10:27:27" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+51.0s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:01\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+52.8s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:02\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+54.6s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:04\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+56.4s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:06\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+58.2s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:08\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+60.0s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:10\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+61.8s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:11\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+63.6s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:13\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+65.4s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:15\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+67.2s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:17\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+69.0s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:18\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+70.8s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:20\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+72.5s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:22\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+74.3s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:24\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+76.1s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:26\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+77.9s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:27\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+79.7s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:29\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+81.5s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:31\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+83.3s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:33\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+85.1s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:35\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+86.9s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:36\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+88.7s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:38\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+90.6s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:40\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+92.4s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:42\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+94.1s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:44\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+95.9s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:45\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+97.8s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:47\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+  t+99.5s | lockWaits="46604\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:49\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)" | waiterTrx(id=46604)="LOCK WAIT\t4\t4\t2026-09-17 10:28:17" | holderTrx="46594\tRUNNING\t0\t1\t2026-09-17 10:27:26"
+
+抽奖响应 → http=200 code=1001 msg=系统繁忙，请稍后重试 elapsed=101037ms error=none
+  原始响应体 = {"code":1001,"message":"系统繁忙，请稍后重试","data":null}
+
+── 阶段 7：释放锁 ──
+  KILL 23438 → 
+  连接残留数 = 0 ；User 行锁探测 → locked=false
+
+── 阶段 8：三方（+流水 / 审计）一致性核验（读库原文） ──
+  UserDrawQuota = {"drawDate":"2026-09-17","usedCount":1,"raw":"2026-09-17\t1"}
+  prize-mug.Stock = 4 ；WinningRecord(user) = 1 ；DrawRequest(user) = 1 ；AuditLog(Draw) = 1
+  AUTO_INCREMENT: DrawRequest=17639 WinningRecord=5392
+  [OK] UserDrawQuota.UsedCount 未变（1 → 1）
+  [OK] PrizeItem(prize-mug).Stock 未变（4 → 4）
+  [OK] WinningRecord 无新行（1 → 1）
+  [OK] DrawRequest 无残留行（1 → 1）
+  [OK] AuditLog(Draw) 无残留行（1 → 1）
+  失败点旁证（AUTO_INCREMENT 前进量，回滚不回收）：DrawRequest=+2 WinningRecord=+2
+
+[PASS] TC-56b :: 终态 = http=200 code=1001 msg=系统繁忙，请稍后重试（期望 200 / 1001「系统繁忙，请稍后重试」→ terminalOk=true）；elapsed=101.0s（期望 ≥90s 且 ≤客户端超时，即整事务重试确已发生 → budgetOk=true）；回滚一致性 5/5 项通过；失败点 = 「至少一次写入之后」：等待方事务阻塞前 rows_modified=4，AUTO_INCREMENT 前进 DrawRequest+2 / WinningRecord+2 → true
+
+── 收尾复位 ──
+  KILL 锁持有连接 23438 → __ERR__Command failed: docker exec luckydraw-mysql mysql -uroot -pdevonly -D luc
+  锁持有进程已终止
+  奖池已复位为 FR-03 默认值：[{"id":1,"code":"prize-keyboard","type":1,"weight":1,"stock":3,"enabled":1,"deleted":0},{"id":2,"code":"prize-earbuds","type":1,"weight":3,"stock":10,"enabled":1,"deleted":0},{"id":3,"code":"prize-mug","type":1,"weight":10,"stock":50,"enabled":1,"deleted":0},{"id":4,"code":"prize-coupon","type":2,"weight":20,"stock":200,"enabled":1,"deleted":0},{"id":5,"code":"no-prize","type":3,"weight":66,"stock":0,"enabled":1,"deleted":0}]
+  Redis db 2 已 flush
+
+══ 汇总 ══
+[PASS] TC-56b :: 终态 = http=200 code=1001 msg=系统繁忙，请稍后重试（期望 200 / 1001「系统繁忙，请稍后重试」→ terminalOk=true）；elapsed=101.0s（期望 ≥90s 且 ≤客户端超时，即整事务重试确已发生 → budgetOk=true）；回滚一致性 5/5 项通过；失败点 = 「至少一次写入之后」：等待方事务阻塞前 rows_modified=4，AUTO_INCREMENT 前进 DrawRequest+2 / WinningRecord+2 → true
+总耗时 110.0s
+
+JSON_EVIDENCE_BEGIN
+{
+  "base": "http://127.0.0.1:5198/api/v1",
+  "db": "luckydraw_test",
+  "phases": {
+    "health": {
+      "userName": "tc56b_y71r3r0w",
+      "userId": 631,
+      "tokenIssued": true,
+      "quota": {
+        "remainingAttempts": 30000,
+        "dailyLimit": 30000,
+        "resetAt": "2026-09-17T16:00:00+00:00"
+      }
+    },
+    "fkFacts": {
+      "DrawRequest": [
+        "（无 FK）"
+      ],
+      "UserDrawQuota": [
+        "（无 FK）"
+      ],
+      "WinningRecord": [
+        "CONSTRAINT `FK_WinningRecord_PrizeItem_PrizeItemId` FOREIGN KEY",
+        "CONSTRAINT `FK_WinningRecord_User_UserId` FOREIGN KEY"
+      ],
+      "AuditLog": [
+        "（无 FK）"
+      ]
+    },
+    "fixture": {
+      "candidates": [
+        "prize-mug"
+      ],
+      "pool": [
+        {
+          "id": 1,
+          "code": "prize-keyboard",
+          "type": 1,
+          "weight": 1,
+          "stock": 3,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 2,
+          "code": "prize-earbuds",
+          "type": 1,
+          "weight": 3,
+          "stock": 10,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 3,
+          "code": "prize-mug",
+          "type": 1,
+          "weight": 10,
+          "stock": 5,
+          "enabled": 1,
+          "deleted": 0
+        },
+        {
+          "id": 4,
+          "code": "prize-coupon",
+          "type": 2,
+          "weight": 20,
+          "stock": 200,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 5,
+          "code": "no-prize",
+          "type": 3,
+          "weight": 66,
+          "stock": 0,
+          "enabled": 0,
+          "deleted": 0
+        }
+      ]
+    },
+    "probe": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "itemId": 3,
+          "isWin": true,
+          "remainingAttempts": 29999
+        }
+      },
+      "ms": 240.6176999999998
+    },
+    "baseline": {
+      "quota": {
+        "drawDate": "2026-09-17",
+        "usedCount": 1,
+        "raw": "2026-09-17\t1"
+      },
+      "mugStock": 4,
+      "records": 1,
+      "drawRequests": 1,
+      "audits": 1,
+      "autoIncDrawRequest": 17637,
+      "autoIncWinningRecord": 5390,
+      "at": "2026-09-17T10:27:26.511Z"
+    },
+    "holder": {
+      "connId": 23438,
+      "holdSeconds": 300,
+      "stdout": "",
+      "lockProbe": {
+        "locked": true,
+        "raw": "__ERR__Command failed: docker exec luckydraw-mysql mysql -uroot -pdevonly -D luckydraw_test -N -B -e START TRANSACTION; SELECT Id FROM User WHERE Id = 631 FOR UPDATE N"
+      }
+    },
+    "injection": {
+      "key": "756e10f7-44e2-471b-87eb-29a92b34748c",
+      "holderConn": 23438,
+      "elapsedMs": 101037,
+      "http": 200,
+      "body": {
+        "code": 1001,
+        "message": "系统繁忙，请稍后重试",
+        "data": null
+      },
+      "text": "{\"code\":1001,\"message\":\"系统繁忙，请稍后重试\",\"data\":null}",
+      "error": null,
+      "inflightSamples": 56,
+      "firstLockWait": {
+        "t": 398,
+        "row": "46596\t46594\t`luckydraw_test`.`User`\tPRIMARY\t23416\t23438\t00:00:00\tINSERT INTO `WinningRecord` (` ... -09-17 10:27:27.271373'), 631)",
+        "waiter": "LOCK WAIT\t4\t4\t2026-09-17 10:27:27"
+      },
+      "waiterTrxEvidence": {
+        "trxId": "46596",
+        "waiter": "LOCK WAIT\t4\t4\t2026-09-17 10:27:27",
+        "at": 398
+      },
+      "inflightTail": [
+        "t+90.6s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:40\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\"",
+        "t+92.4s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:42\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\"",
+        "t+94.1s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:44\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\"",
+        "t+95.9s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:45\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\"",
+        "t+97.8s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:47\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\"",
+        "t+99.5s | lockWaits=\"46604\\t46594\\t`luckydraw_test`.`User`\\tPRIMARY\\t23416\\t23438\\t00:00:49\\tINSERT INTO `WinningRecord` (` ... -09-17 10:28:17.347707'), 631)\" | waiterTrx(id=46604)=\"LOCK WAIT\\t4\\t4\\t2026-09-17 10:28:17\" | holderTrx=\"46594\\tRUNNING\\t0\\t1\\t2026-09-17 10:27:26\""
+      ]
+    },
+    "release": {
+      "killOut": "",
+      "stillThere": "0",
+      "lockProbe": {
+        "locked": false,
+        "raw": "631"
+      }
+    },
+    "after": {
+      "quota": {
+        "drawDate": "2026-09-17",
+        "usedCount": 1,
+        "raw": "2026-09-17\t1"
+      },
+      "mugStock": 4,
+      "records": 1,
+      "drawRequests": 1,
+      "audits": 1,
+      "autoIncDrawRequest": 17639,
+      "autoIncWinningRecord": 5392,
+      "at": "2026-09-17T10:29:10.983Z"
+    },
+    "consistency": [
+      {
+        "name": "UserDrawQuota.UsedCount 未变",
+        "ok": true,
+        "detail": "1 → 1"
+      },
+      {
+        "name": "PrizeItem(prize-mug).Stock 未变",
+        "ok": true,
+        "detail": "4 → 4"
+      },
+      {
+        "name": "WinningRecord 无新行",
+        "ok": true,
+        "detail": "1 → 1"
+      },
+      {
+        "name": "DrawRequest 无残留行",
+        "ok": true,
+        "detail": "1 → 1"
+      },
+      {
+        "name": "AuditLog(Draw) 无残留行",
+        "ok": true,
+        "detail": "1 → 1"
+      }
+    ],
+    "failurePointEvidence": {
+      "drawRequest": 2,
+      "winningRecord": 2
+    },
+    "failurePoint": {
+      "rowsModifiedBeforeBlock": 4,
+      "incDelta": {
+        "drawRequest": 2,
+        "winningRecord": 2
+      },
+      "failedMidway": true,
+      "terminalOk": true,
+      "budgetOk": true
+    }
+  },
+  "reset": {
+    "ok": true,
+    "pool": [
+      {
+        "id": 1,
+        "code": "prize-keyboard",
+        "type": 1,
+        "weight": 1,
+        "stock": 3,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2,
+        "code": "prize-earbuds",
+        "type": 1,
+        "weight": 3,
+        "stock": 10,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 3,
+        "code": "prize-mug",
+        "type": 1,
+        "weight": 10,
+        "stock": 50,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 4,
+        "code": "prize-coupon",
+        "type": 2,
+        "weight": 20,
+        "stock": 200,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 5,
+        "code": "no-prize",
+        "type": 3,
+        "weight": 66,
+        "stock": 0,
+        "enabled": 1,
+        "deleted": 0
+      }
+    ]
+  }
+}
+JSON_EVIDENCE_END

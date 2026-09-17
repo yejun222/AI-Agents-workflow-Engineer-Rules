@@ -1,0 +1,30 @@
+
+Running 3 tests using 1 worker
+
+TC-76 :: 生产基线 appsettings.json：Deterministic.Enabled=false，ForcedResults=0 项，WeightOverrides=0 项
+TC-76 :: 生产配置启动：未登录访问 /api/v1/prizes → HTTP=401（期望 401）；日志=D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-prod-start-20260917-155210-01.log；停止=killed(exit)
+TC-76 :: 注入「Deterministic.Enabled=true」→ exit=3762504530；拒绝启动标记=true；日志=D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-1-20260917-155211-02.log
+TC-76 :: 注入「ForcedResults 非空」→ exit=3762504530；拒绝启动标记=true；日志=D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-2-20260917-155211-03.log
+TC-76 :: 注入「WeightOverrides 非空」→ exit=3762504530；拒绝启动标记=true；日志=D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc76-failfast-3-20260917-155212-04.log
+TC-76 :: 生产产物确定性键取值 → Draw:Deterministic:Enabled=false（期望 false）、Draw:Deterministic:ForcedResults.length=0（期望 0）、Prize:WeightOverrides 键数=0（期望 0）
+  ok 1 [chromium] › tests\e2e\coverage.spec.ts:390:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-76 生产配置：正常启动 + 任意确定性注入 fail fast + 生产产物配置节 (3.4s)
+TC-77 :: Testing 实例就绪（HTTP=401）；日志=D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\logs\coverage-tc77-testing-20260917-155215-05.log
+TC-77 :: AC-08 强制命中 → itemId=2（期望 2）isWin=true remaining=2；库存 1→0；记录数=1（奖品名="??? � ????"）
+TC-77 :: AC-09 强制未中奖 → itemId=5（期望 5）isWin=false remaining=2；记录数=0
+TC-77 :: 权重覆盖判别（库内权重全 0 + Prize__WeightOverrides__prize-coupon=5）→ itemId=4（覆盖生效应为 4；未生效将回退末位 5）
+TC-77 :: 实例已停止（killed(exit)）；独立测试库奖池已还原为 FR-03 默认值
+  ok 2 [chromium] › tests\e2e\coverage.spec.ts:476:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-77 测试环境（Testing）：确定性强制命中 / 权重覆盖 / 库存夹具场景生效 (6.6s)
+TC-85 :: vue-tsc --noEmit exit=0
+TC-85 :: vite build exit=0
+✓ 2695 modules transformed.
+✓ built in 705ms
+TC-85 :: 入口 chunk = index-CRNVP328.js；全部 JS 分包 = auth--O3a-4n_.js, AuthLayout-CbWT-N4x.js, button-ClqeiM9z.js, CardContent-T2fZov1S.js, datetime-D6KJPWtY.js, dist-BAPwa_Pc.js, DrawView-BHuzoeoo.js, index-CRNVP328.js, LoginView-Y508KF9A.js, RegisterView-UTReBafK.js, rolldown-runtime-DK3Fl9T5.js, WinningRecordsView-BTHltGVP.js
+TC-85 :: 视图分包 RegisterView：RegisterView-UTReBafK.js（3822 B）
+TC-85 :: 视图分包 LoginView：LoginView-Y508KF9A.js（3088 B）
+TC-85 :: 视图分包 DrawView：DrawView-BHuzoeoo.js（44136 B）
+TC-85 :: 视图分包 WinningRecordsView：WinningRecordsView-BTHltGVP.js（53270 B）
+TC-85 :: 主 chunk index-CRNVP328.js：raw=28500 B，gzip=11290 B（预算 ≤ 512000 B，规范十四）
+TC-85 :: 列表强制分页：视图传参 pageIndex/pageSize=true；api 走 PageQuery 分页=true（tC-67 运行时已验证单页 ≤10）
+  ok 3 [chromium] › tests\e2e\coverage.spec.ts:562:3 › 部署配置验收（TC-76 / TC-77 / TC-85） › TC-85 生产构建产物：路由懒加载分包 + 主 chunk gzip 预算 + 列表强制分页 (4.3s)
+
+  3 passed (15.0s)

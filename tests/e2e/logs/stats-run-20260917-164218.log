@@ -1,0 +1,284 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+TC-78 / TC-79 / TC-79b 概率统计执行 @ 2026-09-17T08:42:18.649Z
+实例 = http://127.0.0.1:5199/api/v1；库 = luckydraw_test；并发度 = 8；样本量 = TC-78:10000 / TC-79:2000 / TC-79b:2000
+契约阈值（不放宽）：单条目偏差 ≤ 2 个百分点；样本下限 TC-78 ≥ 10000、TC-79 ≥ 1000
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+── 阶段 0：前置核验 ──
+未登录 GET /prizes → HTTP 401（期望 401，实例存活且鉴权生效）
+注册用户 st_73qy4zf3 → userId=410
+GET /draw/quota → {"remainingAttempts":30000,"dailyLimit":30000,"resetAt":"2026-09-17T16:00:00+00:00"}
+奖池快照（库内原文）：
+  id=1 code=prize-keyboard type=1 weight=1 stock=3 enabled=1 deleted=0
+  id=2 code=prize-earbuds type=1 weight=3 stock=10 enabled=1 deleted=0
+  id=3 code=prize-mug type=1 weight=10 stock=50 enabled=1 deleted=0
+  id=4 code=prize-coupon type=2 weight=20 stock=200 enabled=1 deleted=0
+  id=5 code=no-prize type=3 weight=66 stock=0 enabled=1 deleted=0
+
+── 阶段 1：TC-78（默认奖池 + 真随机，n=10000）──
+夹具已把实物/虚拟奖品库存钉高：UPDATE PrizeItem SET Stock = 1000000 WHERE Type <> 3
+候选集枚举（SQL 口径 IsEnabled=1 AND IsDeleted=0 AND (Type=3 OR Stock>0)）= [prize-keyboard, prize-earbuds, prize-mug, prize-coupon, no-prize]（共 5 条）
+  …已完成 2000/10000（21.6s）
+  …已完成 4000/10000（43.1s）
+  …已完成 6000/10000（86.4s）
+  …已完成 8000/10000（135.9s）
+  …已完成 10000/10000（185.3s）
+抽奖请求 10000 次，成功 10000，异常 0，耗时 185.3s（54.0 req/s）
+
+TC-78 频率分布（样本 n=10000，候选集权重总和 Σw=100）
+| 条目 | 权重 w | 理论概率（w/Σw） | 实测频次 | 实测频率 | 偏差(pp) | ≤2pp |
+| --- | --- | --- | --- | --- | --- | --- |
+| prize-keyboard | 1 | 1.000% | 98 | 0.980% | 0.020 | ✔ |
+| prize-earbuds | 3 | 3.000% | 294 | 2.940% | 0.060 | ✔ |
+| prize-mug | 10 | 10.000% | 997 | 9.970% | 0.030 | ✔ |
+| prize-coupon | 20 | 20.000% | 1981 | 19.810% | 0.190 | ✔ |
+| no-prize | 66 | 66.000% | 6630 | 66.300% | 0.300 | ✔ |
+实测频率合计 = 100.000%（契约要求 100%）；最大偏差 = 0.300 pp（契约上限 2 pp）
+库存变化（钉高后 / 抽样后）——证明不钉库存必然耗尽候选集：
+  prize-keyboard: 1000000 → 999902（本轮实际中出 98 次；FR-03 默认库存 = 3）
+  prize-earbuds: 1000000 → 999706（本轮实际中出 294 次；FR-03 默认库存 = 10）
+  prize-mug: 1000000 → 999003（本轮实际中出 997 次；FR-03 默认库存 = 50）
+  prize-coupon: 1000000 → 998019（本轮实际中出 1981 次；FR-03 默认库存 = 200）
+  no-prize: 0 → 0（本轮实际中出 6630 次；FR-03 默认库存 = 0）
+
+[PASS] TC-78 :: n=10000（契约 ≥10000）、失败请求=0；候选集=5 条默认条目；各条目频率与归一理论权重最大偏差 = 0.300 pp（契约 ≤2 pp）；实测频率合计 = 100.000%（契约 100%）。前置条件偏差：50 原文「固定随机源」不可满足（实现无播种通道，确定性=按用户名强制结果），本轮按**真随机生产路径**执行
+
+── 阶段 2：TC-79（prize-coupon 库存置 0，n=2000）──
+夹具：UPDATE PrizeItem SET Stock = 0 WHERE Code = 'prize-coupon'（权重 20，其余奖品库存仍为 1000000）
+候选集枚举 = [prize-keyboard, prize-earbuds, prize-mug, no-prize]（共 4 条；coupon 已剔除）
+抽奖请求 2000 次，成功 2000，异常 0，耗时 47.7s
+
+TC-79 频率分布（coupon 出局后按剩余权重归一）（样本 n=2000，候选集权重总和 Σw=80）
+| 条目 | 权重 w | 理论概率（w/Σw） | 实测频次 | 实测频率 | 偏差(pp) | ≤2pp |
+| --- | --- | --- | --- | --- | --- | --- |
+| prize-keyboard | 1 | 1.250% | 24 | 1.200% | 0.050 | ✔ |
+| prize-earbuds | 3 | 3.750% | 73 | 3.650% | 0.100 | ✔ |
+| prize-mug | 10 | 12.500% | 230 | 11.500% | 1.000 | ✔ |
+| no-prize | 66 | 82.500% | 1673 | 83.650% | 1.150 | ✔ |
+实测频率合计 = 100.000%（契约要求 100%）；最大偏差 = 1.150 pp（契约上限 2 pp）
+「谢谢参与」常驻性核验：库存 = 0（NoPrize 类型豁免库存），实测中出 1673 次，频率 83.650%，理论（66/80）= 82.500% —— 未因库存 0 被剔除
+
+[PASS] TC-79 :: n=2000（契约 ≥1000）、失败请求=0；库存置 0 的 prize-coupon 出现 0 次（契约 0 次）；其余条目按剩余权重（Σw=80）归一，最大偏差 = 1.150 pp（契约 ≤2 pp）；「谢谢参与」stock=0 仍参与，实测频率 83.650%（理论 82.5%）
+
+── 阶段 3：TC-79b（概率口径 = wᵢ / 候选集Σw；候选集随库存 / 启用状态变化，n=2000）──
+
+(a) 口径判别（用 TC-79 样本）：候选集实时归一 vs「全局固定概率 w/100」
+| 条目 | 权重 w | 全局固定假设 w/100 | 候选集归一假设 w/Σw(80) | 实测频率 | 与全局假设偏差(pp) | 与候选集假设偏差(pp) |
+| --- | --- | --- | --- | --- | --- | --- |
+| prize-keyboard | 1 | 1.000% | 1.250% | 1.200% | 0.200 | 0.050 |
+| prize-earbuds | 3 | 3.000% | 3.750% | 3.650% | 0.650 | 0.100 |
+| prize-mug | 10 | 10.000% | 12.500% | 11.500% | 1.500 | 1.000 |
+| no-prize | 66 | 66.000% | 82.500% | 83.650% | 17.650 | 1.150 |
+| prize-coupon | 20 | 20.000% | 0.000% | 0.000% | 20.000 | 0.000 |
+→ 与「全局固定概率」假设的最大偏差 = 20.000 pp（> 2 pp ⇒ 拒绝该假设）；与「候选集实时归一」假设的最大偏差 = 1.150 pp（≤ 2 pp ⇒ 接受）
+
+(b) 夹具：prize-coupon 库存恢复 1000000，prize-earbuds IsEnabled=0（权重 3、库存 999633）
+候选集枚举 = [prize-keyboard, prize-mug, prize-coupon, no-prize]（共 4 条；earbuds 因 IsEnabled=0 出局，Σw = 97）
+抽奖请求 2000 次，成功 2000，异常 0，耗时 49.1s
+
+TC-79b 频率分布（earbuds 停用后按新候选集归一，Σw=97）（样本 n=2000，候选集权重总和 Σw=97）
+| 条目 | 权重 w | 理论概率（w/Σw） | 实测频次 | 实测频率 | 偏差(pp) | ≤2pp |
+| --- | --- | --- | --- | --- | --- | --- |
+| prize-keyboard | 1 | 1.031% | 17 | 0.850% | 0.181 | ✔ |
+| prize-mug | 10 | 10.309% | 206 | 10.300% | 0.009 | ✔ |
+| prize-coupon | 20 | 20.619% | 391 | 19.550% | 1.069 | ✔ |
+| no-prize | 66 | 68.041% | 1386 | 69.300% | 1.259 | ✔ |
+实测频率合计 = 100.000%（契约要求 100%）；最大偏差 = 1.259 pp（契约上限 2 pp）
+与「全局固定概率」假设的最大偏差 = 3.300 pp；与「候选集归一」假设的最大偏差 = 1.259 pp
+
+[PASS] TC-79b :: 口径 = 条目权重 / **候选集**权重总和（实时归一）：(a) 用 TC-79 样本判别，与「全局固定概率 w/100」假设最大偏差 20.000 pp（拒绝），与候选集归一假设最大偏差 1.150 pp（接受）；(b) 停用 prize-earbuds（n=2000）后候选集由 5 条变为 4 条 [prize-keyboard, prize-mug, prize-coupon, no-prize]，earbuds 出现 0 次，其余条目最大偏差 1.259 pp（契约 ≤2 pp）；候选集随库存（阶段 2：5→4）与启用状态（本阶段：4→4，成员置换）实时变化，均经 SQL 枚举核对
+
+── 收尾：奖池复位 + Redis db=2 清空 ──
+奖池已复位为 FR-03 默认值：✔ 与默认权重/库存/启用状态逐条一致
+复位后候选集 = [prize-keyboard, prize-earbuds, prize-mug, prize-coupon, no-prize]
+Redis defaultDatabase=2 已清空
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+汇总：PASS=3 / FAIL=0（TC-78:PASS TC-79:PASS TC-79b:PASS）
+总耗时 284.0s
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+EVIDENCE_JSON_BEGIN
+{
+  "base": "http://127.0.0.1:5199/api/v1",
+  "db": "luckydraw_test",
+  "concurrency": 8,
+  "phases": {
+    "preflight": {
+      "userId": 410,
+      "quota": {
+        "remainingAttempts": 30000,
+        "dailyLimit": 30000,
+        "resetAt": "2026-09-17T16:00:00+00:00"
+      }
+    },
+    "tc78": {
+      "n": 10000,
+      "bad": 0,
+      "elapsedSec": 185.343,
+      "counts": {
+        "prize-coupon": 1981,
+        "no-prize": 6630,
+        "prize-mug": 997,
+        "prize-earbuds": 294,
+        "prize-keyboard": 98
+      },
+      "table": [
+        {
+          "code": "prize-keyboard",
+          "weight": 1,
+          "obs": 0.0098,
+          "th": 0.01,
+          "dev": 0.020000000000000052,
+          "count": 98
+        },
+        {
+          "code": "prize-earbuds",
+          "weight": 3,
+          "obs": 0.0294,
+          "th": 0.03,
+          "dev": 0.059999999999999984,
+          "count": 294
+        },
+        {
+          "code": "prize-mug",
+          "weight": 10,
+          "obs": 0.0997,
+          "th": 0.1,
+          "dev": 0.03000000000000086,
+          "count": 997
+        },
+        {
+          "code": "prize-coupon",
+          "weight": 20,
+          "obs": 0.1981,
+          "th": 0.2,
+          "dev": 0.19000000000000128,
+          "count": 1981
+        },
+        {
+          "code": "no-prize",
+          "weight": 66,
+          "obs": 0.663,
+          "th": 0.66,
+          "dev": 0.30000000000000027,
+          "count": 6630
+        }
+      ],
+      "maxDev": 0.30000000000000027,
+      "sum": 1
+    },
+    "tc79": {
+      "n": 2000,
+      "bad": 0,
+      "elapsedSec": 47.664,
+      "counts": {
+        "no-prize": 1673,
+        "prize-mug": 230,
+        "prize-earbuds": 73,
+        "prize-keyboard": 24
+      },
+      "candidateSet": [
+        "prize-keyboard",
+        "prize-earbuds",
+        "prize-mug",
+        "no-prize"
+      ],
+      "table": [
+        {
+          "code": "prize-keyboard",
+          "weight": 1,
+          "obs": 0.012,
+          "th": 0.0125,
+          "dev": 0.050000000000000044,
+          "count": 24
+        },
+        {
+          "code": "prize-earbuds",
+          "weight": 3,
+          "obs": 0.0365,
+          "th": 0.0375,
+          "dev": 0.10000000000000009,
+          "count": 73
+        },
+        {
+          "code": "prize-mug",
+          "weight": 10,
+          "obs": 0.115,
+          "th": 0.125,
+          "dev": 0.9999999999999996,
+          "count": 230
+        },
+        {
+          "code": "no-prize",
+          "weight": 66,
+          "obs": 0.8365,
+          "th": 0.825,
+          "dev": 1.1500000000000066,
+          "count": 1673
+        }
+      ],
+      "maxDev": 1.1500000000000066
+    },
+    "tc79b": {
+      "globalVsCandidate": {
+        "globalMaxDevPp": 20,
+        "candidateMaxDevPp": 1.1500000000000066
+      },
+      "enabledDimension": {
+        "n": 2000,
+        "bad": 0,
+        "counts": {
+          "no-prize": 1386,
+          "prize-keyboard": 17,
+          "prize-coupon": 391,
+          "prize-mug": 206
+        },
+        "candidateSet": [
+          "prize-keyboard",
+          "prize-mug",
+          "prize-coupon",
+          "no-prize"
+        ],
+        "table": [
+          {
+            "code": "prize-keyboard",
+            "weight": 1,
+            "obs": 0.0085,
+            "th": 0.010309278350515464,
+            "dev": 0.1809278350515463,
+            "count": 17
+          },
+          {
+            "code": "prize-mug",
+            "weight": 10,
+            "obs": 0.103,
+            "th": 0.10309278350515463,
+            "dev": 0.00927835051546394,
+            "count": 206
+          },
+          {
+            "code": "prize-coupon",
+            "weight": 20,
+            "obs": 0.1955,
+            "th": 0.20618556701030927,
+            "dev": 1.068556701030926,
+            "count": 391
+          },
+          {
+            "code": "no-prize",
+            "weight": 66,
+            "obs": 0.693,
+            "th": 0.6804123711340206,
+            "dev": 1.2587628865979306,
+            "count": 1386
+          }
+        ],
+        "maxDev": 1.2587628865979306,
+        "globalMaxDevPp": 3.299999999999992
+      }
+    }
+  },
+  "restored": true
+}
+EVIDENCE_JSON_END

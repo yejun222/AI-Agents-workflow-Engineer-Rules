@@ -1,0 +1,359 @@
+══ TC-56c：Redis 不可用时的降级 ══
+实例 = http://127.0.0.1:5198/api/v1 ；库 = luckydraw_test ；Redis = luckydraw-redis db2 ；时间 = 2026-09-17T10:30:00.788Z
+
+── 阶段 0：前置（Redis 正常）+ 注册 + 基线抽奖 ──
+  redis-cli ping = PONG ；TCP 127.0.0.1:6379 reachable = true
+  注册成功：userName=tc56c_1m13kph9 userId=632 token=已签发
+  GET /draw/quota → http=200 {"code":0,"message":"","data":{"remainingAttempts":30000,"dailyLimit":30000,"resetAt":"2026-09-17T16:00:00+00:00"}}
+  基线抽奖（键 K=2a9b9022-741b-4ad8-a6cd-cdcefb653c50）→ http=200 code=0 data={"itemId":5,"isWin":false,"remainingAttempts":29999}
+  幂等结果缓存 draw:idempotency:632:2a9b9022-741b-4ad8-a6cd-cdcefb653c50 EXISTS = 1（证明降级前的缓存路径确实生效）
+  基线：UsedCount=1 WinningRecord=0 DrawRequest(键K)=1
+  奖池库存快照 = {"1":3,"2":10,"3":50,"4":200,"5":0}
+
+── 阶段 1：停 Redis（注入依赖不可用） ──
+  实例日志增量起点 offset = 32191（tests/e2e/logs/tc56-rerun-instance-20260917-182525.log）
+  docker stop luckydraw-redis → luckydraw-redis
+  停止后：redis-cli ping = __ERR__Command failed: docker exec luckydraw-redis redis-cli ping
+  停止后：TCP 127.0.0.1:6379 reachable = false（error=ECONNREFUSED）
+
+── 阶段 2：重放同一幂等键 K（不得重复扣次） ──
+  重放 → http=200 code=0 elapsed=11956ms data={"itemId":5,"isWin":false,"remainingAttempts":29999}
+  重放后：UsedCount=1 WinningRecord=0 DrawRequest(键K)=1
+  奖池库存快照 = {"1":3,"2":10,"3":50,"4":200,"5":0}
+  [OK] 重放结果与首次一致（itemId / isWin / remainingAttempts 全等）（首次={"itemId":5,"isWin":false,"remainingAttempts":29999} 重放={"itemId":5,"isWin":false,"remainingAttempts":29999}）
+  [OK] UsedCount 未变（不重复扣次）（1 → 1）
+  [OK] WinningRecord 无新行（0 → 0）
+  [OK] DrawRequest 中键 K 仍仅 1 行（1 → 1）
+  [OK] 奖池库存逐行未变（{"1":3,"2":10,"3":50,"4":200,"5":0} → {"1":3,"2":10,"3":50,"4":200,"5":0}）
+
+── 阶段 3：新键抽奖（主链路可用性） ──
+  新键抽奖 → http=200 code=0 elapsed=11312ms data={"itemId":3,"isWin":true,"remainingAttempts":29998}
+  新键后：UsedCount=2 WinningRecord=1
+  [OK] 主链路可用（http=200 / code=0）（http=200 code=0）
+  [OK] 次数正常扣 1（1 → 2）
+  [OK] 中奖记录与 isWin 一致（记录 0 → 1（isWin=true））
+  [OK] 中奖时对应库存 -1（itemId=3 库存 50 → 49）
+
+── 阶段 4：查询不受影响（/draw/quota、/records） ──
+  GET /draw/quota → http=200 {"code":0,"message":"","data":{"remainingAttempts":29998,"dailyLimit":30000,"resetAt":"2026-09-17T16:00:00+00:00"}}
+  GET /records    → http=200 {"code":0,"message":"","data":{"items":[{"id":5392,"prizeName":"三等奖 · 定制马克杯","winTime":"2026-09-17T10:30:20.152683+00:00"}],"totalCount":1,"pageIndex":1,"pageSize":10}}
+  库内对照：UsedCount=2 WinningRecord=1
+  [OK] quota 接口可用（http=200 code=0）
+  [OK] quota 剩余次数与库内一致（remaining=29998 dailyLimit=30000 库内 UsedCount=2）
+  [OK] records 接口可用（http=200 code=0）
+  [OK] records totalCount 与库内一致（接口 totalCount=1 库内=1）
+  [OK] records 条目数与库内一致（items=1 库内=1）
+
+── 阶段 5：降级正向证据（实例日志增量） ──
+  标记「退化为数据库幂等路径」命中 2 行 → "[18:30:08 WRN] 读取幂等结果缓存失败，退化为数据库幂等路径"
+  标记「写入幂等结果缓存失败」命中 2 行 → "[18:30:14 WRN] 写入幂等结果缓存失败（不影响业务结果）"
+  标记「降级为无幂等执行」命中 0 行
+  标记「Redis 连接不可用」命中 0 行
+  标记「会话缺失」命中 0 行
+  含 Redis 字样的日志行 12 行；示例 = ["StackExchange.Redis.RedisConnectionException: The message timed out in the backlog attempting to send because no connection became available (5000ms) - Last Connection Exception: I"," ---> StackExchange.Redis.RedisConnectionException: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout","   at LuckyDraw.Infrastructure.Cache.RedisIdempotencyStore.TryGetAsync(Int32 userId, String idempotencyKey, CancellationToken cancellationToken) in D:\\AI test\\AI-Agents workflow & "]
+  降级路径正向证据成立 = true
+
+── 阶段 6：恢复 Redis 并验证恢复正常 ──
+  docker start luckydraw-redis → luckydraw-redis
+  恢复后：redis-cli ping = PONG ；TCP reachable = true
+  恢复后注册 = 成功（userId=633）；抽奖 → http=200 code=0 data={"itemId":4,"isWin":true,"remainingAttempts":29999}
+
+[PASS] TC-56c :: 重放不一致项 0；主链路失败项 0；查询失败项 0；降级正向证据=true；恢复=true
+
+── 收尾 ──
+  收尾 redis-cli ping = PONG
+
+══ 汇总 ══
+[PASS] TC-56c :: 重放不一致项 0；主链路失败项 0；查询失败项 0；降级正向证据=true；恢复=true
+
+JSON_EVIDENCE_BEGIN
+{
+  "base": "http://127.0.0.1:5198/api/v1",
+  "db": "luckydraw_test",
+  "redis": {
+    "db": 2,
+    "container": "luckydraw-redis"
+  },
+  "instanceLog": "tests/e2e/logs/tc56-rerun-instance-20260917-182525.log",
+  "phases": {
+    "pre": {
+      "ping": "PONG",
+      "tcp": {
+        "reachable": true
+      },
+      "baseline": {
+        "usedCount": 1,
+        "records": 0,
+        "drawReqRows": 1,
+        "pool": {
+          "1": 3,
+          "2": 10,
+          "3": 50,
+          "4": 200,
+          "5": 0
+        },
+        "response": {
+          "itemId": 5,
+          "isWin": false,
+          "remainingAttempts": 29999
+        },
+        "cacheKey": "draw:idempotency:632:2a9b9022-741b-4ad8-a6cd-cdcefb653c50",
+        "cacheExists": "1"
+      }
+    },
+    "outage": {
+      "ping": "__ERR__Command failed: docker exec luckydraw-redis redis-cli ping",
+      "tcp": {
+        "reachable": false,
+        "error": "ECONNREFUSED"
+      },
+      "logOffset": 32191
+    },
+    "replay": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "itemId": 5,
+          "isWin": false,
+          "remainingAttempts": 29999
+        }
+      },
+      "text": "{\"code\":0,\"message\":\"\",\"data\":{\"itemId\":5,\"isWin\":false,\"remainingAttempts\":29999}}",
+      "ms": 11956,
+      "after": {
+        "usedCount": 1,
+        "records": 0,
+        "drawReqRows": 1,
+        "pool": {
+          "1": 3,
+          "2": 10,
+          "3": 50,
+          "4": 200,
+          "5": 0
+        }
+      },
+      "checks": [
+        {
+          "name": "重放结果与首次一致（itemId / isWin / remainingAttempts 全等）",
+          "ok": true,
+          "detail": "首次={\"itemId\":5,\"isWin\":false,\"remainingAttempts\":29999} 重放={\"itemId\":5,\"isWin\":false,\"remainingAttempts\":29999}"
+        },
+        {
+          "name": "UsedCount 未变（不重复扣次）",
+          "ok": true,
+          "detail": "1 → 1"
+        },
+        {
+          "name": "WinningRecord 无新行",
+          "ok": true,
+          "detail": "0 → 0"
+        },
+        {
+          "name": "DrawRequest 中键 K 仍仅 1 行",
+          "ok": true,
+          "detail": "1 → 1"
+        },
+        {
+          "name": "奖池库存逐行未变",
+          "ok": true,
+          "detail": "{\"1\":3,\"2\":10,\"3\":50,\"4\":200,\"5\":0} → {\"1\":3,\"2\":10,\"3\":50,\"4\":200,\"5\":0}"
+        }
+      ]
+    },
+    "freshDraw": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "itemId": 3,
+          "isWin": true,
+          "remainingAttempts": 29998
+        }
+      },
+      "ms": 11312,
+      "after": {
+        "usedCount": 2,
+        "records": 1,
+        "pool": {
+          "1": 3,
+          "2": 10,
+          "3": 49,
+          "4": 200,
+          "5": 0
+        }
+      },
+      "win": true,
+      "itemId": 3,
+      "checks": [
+        {
+          "name": "主链路可用（http=200 / code=0）",
+          "ok": true,
+          "detail": "http=200 code=0"
+        },
+        {
+          "name": "次数正常扣 1",
+          "ok": true,
+          "detail": "1 → 2"
+        },
+        {
+          "name": "中奖记录与 isWin 一致",
+          "ok": true,
+          "detail": "记录 0 → 1（isWin=true）"
+        },
+        {
+          "name": "中奖时对应库存 -1",
+          "ok": true,
+          "detail": "itemId=3 库存 50 → 49"
+        }
+      ]
+    },
+    "queries": {
+      "quota": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "remainingAttempts": 29998,
+          "dailyLimit": 30000,
+          "resetAt": "2026-09-17T16:00:00+00:00"
+        }
+      },
+      "records": {
+        "totalCount": 1,
+        "items": 1,
+        "first": {
+          "id": 5392,
+          "prizeName": "三等奖 · 定制马克杯",
+          "winTime": "2026-09-17T10:30:20.152683+00:00"
+        }
+      },
+      "db": {
+        "usedCount": 2,
+        "records": 1
+      },
+      "checks": [
+        {
+          "name": "quota 接口可用",
+          "ok": true,
+          "detail": "http=200 code=0"
+        },
+        {
+          "name": "quota 剩余次数与库内一致",
+          "ok": true,
+          "detail": "remaining=29998 dailyLimit=30000 库内 UsedCount=2"
+        },
+        {
+          "name": "records 接口可用",
+          "ok": true,
+          "detail": "http=200 code=0"
+        },
+        {
+          "name": "records totalCount 与库内一致",
+          "ok": true,
+          "detail": "接口 totalCount=1 库内=1"
+        },
+        {
+          "name": "records 条目数与库内一致",
+          "ok": true,
+          "detail": "items=1 库内=1"
+        }
+      ]
+    },
+    "degradationEvidence": {
+      "logOffset": 32191,
+      "newBytes": 15533,
+      "hits": {
+        "退化为数据库幂等路径": [
+          "[18:30:08 WRN] 读取幂等结果缓存失败，退化为数据库幂等路径",
+          "[18:30:20 WRN] 读取幂等结果缓存失败，退化为数据库幂等路径"
+        ],
+        "写入幂等结果缓存失败": [
+          "[18:30:14 WRN] 写入幂等结果缓存失败（不影响业务结果）",
+          "[18:30:26 WRN] 写入幂等结果缓存失败（不影响业务结果）"
+        ],
+        "降级为无幂等执行": [],
+        "Redis 连接不可用": [],
+        "会话缺失": []
+      },
+      "redisLineSample": [
+        "StackExchange.Redis.RedisConnectionException: The message timed out in the backlog attempting to send because no connection became available (5000ms) - Last Connection Exception: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout, command=GET, timeout: 5",
+        " ---> StackExchange.Redis.RedisConnectionException: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout",
+        "   at LuckyDraw.Infrastructure.Cache.RedisIdempotencyStore.TryGetAsync(Int32 userId, String idempotencyKey, CancellationToken cancellationToken) in D:\\AI test\\AI-Agents workflow & Engineer Rules&feature\\AI-Agents-workflow-Engineer-Rules\\src\\backend\\src\\LuckyDraw.Infrastructure\\Cache\\RedisIdempotency",
+        "StackExchange.Redis.RedisConnectionException: The message timed out in the backlog attempting to send because no connection became available (5000ms) - Last Connection Exception: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout, command=SETEX, timeout:",
+        " ---> StackExchange.Redis.RedisConnectionException: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout",
+        "   at LuckyDraw.Infrastructure.Cache.RedisIdempotencyStore.SetAsync(Int32 userId, String idempotencyKey, DrawResponseDto result, CancellationToken cancellationToken) in D:\\AI test\\AI-Agents workflow & Engineer Rules&feature\\AI-Agents-workflow-Engineer-Rules\\src\\backend\\src\\LuckyDraw.Infrastructure\\C"
+      ],
+      "redisLineCount": 12
+    },
+    "recovery": {
+      "ping": "PONG",
+      "tcp": {
+        "reachable": true
+      },
+      "registerUserId": 633,
+      "draw": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "itemId": 4,
+          "isWin": true,
+          "remainingAttempts": 29999
+        }
+      },
+      "ok": true
+    }
+  },
+  "reset": {
+    "ping": "PONG",
+    "pool": [
+      {
+        "id": 1,
+        "code": "prize-keyboard",
+        "type": 1,
+        "weight": 1,
+        "stock": 3,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2,
+        "code": "prize-earbuds",
+        "type": 1,
+        "weight": 3,
+        "stock": 10,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 3,
+        "code": "prize-mug",
+        "type": 1,
+        "weight": 10,
+        "stock": 49,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 4,
+        "code": "prize-coupon",
+        "type": 2,
+        "weight": 20,
+        "stock": 199,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 5,
+        "code": "no-prize",
+        "type": 3,
+        "weight": 66,
+        "stock": 0,
+        "enabled": 1,
+        "deleted": 0
+      }
+    ]
+  }
+}
+JSON_EVIDENCE_END

@@ -1,0 +1,12 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+TC-78 / TC-79 / TC-79b 概率统计执行 @ 2026-09-17T08:21:01.805Z
+实例 = http://127.0.0.1:5199/api/v1；库 = luckydraw_test；并发度 = 4；样本量 = TC-78:200 / TC-79:200 / TC-79b:200
+契约阈值（不放宽）：单条目偏差 ≤ 2 个百分点；样本下限 TC-78 ≥ 10000、TC-79 ≥ 1000
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+── 阶段 0：前置核验 ──
+未登录 GET /prizes → HTTP 401（期望 401，实例存活且鉴权生效）
+脚本异常： Error: 注册/登录失败 st_fqjabbik: 500/{"code":500,"message":"系统内部错误","data":null} | 500/{"code":500,"message":"系统内部错误","data":null}
+    at registerUser (file:///D:/AI%20test/AI-Agents%20workflow%20&%20Engineer%20Rules&feature/AI-Agents-workflow-Engineer-Rules/tests/e2e/api/stats-lib.mjs:95:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async main (file:///D:/AI%20test/AI-Agents%20workflow%20&%20Engineer%20Rules&feature/AI-Agents-workflow-Engineer-Rules/tests/e2e/api/stats-suite.mjs:123:13)

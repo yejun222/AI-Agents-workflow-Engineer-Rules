@@ -1,0 +1,7 @@
+
+Running 1 test using 1 worker
+
+TC-25 :: refresh 响应缺 user → URL=http://localhost:5173/login?redirect=/draw；refresh 请求数=1；页面文本长度=83（不白屏）
+  ok 1 [chromium] › tests\e2e\coverage.spec.ts:114:3 › 覆盖补做（回归轮） › TC-25 旧版后端 refresh 响应缺 user 字段 → 按恢复失败处理并引导登录（不白屏、不放行） (956ms)
+
+  1 passed (1.7s)

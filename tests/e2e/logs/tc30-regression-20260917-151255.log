@@ -1,0 +1,7 @@
+
+Running 1 test using 1 worker
+
+TC-30 :: 错误态文案="奖池加载失败 | 系统繁忙，请稍后重试 | 重试"
+  ok 1 [chromium] › tests\e2e\qa.spec.ts:478:3 › M4 奖池展示 › TC-30 奖池错误态 + 重试（纯只读，不影响次数） (1.1s)
+
+  1 passed (1.9s)

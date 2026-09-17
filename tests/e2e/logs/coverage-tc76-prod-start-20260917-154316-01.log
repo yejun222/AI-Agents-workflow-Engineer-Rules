@@ -1,0 +1,5 @@
+[15:43:16 INF] Now listening on: http://localhost:5191
+[15:43:16 INF] Application started. Press Ctrl+C to shut down.
+[15:43:16 INF] Hosting environment: Production
+[15:43:16 INF] Content root path: D:\AI test\AI-Agents workflow & Engineer Rules&feature\AI-Agents-workflow-Engineer-Rules\tests\e2e\deploy\publish-tc76
+[15:43:16 INF] HTTP GET /api/v1/prizes responded 401 in 55.3699 ms

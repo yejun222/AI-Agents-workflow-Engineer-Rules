@@ -1,0 +1,206 @@
+══ TC-56b 事务中途失败 → 三方一致回滚 ══
+实例 = http://127.0.0.1:5199/api/v1 ；库 = luckydraw_test ；时间 = 2026-09-17T09:06:49.664Z
+
+── 阶段 0：实例健康 + 注册取证（复核签发路径可用） ──
+注册成功：userName=tc56b_2mrliwlk userId=419 token=已签发
+GET /draw/quota → http=200 body={"code":0,"message":"","data":{"remainingAttempts":30000,"dailyLimit":30000,"resetAt":"2026-09-17T16:00:00+00:00"}}
+
+── 阶段 1：FK 事实复核（SHOW CREATE TABLE 实测） ──
+  DrawRequest: （无 FK）
+  UserDrawQuota: （无 FK）
+  WinningRecord: CONSTRAINT `FK_WinningRecord_PrizeItem_PrizeItemId` FOREIGN KEY ; CONSTRAINT `FK_WinningRecord_User_UserId` FOREIGN KEY
+  AuditLog: （无 FK）
+
+── 阶段 2：夹具（候选集收窄至 prize-mug，避免 no-prize 导致 ⑥ 不可达） ──
+候选集（SQL 枚举）= [prize-mug]
+奖池实测 = [{"id":1,"code":"prize-keyboard","type":1,"weight":1,"stock":3,"enabled":0,"deleted":0},{"id":2,"code":"prize-earbuds","type":1,"weight":3,"stock":10,"enabled":0,"deleted":0},{"id":3,"code":"prize-mug","type":1,"weight":10,"stock":5,"enabled":1,"deleted":0},{"id":4,"code":"prize-coupon","type":2,"weight":20,"stock":200,"enabled":0,"deleted":0},{"id":5,"code":"no-prize","type":3,"weight":66,"stock":0,"enabled":0,"deleted":0}]
+
+── 阶段 3：探针抽奖（建立配额行；验证会走到 ⑥ 中奖记录） ──
+探针抽奖 → http=200 body={"code":0,"message":"","data":{"itemId":3,"isWin":true,"remainingAttempts":29999}} elapsed=23ms
+
+── 阶段 4：基线快照（读库原文） ──
+  UserDrawQuota = {"drawDate":"2026-09-17","usedCount":1,"raw":"2026-09-17\t1"}
+  prize-mug.Stock = 4 ；WinningRecord(user) = 1 ；DrawRequest(user) = 1 ；AuditLog(Draw) = 1
+  AUTO_INCREMENT: DrawRequest=17363 WinningRecord=5329
+
+── 阶段 5：注入 —— 另一连接对 User(419) 持 X 锁（hold=20s） ──
+  锁持有连接 id = null ；holder stdout = ""
+
+[FAIL] TC-56b :: 执行中断：未能取得锁持有连接 id（stderr=mysql: [Warning] Using a password on the command line interface can be insecure.）
+
+── 收尾复位 ──
+  奖池已复位为 FR-03 默认值：[{"id":1,"code":"prize-keyboard","type":1,"weight":1,"stock":3,"enabled":1,"deleted":0},{"id":2,"code":"prize-earbuds","type":1,"weight":3,"stock":10,"enabled":1,"deleted":0},{"id":3,"code":"prize-mug","type":1,"weight":10,"stock":50,"enabled":1,"deleted":0},{"id":4,"code":"prize-coupon","type":2,"weight":20,"stock":200,"enabled":1,"deleted":0},{"id":5,"code":"no-prize","type":3,"weight":66,"stock":0,"enabled":1,"deleted":0}]
+  Redis db 2 已 flush
+
+══ 汇总 ══
+[FAIL] TC-56b :: 执行中断：未能取得锁持有连接 id（stderr=mysql: [Warning] Using a password on the command line interface can be insecure.）
+总耗时 4.3s
+
+JSON_EVIDENCE_BEGIN
+{
+  "base": "http://127.0.0.1:5199/api/v1",
+  "db": "luckydraw_test",
+  "phases": {
+    "health": {
+      "userName": "tc56b_2mrliwlk",
+      "userId": 419,
+      "tokenIssued": true,
+      "quota": {
+        "remainingAttempts": 30000,
+        "dailyLimit": 30000,
+        "resetAt": "2026-09-17T16:00:00+00:00"
+      }
+    },
+    "fkFacts": {
+      "DrawRequest": [
+        "（无 FK）"
+      ],
+      "UserDrawQuota": [
+        "（无 FK）"
+      ],
+      "WinningRecord": [
+        "CONSTRAINT `FK_WinningRecord_PrizeItem_PrizeItemId` FOREIGN KEY",
+        "CONSTRAINT `FK_WinningRecord_User_UserId` FOREIGN KEY"
+      ],
+      "AuditLog": [
+        "（无 FK）"
+      ]
+    },
+    "fixture": {
+      "candidates": [
+        "prize-mug"
+      ],
+      "pool": [
+        {
+          "id": 1,
+          "code": "prize-keyboard",
+          "type": 1,
+          "weight": 1,
+          "stock": 3,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 2,
+          "code": "prize-earbuds",
+          "type": 1,
+          "weight": 3,
+          "stock": 10,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 3,
+          "code": "prize-mug",
+          "type": 1,
+          "weight": 10,
+          "stock": 5,
+          "enabled": 1,
+          "deleted": 0
+        },
+        {
+          "id": 4,
+          "code": "prize-coupon",
+          "type": 2,
+          "weight": 20,
+          "stock": 200,
+          "enabled": 0,
+          "deleted": 0
+        },
+        {
+          "id": 5,
+          "code": "no-prize",
+          "type": 3,
+          "weight": 66,
+          "stock": 0,
+          "enabled": 0,
+          "deleted": 0
+        }
+      ]
+    },
+    "probe": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "itemId": 3,
+          "isWin": true,
+          "remainingAttempts": 29999
+        }
+      },
+      "ms": 22.84569999999985
+    },
+    "baseline": {
+      "quota": {
+        "drawDate": "2026-09-17",
+        "usedCount": 1,
+        "raw": "2026-09-17\t1"
+      },
+      "mugStock": 4,
+      "records": 1,
+      "drawRequests": 1,
+      "audits": 1,
+      "autoIncDrawRequest": 17363,
+      "autoIncWinningRecord": 5329,
+      "at": "2026-09-17T09:06:52.043Z"
+    },
+    "holder": {
+      "connId": null,
+      "holdSeconds": 20,
+      "stdout": ""
+    }
+  },
+  "error": "Error: 未能取得锁持有连接 id（stderr=mysql: [Warning] Using a password on the command line interface can be insecure.）\n    at file:///D:/AI%20test/AI-Agents%20workflow%20&%20Engineer%20Rules&feature/AI-Agents-workflow-Engineer-Rules/tests/e2e/api/tc56b-tx-rollback.mjs:246:26",
+  "reset": {
+    "ok": true,
+    "pool": [
+      {
+        "id": 1,
+        "code": "prize-keyboard",
+        "type": 1,
+        "weight": 1,
+        "stock": 3,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2,
+        "code": "prize-earbuds",
+        "type": 1,
+        "weight": 3,
+        "stock": 10,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 3,
+        "code": "prize-mug",
+        "type": 1,
+        "weight": 10,
+        "stock": 50,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 4,
+        "code": "prize-coupon",
+        "type": 2,
+        "weight": 20,
+        "stock": 200,
+        "enabled": 1,
+        "deleted": 0
+      },
+      {
+        "id": 5,
+        "code": "no-prize",
+        "type": 3,
+        "weight": 66,
+        "stock": 0,
+        "enabled": 1,
+        "deleted": 0
+      }
+    ]
+  }
+}
+JSON_EVIDENCE_END

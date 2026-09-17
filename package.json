@@ -1,0 +1,13 @@
+{
+  "name": "lucky-draw-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "顶层 E2E 测试工具链（Playwright）。用例在 tests/e2e/**，配置见 playwright.config.ts。前端应用自身的依赖在 src/frontend/package.json，与本文件相互独立。",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
