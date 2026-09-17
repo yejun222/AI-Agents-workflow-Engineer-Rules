@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交互原型 v3 - 转盘抽奖（高保真）</title>
+<style>
+/* =========================================================================
+   交互原型 v3 - 转盘抽奖（高保真）  |  prototype-designer 唯一产物 docs/20-prototype.html
+   =========================================================================
+   [1] 零外链声明
+       严格零外链：无 CDN、无字体文件、无图片文件、无 icon font、无 JS 框架。
+       全部图形为内联 SVG（转盘扇区、指针、插画、状态图标）或 CSS 渐变 / 纯色块。
+       本文件唯一的 <script> 位于 <body> 顶部，仅把 URL 查询参数写入 <body> 属性
+       （状态开关：3 行、无框架、不请求接口、不做数据处理）。
+       外链清单：无 —— 离线打开无任何退化。
+
+   [2] 设计令牌 = shadcn-vue「@theme inline」的【镜像】（诚实边界，先读再用）
+       本文件是没有 Tailwind 编译器的单文件 HTML，无法真正执行 @theme。这里做的是
+       「同名同值的镜像」：变量名与 shadcn-vue 语义令牌一致（background/foreground/card/
+       card-foreground/popover/primary/primary-foreground/secondary/muted/muted-foreground/
+       accent/destructive/destructive-foreground/border/input/ring/radius/chart-1..5），
+       手写本原型用到的 class 规则并直接引用这些变量。engineer 在 src/ 请：
+         - 对照本表把变量名与取值搬进 Tailwind 4 的 @theme inline 与 :root
+           （真实写法以 `npx shadcn-vue@2.x init` 生成的样式为准）；
+         - 业务代码一律用 Tailwind 原子类 + shadcn-vue 组件，禁止搬运本文件的
+           class 名与手写 CSS（规范 3.6：禁止新增独立 CSS、禁止硬编码色值）；
+         - 本文件的 .btn/.input/.card/.badge/.alert/.skeleton/.table/.modal 只是
+           「原子类的语义注解」，每条规则上方注释给出对应 Tailwind 原子类。
+       令牌取值口径：同名同值于 shadcn-vue 默认（neutral）主题，**仅三处刻意加深**以满足
+       WCAG 对比度（度量见本文件「a11y」小节，已逐项计算）：
+         - --muted-foreground  0.556 -> 0.439（白底 4.7:1 不达 AA 正文 -> 7.8:1）
+         - --destructive       0.577 0.245 27.325 -> 0.46 0.176 27.5（4.8:1 -> 7.8:1）
+         - --ring              0.708 -> 0.556（2.6:1 不达 WCAG 2.4.11 非文本 3:1 -> 4.7:1）
+       工程侧建议沿用加深值并同步进 @theme；若必须与 shadcn 默认完全一致，请以组件库
+       默认值覆盖并重跑对比度检查。暗色模式（.dark）本次不做原型。
+
+   [3] 契约层冻结（v2 相对 v1 一字未改，是下游 engineer / test-designer / test-executor 的定位接口）
+       - ?state= 取值集合：default|loading|error|empty|submit|invalid|loginfail|guard|
+         noquota|drawing|win|lose|drawfail（未知值回退 default）
+       - ?page=  取值集合：register|login|draw|records|all（未知值回退 all）
+       - 20 个稳定锚点 ID 逐字不变（清单见「页面 x 状态 索引表」）
+       - 状态显隐机制不变：脚本写 <body data-state> / <body data-page>，纯 CSS 选择器控制显隐
+       v2 只替换视觉层：令牌换成 shadcn 语义语汇、转盘换内联 SVG、组件形态对齐 shadcn-vue、
+       加载态改骨架屏、空态加内联插画、错误态改 Alert、补 375-428px 移动断点。
+
+   [4] 动效边界（已向用户承诺）
+       - 允许（纯 CSS，不引入 JS）：转盘旋转 @keyframes、指针/落点缓动、Dialog 出入场、
+         Skeleton shimmer、按钮与输入框 hover/focus/disabled 过渡。
+       - 必须：全部动效包在 @media (prefers-reduced-motion: reduce) 内降级。
+       - 禁止：用 checkbox hack / :target 另造状态机（状态唯一来源是 URL 查询参数）；
+         页面间无刷新过渡（跳转一律 <a href="?page=...&state=...">整页刷新）。
+
+   [5] v3 变更说明（2026-09-17T11:30:00+08:00，依据 docs/00-brief.md CR-01 / docs/10-prd.md v2）
+       唯一变更项：密码【字符类别】由「至少同时包含字母与数字」收紧为「须同时包含
+       大写字母、小写字母与数字」。长度仍为 8-20 位；不引入「首次登录强制改密」；
+       其余注册 / 登录规则不变。
+       本版为纯文案 + 版本改动，共改 5 处：
+         ① 页面 x 状态索引表 invalid 行「预期文案」列
+         ② 「原型区块 -> shadcn-vue 组件」映射表的 Zod 规则描述
+         ③ 注册页 reg-password-hint 帮助文本
+         ④ 注册页密码错误消息（#page-register--invalid 内）
+         ⑤ 文末「文案清单」表对应行
+       契约层相对 v2 一字未改：20 个锚点 ID、?state= / ?page= 取值集合、索引表结构
+       与行数、data-state 显隐机制、3 行状态开关脚本全部原样保留 —— 下游 engineer /
+       test-designer / test-executor 可据此免除定位契约复核。
+       v3 已对齐 docs/10-prd.md v2，失效标记解除（docs/artifacts.md §5）。
+   ========================================================================= */
+
+/* ---------- 设计令牌（shadcn-vue @theme inline 镜像 / neutral 主题） ---------- */
+:root{
+  --radius:.625rem;
+  --radius-sm:calc(var(--radius) - 4px);
+  --radius-md:calc(var(--radius) - 2px);
+  --radius-lg:var(--radius);
+  --radius-xl:calc(var(--radius) + 4px);
+  --background:oklch(.97 0 0);
+  --foreground:oklch(.145 0 0);
+  --card:oklch(1 0 0);
+  --card-foreground:oklch(.145 0 0);
+  --popover:oklch(1 0 0);
+  --popover-foreground:oklch(.145 0 0);
+  --primary:oklch(.205 0 0);
+  --primary-foreground:oklch(.985 0 0);
+  --secondary:oklch(.97 0 0);
+  --secondary-foreground:oklch(.205 0 0);
+  --muted:oklch(.97 0 0);
+  --muted-foreground:oklch(.439 0 0);
+  --accent:oklch(.97 0 0);
+  --accent-foreground:oklch(.205 0 0);
+  --destructive:oklch(.46 .176 27.5);
+  --destructive-foreground:oklch(.985 0 0);
+  --border:oklch(.922 0 0);
+  --input:oklch(.922 0 0);
+  --ring:oklch(.556 0 0);
+  --chart-1:oklch(.646 .222 41.116);
+  --chart-2:oklch(.6 .118 184.704);
+  --chart-3:oklch(.398 .07 227.392);
+  --chart-4:oklch(.828 .189 84.429);
+  --chart-5:oklch(.769 .188 70.08);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--background);color:var(--foreground);
+  font:14px/1.6 -apple-system,'Segoe UI',Roboto,'Helvetica Neue','Microsoft YaHei','PingFang SC',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0 0 8px;line-height:1.35;letter-spacing:-.01em}
+h1{font-size:20px}
+h2{font-size:16px}
+h3{font-size:15px}
+h4{font-size:13px}
+p{margin:0 0 8px}
+ul,ol{margin:0 0 8px;padding-left:20px}
+li{margin:3px 0}
+a{color:inherit}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:var(--muted);border:1px solid var(--border);
+  padding:1px 4px;border-radius:var(--radius-sm);word-break:break-word}
+/* 焦点环：对应 focus-visible:ring-[3px] ring-ring/50 outline-ring —— 满足 WCAG 2.4.11/2.4.13 */
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip{position:absolute;left:-9999px;top:0;background:var(--card);color:var(--foreground);padding:10px 14px;
+  border:1px solid var(--ring);border-radius:var(--radius-md);z-index:99;font-weight:600}
+.skip:focus{left:8px;top:8px}
+.hint{color:var(--muted-foreground);font-size:12.5px}
+.mono{font-family:Consolas,'Courier New',monospace}
+
+/* ---------- 文档外壳（原型说明用，非产品 UI） ---------- */
+.wrap{max-width:1160px;margin:0 auto;padding:20px 16px 80px}
+.block,.page{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px 18px;margin:0 0 18px;box-shadow:0 1px 2px oklch(0 0 0/.04)}
+.block > h2{border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px}
+.page > h2{border-bottom:2px solid var(--foreground);padding-bottom:10px;margin-bottom:12px}
+table.meta,table.idx{border-collapse:collapse;width:100%;font-size:13px}
+table.meta th,table.meta td,table.idx th,table.idx td{border:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top}
+table.meta th,table.idx th{background:var(--muted);font-weight:600}
+table.meta td.k{width:140px;background:var(--muted);font-weight:600}
+table.idx a{word-break:break-all}
+table.idx col.c1{width:9%}
+table.idx col.c2{width:8%}
+table.idx col.c3{width:19%}
+table.idx col.c4{width:21%}
+table.idx col.c5{width:22%}
+table.idx col.c6{width:14%}
+table.idx col.c7{width:7%}
+.nav{position:sticky;top:0;z-index:20;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:9px 12px;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;
+  box-shadow:0 1px 3px oklch(0 0 0/.06)}
+.nav b{font-size:12.5px;color:var(--muted-foreground);font-weight:600}
+.cur{border:1px dashed var(--border);border-radius:var(--radius-md);padding:7px 11px;margin:0 0 16px;font-size:12.5px;color:var(--muted-foreground)}
+.cur-page,.cur-state{display:none;font-weight:600;color:var(--foreground)}
+body[data-page='register'] .cur-page.p-register,
+body[data-page='login'] .cur-page.p-login,
+body[data-page='draw'] .cur-page.p-draw,
+body[data-page='records'] .cur-page.p-records,
+body[data-page='all'] .cur-page.p-all{display:inline}
+body[data-state='default'] .cur-state.s-default,
+body[data-state='loading'] .cur-state.s-loading,
+body[data-state='error'] .cur-state.s-error,
+body[data-state='empty'] .cur-state.s-empty,
+body[data-state='submit'] .cur-state.s-submit,
+body[data-state='invalid'] .cur-state.s-invalid,
+body[data-state='loginfail'] .cur-state.s-loginfail,
+body[data-state='guard'] .cur-state.s-guard,
+body[data-state='noquota'] .cur-state.s-noquota,
+body[data-state='drawing'] .cur-state.s-drawing,
+body[data-state='win'] .cur-state.s-win,
+body[data-state='lose'] .cur-state.s-lose,
+body[data-state='drawfail'] .cur-state.s-drawfail{display:inline}
+
+/* ---------- 状态开关（本原型唯一的交互机制；状态唯一来源 = URL 查询参数） ---------- */
+.state{display:none}
+.state-default{display:block}
+[data-state='loading'] .state-default,
+[data-state='error'] .state-default,
+[data-state='empty'] .state-default{display:none}
+[data-state='submit'] .state-submit{display:inline-flex}
+[data-state='invalid'] .state-invalid,
+[data-state='loginfail'] .state-loginfail,
+[data-state='guard'] .state-guard,
+[data-state='noquota'] .state-noquota,
+[data-state='drawing'] .state-drawing,
+[data-state='drawfail'] .state-drawfail,
+[data-state='loading'] .state-loading,
+[data-state='error'] .state-error,
+[data-state='empty'] .state-empty{display:block}
+[data-state='win'] .state-win,
+[data-state='lose'] .state-lose{display:flex}
+.only-default{display:inline-flex}
+[data-state='submit'] .only-default{display:none}
+.state-submit{display:none}
+.only-noquota{display:none}
+[data-state='noquota'] .only-noquota{display:inline-flex}
+[data-state='noquota'] .only-not-noquota{display:none}
+body[data-page='register'] .page:not(#page-register),
+body[data-page='login'] .page:not(#page-login),
+body[data-page='draw'] .page:not(#page-draw),
+body[data-page='records'] .page:not(#page-records){display:none}
+
+/* ---------- 页面承载 ---------- */
+.screen{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:14px;margin:12px 0 0;background:var(--background)}
+.screen-bar{font-size:12px;color:var(--muted-foreground);border-bottom:1px dashed var(--border);padding-bottom:7px;margin-bottom:14px}
+.anno{margin-top:14px;border-left:3px solid var(--ring);background:var(--muted);padding:11px 13px;border-radius:0 var(--radius-md) var(--radius-md) 0}
+.anno h4{color:var(--muted-foreground);margin-bottom:7px}
+.anno ul{padding-left:18px;font-size:12.5px}
+.note{border:1px dashed var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin:0 0 18px;background:var(--card)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.foot{font-size:12.5px;color:var(--muted-foreground);border-top:1px solid var(--border);padding-top:12px}
+.plain{list-style:none;padding-left:0}
+.plain li{margin:5px 0}
+.table-scroll{overflow-x:auto}
+/* =========================================================================
+   以下为「shadcn-vue 组件镜像」：每条规则上方注释给出对应 Tailwind 原子类，
+   供 engineer 在 src/ 用真实组件 + 原子类复现（禁止搬运本文件 class 名）。
+   ========================================================================= */
+
+/* ---------- 文本链接（产品内链接；链接色沿用前景色 + 下划线，中性主题无独立 link 色） ---------- */
+.link{color:var(--foreground);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.link:hover{color:var(--muted-foreground)}
+
+/* ---------- Button：<Button variant="default|secondary|outline|ghost|destructive" size="default|sm|lg"> ---------- */
+/* 对应：inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium
+   transition-colors h-9 px-4 py-2 focus-visible:ring-[3px] focus-visible:ring-ring/50
+   disabled:pointer-events-none disabled:opacity-50 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  height:36px;padding:0 16px;border:1px solid transparent;border-radius:var(--radius-md);
+  font:inherit;font-size:14px;font-weight:500;line-height:1;color:var(--foreground);background:transparent;
+  cursor:pointer;text-decoration:none;transition:background-color .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease,opacity .15s ease}
+.btn:focus-visible{outline:2px solid var(--ring);outline-offset:2px;box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 45%,transparent)}
+.btn[disabled],.btn[aria-disabled='true'],.btn.is-disabled{opacity:.5;pointer-events:none;cursor:not-allowed}
+.btn-sm{height:32px;padding:0 12px;font-size:12.5px}
+.btn-lg{height:44px;padding:0 26px;font-size:15px}
+.btn-primary{background:var(--primary);color:var(--primary-foreground)}
+.btn-primary:hover{background:color-mix(in oklab,var(--primary) 88%,var(--card))}
+.btn-secondary{background:var(--secondary);color:var(--secondary-foreground)}
+.btn-secondary:hover{background:color-mix(in oklab,var(--secondary) 88%,var(--foreground))}
+.btn-outline{border-color:var(--input);background:var(--card);color:var(--foreground)}
+.btn-outline:hover{background:var(--accent);color:var(--accent-foreground)}
+.btn-ghost{color:var(--foreground)}
+.btn-ghost:hover{background:var(--accent);color:var(--accent-foreground)}
+.btn-destructive{background:var(--destructive);color:var(--destructive-foreground)}
+.btn-destructive:hover{background:color-mix(in oklab,var(--destructive) 88%,var(--card))}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;margin:16px 0 4px}
+.actions-left{justify-content:flex-start}
+
+/* ---------- Input / Label / FormMessage：<Input> + <Label> + vee-validate FormMessage ---------- */
+/* 对应：h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs
+   focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
+   aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:bg-muted disabled:opacity-50 */
+.field{margin:0 0 14px}
+.label,.field > label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.input{display:block;width:100%;height:36px;padding:0 12px;border:1px solid var(--input);border-radius:var(--radius-md);
+  background:var(--card);color:var(--foreground);font:inherit;font-size:14px;
+  box-shadow:0 1px 2px oklch(0 0 0/.04);transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease}
+.input::placeholder{color:var(--muted-foreground)}
+.input:hover{border-color:var(--ring)}
+.input:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 45%,transparent)}
+.input[aria-invalid='true']{border-color:var(--destructive)}
+.input[aria-invalid='true']:focus-visible{border-color:var(--destructive);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive) 28%,transparent)}
+.input[disabled]{background:var(--muted);color:var(--muted-foreground);cursor:not-allowed}
+.form-hint{color:var(--muted-foreground);font-size:12px;margin:6px 0 0}
+.form-message{margin:6px 0 0;font-size:12.5px;font-weight:600;color:var(--destructive);display:flex;gap:6px;align-items:flex-start}
+.form-message .ico{flex:0 0 auto;margin-top:2px}
+/* ---------- 状态门控的组件变体 ----------
+   CSS 无法切换 aria-invalid / disabled 属性，原型用 data-state 门控样式呈现；
+   实现时必须对应真实 aria-invalid="true" / disabled（原型受静态限制无法表达）。 */
+[data-state='invalid'] .js-reg-input{border-color:var(--destructive)}
+[data-state='invalid'] .js-reg-input:focus-visible{border-color:var(--destructive);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive) 28%,transparent)}
+[data-state='noquota'] .js-draw-btn,
+[data-state='drawing'] .js-draw-btn,
+[data-state='drawfail'] .js-draw-btn{opacity:.5;pointer-events:none;cursor:not-allowed;box-shadow:none}
+/* Alert 类状态区块必须保持 flex，否则图标与文案布局错位 */
+[data-state='guard'] .alert.state-guard,
+[data-state='loginfail'] .alert.state-loginfail,
+[data-state='noquota'] .alert.state-noquota,
+[data-state='drawfail'] .alert.state-drawfail{display:flex}
+
+/* ---------- Card：<Card><CardHeader><CardTitle><CardDescription><CardContent><CardFooter> ---------- */
+/* 对应：bg-card text-card-foreground rounded-xl border shadow-sm */
+.card{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:var(--radius-xl);
+  box-shadow:0 1px 3px oklch(0 0 0/.06);padding:22px}
+.card-auth{max-width:420px;margin:0 auto}
+.card-head{margin-bottom:18px}
+.card-title{font-size:17px;font-weight:700;margin:0 0 4px}
+.card-desc{font-size:12.5px;color:var(--muted-foreground);margin:0}
+.card-footer{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);text-align:center;font-size:12.5px;color:var(--muted-foreground)}
+
+/* ---------- Badge：<Badge variant="default|secondary|outline|destructive"> ---------- */
+.badge{display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;border-radius:999px;
+  padding:2px 9px;font-size:11.5px;font-weight:600;line-height:1.5;white-space:nowrap}
+.badge-default{background:var(--primary);color:var(--primary-foreground)}
+.badge-secondary{background:var(--secondary);color:var(--secondary-foreground);border-color:var(--border)}
+.badge-outline{background:var(--card);color:var(--foreground);border-color:var(--input)}
+.badge-destructive{background:var(--destructive);color:var(--destructive-foreground)}
+
+/* ---------- Alert：<Alert variant="default|destructive"><AlertTitle><AlertDescription> ---------- */
+/* 对应：relative w-full rounded-lg border px-4 py-3 text-sm grid gap-1
+   destructive: text-destructive bg-card [&>svg]:text-current border-destructive/40 */
+.alert{display:flex;gap:11px;border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 15px;
+  background:var(--card);font-size:13px;margin:0 0 12px}
+.alert .ico{flex:0 0 auto;margin-top:1px}
+.alert-title{font-weight:600;margin:0 0 4px;font-size:13.5px}
+.alert-desc{color:var(--muted-foreground);margin:0;font-size:12.5px}
+.alert-destructive{border-color:var(--destructive);border-color:color-mix(in oklab,var(--destructive) 45%,var(--card));
+  background:var(--card);background:color-mix(in oklab,var(--destructive) 5%,var(--card))}
+.alert-destructive .alert-title{color:var(--destructive)}
+.alert-destructive .alert-desc{color:var(--muted-foreground);color:color-mix(in oklab,var(--destructive) 72%,var(--foreground))}
+.alert-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- Skeleton：<Skeleton> ---------- */
+/* 对应：animate-pulse rounded-md bg-muted */
+.skeleton{position:relative;overflow:hidden;background:var(--muted);border-radius:var(--radius-md);border:1px solid var(--border)}
+.skeleton::after{content:'';position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,color-mix(in oklab,var(--card) 80%,transparent),transparent);
+  animation:skeletonShimmer 1.7s linear infinite}
+@keyframes skeletonShimmer{to{transform:translateX(100%)}}
+.sk-line{height:13px;display:block}
+.sk-num{width:34px;height:34px;border-radius:999px;display:inline-block}
+.skeleton-circle{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:50%;margin:0 auto;display:flex;
+  align-items:center;justify-content:center;color:var(--muted-foreground);font-size:12.5px}
+
+/* ---------- Table：<Table><TableHeader><TableRow><TableHead><TableBody><TableCell><TableCaption> ---------- */
+/* 对应：w-full caption-bottom text-sm；TableHead h-10 px-2 text-left font-medium text-muted-foreground；
+   TableRow border-b transition-colors hover:bg-muted/50 */
+.table-wrap{position:relative;width:100%;overflow-x:auto}
+.table{width:100%;border-collapse:collapse;font-size:13px;caption-side:bottom}
+.table caption{color:var(--muted-foreground);font-size:12.5px;text-align:left;padding:8px 2px 0}
+.table thead tr{border-bottom:1px solid var(--border)}
+.table th{height:42px;padding:0 12px;text-align:left;vertical-align:middle;font-weight:600;font-size:12.5px;
+  color:var(--muted-foreground);white-space:nowrap}
+.table tbody tr{border-bottom:1px solid var(--border);transition:background-color .15s ease}
+.table tbody tr:hover{background:color-mix(in oklab,var(--muted) 65%,transparent)}
+.table tbody tr:last-child{border-bottom:0}
+.table td{padding:11px 12px;vertical-align:middle}
+.table td.placeholder{text-align:center;color:var(--muted-foreground);padding:30px 12px}
+
+/* ---------- Pagination：<Pagination><PaginationPrevious><PaginationNext> ---------- */
+.pager{display:flex;gap:12px;align-items:center;justify-content:flex-end;font-size:12.5px;color:var(--muted-foreground);margin:14px 0 0}
+
+/* ---------- Dialog：<Dialog><DialogOverlay><DialogContent><DialogHeader><DialogTitle><DialogFooter> ---------- */
+/* 对应 overlay: fixed inset-0 z-50 bg-black/50；content: bg-background rounded-lg border shadow-lg p-6 */
+.overlay{position:fixed;inset:0;background:oklch(0 0 0/.5);z-index:50;align-items:center;justify-content:center;
+  padding:20px;animation:fadeIn .2s ease-out}
+.modal{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:var(--radius-xl);
+  padding:24px 22px;max-width:440px;width:100%;text-align:center;box-shadow:0 16px 40px oklch(0 0 0/.2);
+  animation:dialogIn .24s cubic-bezier(.16,.84,.24,1)}
+.modal h3{margin:0 0 6px;font-size:17px}
+.modal .actions{margin-top:18px}
+.dialog-badge{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:999px;
+  margin:0 auto 14px;background:var(--card);box-shadow:inset 0 0 0 1px var(--border)}
+.dialog-badge.is-win{background:var(--muted);background:color-mix(in oklab,var(--chart-4) 28%,var(--card))}
+.dialog-badge.is-lose{background:var(--muted);background:color-mix(in oklab,var(--muted-foreground) 18%,var(--card))}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes dialogIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+
+/* ---------- 应用条（原型自定义，非 shadcn 组件；实现可用简单 flex 容器） ---------- */
+.app-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:9px 12px;margin:0 0 16px;background:var(--card)}
+.app-bar .brand{font-weight:700;letter-spacing:-.01em}
+.app-bar .user{margin-left:auto;font-size:12.5px;color:var(--muted-foreground)}
+
+/* ---------- 抽奖页布局与内联 SVG 转盘 ---------- */
+.draw-grid{display:grid;grid-template-columns:320px 1fr;gap:28px;align-items:start}
+.wheel-stage{position:relative;width:100%;max-width:320px;aspect-ratio:1/1;margin:0 auto}
+.wheel-rotor{position:absolute;inset:0;transform-origin:50% 50%;
+  transition:transform 1.8s cubic-bezier(.15,.85,.2,1)}
+.wheel-svg{display:block;width:100%;height:100%;overflow:visible}
+.wheel-rim{fill:none;stroke:var(--foreground);stroke-width:3}
+.wheel-sector{stroke:var(--card);stroke-width:2}
+/* color-mix 不可用时（Chrome/Edge < 111）回退为 --muted 纯色，保证扇区仍可读（黑字浅底） */
+.sec-1{fill:var(--muted);fill:color-mix(in oklab,var(--chart-4) 26%,var(--card))}
+.sec-2{fill:var(--muted);fill:color-mix(in oklab,var(--chart-2) 24%,var(--card))}
+.sec-3{fill:var(--muted);fill:color-mix(in oklab,var(--chart-1) 22%,var(--card))}
+.sec-4{fill:var(--muted);fill:color-mix(in oklab,var(--chart-5) 20%,var(--card))}
+.sec-5{fill:var(--muted);fill:color-mix(in oklab,var(--muted-foreground) 16%,var(--card))}
+.wheel-num-circle{fill:var(--card);stroke:var(--border)}
+.wheel-num-text{fill:var(--foreground);font-size:13px;font-weight:700;text-anchor:middle}
+.wheel-label{fill:var(--foreground);font-size:11.5px;font-weight:600;text-anchor:middle}
+.wheel-pointer{position:absolute;left:50%;top:-1.5%;width:8.5%;height:auto;transform:translateX(-50%);
+  filter:drop-shadow(0 2px 3px oklch(0 0 0/.25))}
+.wheel-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:27.5%;aspect-ratio:1/1;
+  border-radius:999px;background:var(--card);border:1px solid var(--border);box-shadow:0 2px 6px oklch(0 0 0/.14);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;line-height:1.25}
+.wheel-hub .hub-brand{font-size:12px;font-weight:700}
+.wheel-hub .hub-quota{font-size:11px;color:var(--muted-foreground)}
+/* 落点与动效：win -> ③ 号扇区停在指针下并高亮；lose -> ⑤ 号扇区停稳；drawing -> 旋转 3 圈后复位 */
+[data-state='win'] .wheel-rotor{transform:rotate(180deg)}
+[data-state='lose'] .wheel-rotor{transform:rotate(36deg)}
+[data-state='drawing'] .wheel-rotor{animation:wheelSpin 2.4s cubic-bezier(.16,.84,.24,1) both}
+[data-state='win'] .sec-3,[data-state='lose'] .sec-5{stroke:var(--foreground);stroke-width:3.5}
+[data-state='win'] .sec-3{fill:var(--muted);fill:color-mix(in oklab,var(--chart-1) 48%,var(--card))}
+[data-state='lose'] .sec-5{fill:var(--muted);fill:color-mix(in oklab,var(--muted-foreground) 32%,var(--card))}
+[data-state='noquota'] .wheel-rotor{opacity:.5;filter:grayscale(.65)}
+@keyframes wheelSpin{from{transform:rotate(0)}to{transform:rotate(1080deg)}}
+.quota{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;margin:0 0 12px}
+.quota .num{font-size:22px;font-weight:700;line-height:1}
+.draw-btn{min-width:190px}
+.legend{list-style:none;padding:0;margin:16px 0 10px;border-top:1px solid var(--border);padding-top:12px}
+.legend li{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:13px}
+.legend .num{flex:0 0 auto;width:24px;height:24px;line-height:22px;text-align:center;border:1px solid var(--input);
+  border-radius:999px;font-size:12px;font-weight:600;background:var(--card)}
+.legend .name{flex:0 1 auto}
+.legend .badge{margin-left:auto}
+.legend .swatch{flex:0 0 auto;width:14px;height:14px;border-radius:4px;border:1px solid var(--border)}
+/* ---------- 空态内联 SVG 插画（装饰性，aria-hidden；语义由文本承载） ---------- */
+.illus{display:block;width:132px;height:132px;margin:0 auto 12px;color:var(--muted-foreground)}
+.illus .stroke{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.illus .dashed{fill:none;stroke:var(--border);stroke-width:2;stroke-dasharray:7 9}
+.illus .solid{fill:currentColor;opacity:.14}
+.illus .accent{fill:color-mix(in oklab,var(--chart-4) 55%,var(--card));stroke:none}
+.empty-wrap{text-align:center;padding:26px 12px}
+.empty-title{font-size:15px;font-weight:700;margin:0 0 6px}
+.empty-desc{color:var(--muted-foreground);font-size:13px;margin:0 0 14px}
+/* ---------- 提交中按钮内的旋转指示（Button loading 态） ---------- */
+.spinner{width:14px;height:14px;border-radius:999px;flex:0 0 auto;
+  border:2px solid color-mix(in oklab,var(--primary-foreground) 35%,transparent);border-top-color:var(--primary-foreground);
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- 原型排版工具类（镜像 Tailwind 的宽高原子类，仅本原型排版用） ---------- */
+.sk-h28{height:28px}
+.sk-h24{height:24px}
+.sk-h20{height:20px}
+.sk-40{width:40%}
+.sk-50{width:50%}
+.sk-55{width:55%}
+.sk-60{width:60%}
+.sk-65{width:65%}
+.sk-70{width:70%}
+.sk-80{width:80%}
+.sk-85{width:85%}
+.mb-2{margin-bottom:8px}
+.tc{text-align:center}
+/* 图例色块：与扇区填充同源（同一 color-mix 公式），保证图例与转盘配色一致 */
+.sw-1{background:var(--muted);background:color-mix(in oklab,var(--chart-4) 26%,var(--card))}
+.sw-2{background:var(--muted);background:color-mix(in oklab,var(--chart-2) 24%,var(--card))}
+.sw-3{background:var(--muted);background:color-mix(in oklab,var(--chart-1) 22%,var(--card))}
+.sw-4{background:var(--muted);background:color-mix(in oklab,var(--chart-5) 20%,var(--card))}
+.sw-5{background:var(--muted);background:color-mix(in oklab,var(--muted-foreground) 16%,var(--card))}
+.spinner-neutral{width:14px;height:14px;border-radius:999px;flex:0 0 auto;display:inline-block;vertical-align:-2px;
+  border:2px solid color-mix(in oklab,currentColor 30%,transparent);border-top-color:currentColor;animation:spin .8s linear infinite}
+[data-state='drawing'] .state-drawing{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--foreground)}
+.only-noquota:not(b){display:none}
+[data-state='noquota'] .only-noquota:not(b){display:inline-flex}
+
+/* ---------- 响应式：平板/窄屏堆叠 ---------- */
+@media (max-width:900px){
+  .draw-grid{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .nav{position:static}
+}
+/* ---------- 响应式：375-428px 手机断点（PRD 4.4 / Q12 已确认） ---------- */
+@media (max-width:480px){
+  .wrap{padding:12px 10px 64px}
+  .block,.page{padding:13px 12px}
+  .screen{padding:10px}
+  .card{padding:16px 14px}
+  .wheel-stage{max-width:264px}
+  .draw-btn{min-width:0;width:100%}
+  .btn-lg{height:42px;font-size:14.5px}
+  .actions-left .btn{flex:1 1 auto}
+  .modal{padding:20px 16px}
+  .app-bar .user{margin-left:0;flex-basis:100%}
+  .table{min-width:320px}
+  .legend .badge{margin-left:0}
+  table.idx,table.meta{font-size:12px}
+  h1{font-size:18px}
+}
+/* ---------- 动效降级（承诺项：全部动效在 reduce 下关闭或极简化） ---------- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important}
+  .skeleton::after{display:none}
+  [data-state='drawing'] .wheel-rotor{animation:none;transform:none}
+  .wheel-rotor{transition:none}
+}
+</style>
+</head>
+<body data-state="default" data-page="all">
+
+<!-- =========================================================================
+     本文件唯一的脚本：读取 URL 查询参数并写入 <body> 属性（纯状态开关）
+     ?state=default|loading|error|empty|submit|invalid|loginfail|guard|noquota|drawing|win|lose|drawfail
+     ?page=register|login|draw|records|all（可选，用于只看单页；缺省 all）
+     不做数据处理、不请求接口、不引入任何框架。
+     ========================================================================= -->
+<script>
+(function(){var q=new URLSearchParams(location.search),b=document.body,s=q.get('state')||'default',p=q.get('page')||'all';
+var S=['default','loading','error','empty','submit','invalid','loginfail','guard','noquota','drawing','win','lose','drawfail'],P=['register','login','draw','records'];
+b.setAttribute('data-state',S.indexOf(s)<0?'default':s);b.setAttribute('data-page',P.indexOf(p)<0?'all':p);})();
+</script>
+
+<a class="skip" href="#state-index">跳到「页面 x 状态」索引表</a>
+
+<div class="wrap">
+
+<h1>交互原型 v3：转盘抽奖（高保真）</h1>
+
+<!-- ------------------------------ 元信息块 ------------------------------ -->
+<section class="block" id="meta">
+  <h2>元信息</h2>
+  <table class="meta">
+    <tr><td class="k">产物</td><td>交互原型（<strong>高保真</strong>，单文件 HTML，可直接浏览器打开，无需服务器）</td></tr>
+    <tr><td class="k">版本</td><td><strong>v3</strong>（依据 <code>docs/00-brief.md</code> <strong>CR-01</strong> / <code>docs/10-prd.md</code> <strong>v2</strong>：仅将密码字符类别收紧为「须同时包含大写字母、小写字母与数字」，共改文案 5 处；<strong>契约层（20 个锚点、<code>?state=</code> / <code>?page=</code> 取值、索引表结构与显隐机制）与 v2 一字未改</strong>。沿革：v2 = 依据用户决断将档位由低保真改为高保真、视觉层整体重做）</td></tr>
+    <tr><td class="k">冻结时间</td><td>2026-09-17T00:00:00+08:00（v2 首冻）/ 2026-09-17T11:30:00+08:00（v3 同步 CR-01）</td></tr>
+    <tr><td class="k">上游依赖</td><td><code>docs/10-prd.md</code> <strong>v2</strong>（含 CR-01 口径，<strong>已冻结</strong>）；<code>docs/00-brief.md</code> <strong>v2</strong>（含 CR-01，已冻结，只读）</td></tr>
+    <tr><td class="k">状态</td><td>按 <code>docs/artifacts.md</code> 第 5 节失效传播矩阵已重跑复核：<strong>v3 已对齐 <code>docs/10-prd.md</code> v2，失效标记解除</strong>；PRD 附录 B 的 Q1-Q12 已由用户全部确认，无待定假设</td></tr>
+    <tr><td class="k">写入者</td><td>prototype-designer</td></tr>
+    <tr><td class="k">覆盖页面</td><td>注册页 / 登录页 / 抽奖页 / 我的中奖记录页 —— 共 4 页、<strong>20 个状态区块</strong></td></tr>
+    <tr><td class="k">档位决断</td><td>P1（原型档位）已由<strong>用户决断为「高保真」</strong>，从下方待确认清单移除；本产物即该决断的执行结果</td></tr>
+    <tr><td class="k">档位与约束</td><td>高保真：系统字体栈 + 内联 SVG 图形（转盘扇区 / 指针 / 空态插画 / 状态图标）+ CSS 令牌化配色与阴影圆角；<strong>仍严格零外链</strong>（无 CDN / 无字体文件 / 无图片 / 无 icon font / 无 Tailwind CDN）；内联 CSS + 单段状态开关脚本（3 行、无框架、不做数据处理）；不接后端、不实现业务逻辑</td></tr>
+    <tr><td class="k">视觉口径</td><td>设计令牌为 shadcn-vue <code>@theme inline</code> 的<strong>同名同值镜像</strong>（无 Tailwind 编译器在跑，无法真正执行 @theme，详见文件顶部注释 [2]）；组件形态对齐 shadcn-vue（Button / Input / Card / Dialog / Table / Badge / Alert / Skeleton）；三处令牌刻意加深以满足对比度；扇区 / 图例用到 <code>color-mix()</code> 处均带纯色回退（Chrome / Edge &lt; 111 时退化为浅灰扇区，文字仍可读）</td></tr>
+<tr><td class="k">响应式</td><td>桌面双栏（转盘 + 信息区）；≤900px 堆叠；<strong>≤480px 覆盖 PRD Q12 的 375-428px 目标</strong>（转盘缩小、抽奖按钮通栏、记录表格容器横向滚动）</td></tr>
+    <tr><td class="k">动效口径</td><td>纯 CSS：转盘旋转与落点缓动、Dialog 出入场、Skeleton shimmer、交互控件过渡；<strong>全部动效在 <code>prefers-reduced-motion: reduce</code> 下降级</strong>；不用 JS、不造第二套状态机</td></tr>
+    <tr><td class="k">示例数据</td><td>奖池 5 条取自 PRD FR-03 默认奖池；用户名 <code>demo_user</code>、中奖时间、记录条数均为占位示例，可直接替换（清单见文末「文案清单」）</td></tr>
+  </table>
+</section>
+
+<!-- ------------------------------ 用法说明 ------------------------------ -->
+<section class="block" id="howto">
+  <h2>怎么用（评审指引）</h2>
+  <ul class="plain">
+    <li>1. 直接用浏览器打开本文件（<strong>无需服务器</strong>）；不带参数时展示全部 4 个页面的 default 状态。</li>
+    <li>2. <strong>页面间跳转</strong>：使用下方导航条或页面内链接（链接为可点击的真实 <code>a</code> 元素，整页刷新）。</li>
+    <li>3. <strong>边界状态直达</strong>：按下一节索引表的「直达 URL」打开，形如 <code>?page=draw&amp;state=noquota#page-draw--noquota</code>；追加 <code>page</code> 参数可只展示单页。</li>
+    <li>4. 状态切换完全由 CSS 承担：<code>data-state</code> 控制显隐、<code>data-page</code> 控制页面筛选；未知取值自动回退 <code>default</code> / <code>all</code>。</li>
+    <li>5. 抽奖页 <code>?state=win</code> 会看到转盘落到 ③ 号扇区并高亮、指针停在落点（模拟动画停稳后的静止帧）；<code>?state=drawing</code> 可看到转盘旋转动效（关闭系统「减少动态效果」后更明显）。</li>
+    <li>6. 本原型<strong>不含</strong>真实抽奖判定、接口、路由守卫、无刷新路由过渡；也不提供「点击切换状态」——状态唯一来源是 URL 查询参数（见文件顶部 [4] 动效边界）。</li>
+  </ul>
+</section>
+
+<!-- ------------------------------ 顶部导航 ------------------------------ -->
+<nav class="nav" aria-label="页面导航">
+  <b>页面：</b>
+  <a class="link btn btn-ghost btn-sm" href="?page=register&amp;state=default#page-register--default">注册页</a>
+  <a class="link btn btn-ghost btn-sm" href="?page=login&amp;state=default#page-login--default">登录页</a>
+  <a class="link btn btn-ghost btn-sm" href="?page=draw&amp;state=default#page-draw--default">抽奖页</a>
+  <a class="link btn btn-ghost btn-sm" href="?page=records&amp;state=default#page-records--default">我的中奖记录页</a>
+  <a class="link btn btn-secondary btn-sm" href="?page=all&amp;state=default#state-index">全部页面</a>
+  <b>常用状态：</b>
+  <a class="btn btn-outline btn-sm" href="?page=draw&amp;state=win#page-draw--win">中奖弹层</a>
+  <a class="btn btn-outline btn-sm" href="?page=draw&amp;state=lose#page-draw--lose">未中奖弹层</a>
+  <a class="btn btn-outline btn-sm" href="?page=draw&amp;state=noquota#page-draw--noquota">次数用尽</a>
+  <a class="btn btn-outline btn-sm" href="?page=draw&amp;state=error#page-draw--error">加载失败</a>
+  <a class="btn btn-outline btn-sm" href="?page=records&amp;state=empty#page-records--empty">记录空态</a>
+</nav>
+
+<p class="cur">当前直达：页面 <b class="cur-page p-register">注册页</b><b class="cur-page p-login">登录页</b><b class="cur-page p-draw">抽奖页</b><b class="cur-page p-records">我的中奖记录页</b><b class="cur-page p-all">全部页面</b> / 状态 <b class="cur-state s-default">default</b><b class="cur-state s-loading">loading</b><b class="cur-state s-error">error</b><b class="cur-state s-empty">empty</b><b class="cur-state s-submit">submit</b><b class="cur-state s-invalid">invalid</b><b class="cur-state s-loginfail">loginfail</b><b class="cur-state s-guard">guard</b><b class="cur-state s-noquota">noquota</b><b class="cur-state s-drawing">drawing</b><b class="cur-state s-win">win</b><b class="cur-state s-lose">lose</b><b class="cur-state s-drawfail">drawfail</b>（未指定参数时即 default / all）</p>
+
+<!-- ------------------------------ 页面 x 状态 索引表（契约层，锚点逐字冻结） ------------------------------ -->
+<section class="block" id="state-index">
+  <h2>索引表：页面 x 状态（下游 engineer / test-designer / test-executor 按锚点定位）</h2>
+  <p class="hint">
+    直达 URL 均相对本文件，完整形式为 <code>docs/20-prototype.html?page=&lt;页面&gt;&amp;state=&lt;状态&gt;#&lt;锚点&gt;</code>。
+    锚点 = 该状态下<strong>发生变化的区块</strong>（原型刻意只保留一份表单 / 页面 markup，用状态叠加呈现，避免多份重复结构漂移）：
+    整块替换类状态（loading / error / empty）锚点指向替换后的整块；叠加类状态（invalid / loginfail / guard / noquota / drawing / drawfail / win / lose）锚点指向被叠加或以叠加方式出现的元素。
+    注册页与登录页的<strong>表单常驻显示</strong>（不随状态隐藏），仅错误 / 提交中 / 提示区块随状态出现。
+    全部文案见文末「文案清单（可替换）」。
+  </p>
+  <div class="table-scroll">
+  <table class="idx">
+    <colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7"></colgroup>
+    <caption class="hint" style="text-align:left;padding:0 0 8px">页面 x 状态索引（20 项）</caption>
+    <thead>
+      <tr><th scope="col">页面</th><th scope="col">状态</th><th scope="col">锚点 / 直达 URL</th><th scope="col">触发条件</th><th scope="col">预期文案与表现</th><th scope="col">关联</th><th scope="col">边界</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>注册页</td><td><code>default</code></td><td><a class="link" href="?page=register&amp;state=default#page-register--default">#page-register--default</a><br><code>?page=register&amp;state=default</code></td><td>打开注册页</td><td>Card 承载的空表单（用户名 / 密码 / 确认密码，Input + 字段说明）+ 主按钮「注册」可用 + 页脚「去登录」；顶部品牌区</td><td>FR-01</td><td>-</td></tr>
+      <tr><td>注册页</td><td><code>submit</code></td><td><a class="link" href="?page=register&amp;state=submit#page-register--submit">#page-register--submit</a><br><code>?page=register&amp;state=submit</code></td><td>点击「注册」后等待接口返回</td><td>按钮切换为禁用态「注册中…」并带 spinner，主按钮隐藏（防重复提交）；成功后自动登录并跳抽奖页</td><td>FR-01</td><td>提交中</td></tr>
+      <tr><td>注册页</td><td><code>invalid</code></td><td><a class="link" href="?page=register&amp;state=invalid#page-register--invalid">#page-register--invalid</a><br><code>?page=register&amp;state=invalid</code></td><td>提交不合法输入（用户名重复 / 密码不合规 / 两次不一致）</td><td>就地三段 FormMessage：输入框 destructive 边框 + helper 文本「用户名已被占用」「密码需 8-20 位且同时含大写字母、小写字母与数字」「两次输入不一致」；不创建账号、不跳转</td><td>FR-01 / AC-02</td><td>校验失败</td></tr>
+      <tr><td>登录页</td><td><code>default</code></td><td><a class="link" href="?page=login&amp;state=default#page-login--default">#page-login--default</a><br><code>?page=login&amp;state=default</code></td><td>打开登录页</td><td>Card 承载的空表单 + 主按钮「登录」可用 + 页脚「去注册」</td><td>FR-02</td><td>-</td></tr>
+      <tr><td>登录页</td><td><code>submit</code></td><td><a class="link" href="?page=login&amp;state=submit#page-login--submit">#page-login--submit</a><br><code>?page=login&amp;state=submit</code></td><td>点击「登录」后等待接口返回</td><td>按钮切换为禁用态「登录中…」并带 spinner</td><td>FR-02</td><td>提交中</td></tr>
+      <tr><td>登录页</td><td><code>loginfail</code></td><td><a class="link" href="?page=login&amp;state=loginfail#page-login--loginfail">#page-login--loginfail</a><br><code>?page=login&amp;state=loginfail</code></td><td>用户名或密码错误</td><td>Alert（destructive 语义）统一提示「用户名或密码错误」（不区分具体原因，防账号枚举）；不签发凭证、不跳转</td><td>FR-02 / AC-04</td><td>登录失败</td></tr>
+      <tr><td>登录页</td><td><code>guard</code></td><td><a class="link" href="?page=login&amp;state=guard#page-login--guard">#page-login--guard</a><br><code>?page=login&amp;state=guard</code></td><td>未登录访问抽奖页 / 记录页，被路由守卫重定向</td><td>Alert（默认语义）提示「请先登录后再访问抽奖页」；登录成功后回跳原目标页</td><td>FR-02-3 / FR-10-1 / AC-05</td><td>未登录</td></tr>
+      <tr><td>抽奖页</td><td><code>default</code></td><td><a class="link" href="?page=draw&amp;state=default#page-draw--default">#page-draw--default</a><br><code>?page=draw&amp;state=default</code></td><td>登录成功后进入</td><td>内联 SVG 转盘（5 个真实扇区路径 + 指针 + 扇区文字沿径向 + ①-⑤ 编号）+ 奖池图例 5 条（Badge 标类型）+「今日剩余次数 3 次」+ 主按钮「开始抽奖」可用</td><td>FR-03 / FR-04</td><td>-</td></tr>
+      <tr><td>抽奖页</td><td><code>loading</code></td><td><a class="link" href="?page=draw&amp;state=loading#page-draw--loading">#page-draw--loading</a><br><code>?page=draw&amp;state=loading</code></td><td>进入页面自动拉取奖池，请求进行中</td><td><strong>骨架屏</strong>：圆形 Skeleton（带 shimmer）占位转盘 + 文字行 Skeleton；不显示次数与抽奖按钮</td><td>FR-03</td><td>加载中</td></tr>
+      <tr><td>抽奖页</td><td><code>error</code></td><td><a class="link" href="?page=draw&amp;state=error#page-draw--error">#page-draw--error</a><br><code>?page=draw&amp;state=error</code></td><td>奖池接口失败 / 超时</td><td><strong>Alert（destructive）</strong>「奖池加载失败」+「系统繁忙，请稍后重试」+ 重试按钮</td><td>FR-03 / FR-10-3</td><td>加载失败可重试</td></tr>
+      <tr><td>抽奖页</td><td><code>empty</code></td><td><a class="link" href="?page=draw&amp;state=empty#page-draw--empty">#page-draw--empty</a><br><code>?page=draw&amp;state=empty</code></td><td>候选集为空（启用中且「谢谢参与」或库存 &gt; 0 的条目为空）</td><td><strong>内联 SVG 几何插画</strong> +「奖品已抽完，请稍后再来」+ 主操作按钮禁用；默认奖池含常驻「谢谢参与」，正常不触发</td><td>FR-05-R3</td><td>空态</td></tr>
+      <tr><td>抽奖页</td><td><code>noquota</code></td><td><a class="link" href="?page=draw&amp;state=noquota#page-draw--noquota">#page-draw--noquota</a><br><code>?page=draw&amp;state=noquota</code></td><td>当日已消耗 3 次（含未中奖消耗），尝试第 4 次</td><td>剩余次数 Badge 显示 0 次（转盘置灰降饱和）、抽奖按钮禁用，Alert 引导「今日抽奖次数已用完，明日 0 点重置」</td><td>FR-04 / FR-07 / AC-10</td><td>次数用尽</td></tr>
+      <tr><td>抽奖页</td><td><code>drawing</code></td><td><a class="link" href="?page=draw&amp;state=drawing#page-draw--drawing">#page-draw--drawing</a><br><code>?page=draw&amp;state=drawing</code></td><td>点击抽奖后等待后端响应 / 播放动画期间</td><td>按钮禁用 +「正在抽奖…」+ 转盘播放 3 圈旋转动效（reduce 模式下静止）；动画期间禁止再次点击</td><td>FR-05 / FR-06-1</td><td>防连点</td></tr>
+      <tr><td>抽奖页</td><td><code>win</code></td><td><a class="link" href="?page=draw&amp;state=win#page-draw--win">#page-draw--win</a><br><code>?page=draw&amp;state=win</code></td><td>抽出有库存的奖品</td><td><strong>Dialog</strong>（遮罩 + 缩放入场）「恭喜获得 三等奖 · 定制马克杯」+「已记入我的中奖记录」+ 剩余次数 2 次；转盘 ③ 号扇区停在指针下并高亮；【查看我的中奖记录】【继续抽奖】</td><td>FR-06 / AC-08</td><td>中奖结果</td></tr>
+      <tr><td>抽奖页</td><td><code>lose</code></td><td><a class="link" href="?page=draw&amp;state=lose#page-draw--lose">#page-draw--lose</a><br><code>?page=draw&amp;state=lose</code></td><td>抽出「谢谢参与」</td><td><strong>Dialog</strong>「谢谢参与，再接再厉」+ 剩余次数 2 次；转盘 ⑤ 号扇区停稳在高亮位；次数 -1、不写中奖记录</td><td>FR-05-R6 / FR-06 / AC-09</td><td>未中奖结果</td></tr>
+      <tr><td>抽奖页</td><td><code>drawfail</code></td><td><a class="link" href="?page=draw&amp;state=drawfail#page-draw--drawfail">#page-draw--drawfail</a><br><code>?page=draw&amp;state=drawfail</code></td><td>抽奖请求失败 / 超时</td><td><strong>Alert（destructive）</strong>「系统繁忙，请稍后重试」+ 重试按钮；不播动画（转盘停在原位）、不重复扣次（重试沿用同一幂等键）</td><td>FR-05 / FR-10-3 / AC-17</td><td>请求失败可重试</td></tr>
+      <tr><td>我的中奖记录页</td><td><code>default</code></td><td><a class="link" href="?page=records&amp;state=default#page-records--default">#page-records--default</a><br><code>?page=records&amp;state=default</code></td><td>进入记录页</td><td>Table「奖品名称 / 中奖时间」（表头 muted、行 hover 高亮）+ 示例 3 条 + 分页条（每页 10 条、按中奖时间倒序）</td><td>FR-09</td><td>-</td></tr>
+      <tr><td>我的中奖记录页</td><td><code>loading</code></td><td><a class="link" href="?page=records&amp;state=loading#page-records--loading">#page-records--loading</a><br><code>?page=records&amp;state=loading</code></td><td>列表请求进行中</td><td>表头保留 + 3 行 <strong>Skeleton 骨架行</strong>（shimmer）+「加载中…」状态文本</td><td>FR-09</td><td>加载态</td></tr>
+      <tr><td>我的中奖记录页</td><td><code>error</code></td><td><a class="link" href="?page=records&amp;state=error#page-records--error">#page-records--error</a><br><code>?page=records&amp;state=error</code></td><td>列表接口失败 / 超时</td><td>表头保留 + <strong>Alert（destructive）</strong>「加载失败」+「系统繁忙，请稍后重试」+ 重试按钮</td><td>FR-09 / FR-10-3</td><td>加载失败可重试</td></tr>
+      <tr><td>我的中奖记录页</td><td><code>empty</code></td><td><a class="link" href="?page=records&amp;state=empty#page-records--empty">#page-records--empty</a><br><code>?page=records&amp;state=empty</code></td><td>本人无中奖记录（首屏或翻页至末页之后）</td><td><strong>内联 SVG 几何插画</strong> +「还没有中奖记录，去试试手气吧」+ 主操作按钮【去抽奖】；表体以单行占位提示呈现</td><td>FR-09</td><td>空态</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ------------------------------ 原型区块 → shadcn-vue 组件映射表 ------------------------------ -->
+<section class="block" id="shadcn-map">
+  <h2>原型区块 → shadcn-vue 组件映射表（供 engineer 照抄）</h2>
+  <p class="hint">
+    本原型是零依赖单文件 HTML，<strong>没有运行 Tailwind / shadcn-vue</strong>：下表说明「原型里看到的这个区块，在
+    <code>src/</code> 里应该由哪个 shadcn-vue 组件 + 哪组变体实现」。组件一律用
+    <code>npx shadcn-vue@2.x add &lt;组件名&gt;</code> 添加（固定主版本，禁止 @latest、禁止手写复制源码）；
+    <code>src/components/ui/</code> 只读，业务定制走外层包裹 / props / 插槽 / Tailwind 类名覆盖。
+  </p>
+  <div class="table-scroll">
+  <table class="idx">
+    <colgroup><col style="width:19%"><col style="width:19%"><col style="width:26%"><col style="width:36%"></colgroup>
+    <thead>
+      <tr><th scope="col">原型区块（锚点 / 选择器）</th><th scope="col">shadcn-vue 组件</th><th scope="col">关键 props / 变体</th><th scope="col">原型中的状态形态与实现备注</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>按钮：注册 / 登录提交、开始抽奖、重试、弹层动作、分页（<code>.btn</code>）</td>
+        <td><code>Button</code></td>
+        <td><code>variant="default|secondary|outline|ghost|destructive"</code>、<code>size="default|sm|lg"</code>、<code>disabled</code>、<code>as-child</code></td>
+        <td>原型覆盖 5 态：primary（提交 / 抽奖）、secondary（导航「全部页面」）、outline（状态直通车）、ghost（导航页签）、disabled（次数用尽 / 提交中 / 翻页到头）；<code>focus-visible:ring-[3px] ring-ring/50</code> 焦点环。<strong>跳转类按钮</strong>用 <code>&lt;Button as-child&gt;&lt;RouterLink&gt;</code>，不要用 <code>&lt;a class="btn"&gt;</code> 手写。</td>
+      </tr>
+      <tr>
+        <td>输入框：用户名 / 密码 / 确认密码（<code>.input</code>）</td>
+        <td><code>Input</code>（+ <code>Label</code>）</td>
+        <td><code>v-model</code>、<code>type="password"</code>、<code>autocomplete</code>、<code>aria-invalid</code>、<code>disabled</code></td>
+        <td>4 态：default / focus（<code>border-ring</code> + 3px ring）/ error（<code>aria-invalid</code> 触发 destructive 边框）/ disabled（<code>bg-muted</code>）。error 态必须同时给出 helper text（FormMessage），不能只靠颜色表达。</td>
+      </tr>
+      <tr>
+        <td>表单字段包装与错误文案（<code>.field</code> / <code>.label</code> / <code>.form-message</code>）</td>
+        <td><code>FormField</code> / <code>FormItem</code> / <code>FormLabel</code> / <code>FormControl</code> / <code>FormDescription</code> / <code>FormMessage</code>（vee-validate + <code>@vee-validate/zod</code>）</td>
+        <td><code>name</code>、<code>rules</code> 来自 Zod Schema</td>
+        <td>校验规则必须在 <code>types/</code> 的 Zod Schema 中声明并与后端 DTO 规则一致（用户名 4-20 位唯一、密码 8-20 位且须同时包含大写字母、小写字母与数字、两次一致）；禁止手写 if-else 校验。<code>FormMessage</code> 天然承担原型里的 <code>.form-message</code> 位置。</td>
+      </tr>
+      <tr>
+        <td>登录 / 注册表单承载容器（<code>#page-register--default</code>、<code>#page-login--default</code>）</td>
+        <td><code>Card</code> / <code>CardHeader</code> / <code>CardTitle</code> / <code>CardDescription</code> / <code>CardContent</code> / <code>CardFooter</code></td>
+        <td><code>class="max-w-[420px] mx-auto"</code></td>
+        <td>页脚「去登录 / 去注册」放 <code>CardFooter</code>；<code>CardDescription</code> 承载「注册成功后自动登录」这类说明文案。</td>
+      </tr>
+      <tr>
+        <td>抽奖结果弹层（<code>#page-draw--win</code>、<code>#page-draw--lose</code>）</td>
+        <td><code>Dialog</code> / <code>DialogOverlay</code> / <code>DialogContent</code> / <code>DialogHeader</code> / <code>DialogTitle</code> / <code>DialogDescription</code> / <code>DialogFooter</code></td>
+        <td><code>v-model:open</code>、<code>modal</code></td>
+        <td>中奖 / 未中奖两态共用同一 Dialog（换标题 + 图标徽章 + 页脚按钮）；入场动效（fade + scale）由 reka-ui 提供，<code>prefers-reduced-motion</code> 下自动降级。焦点陷阱 / Esc 关闭 / 关闭后焦点回收由组件承担——原型为静态页，已在「a11y 豁免」中标注。</td>
+      </tr>
+      <tr>
+        <td>我的中奖记录表格（<code>#page-records--*</code>）</td>
+        <td><code>Table</code> / <code>TableHeader</code> / <code>TableBody</code> / <code>TableRow</code> / <code>TableHead</code> / <code>TableCell</code> / <code>TableCaption</code> + TanStack Table</td>
+        <td><code>ColumnDef&lt;WinningRecord&gt;</code>、<code>pageIndex</code>/<code>pageSize</code> 与服务端联动</td>
+        <td>列 = 奖品名称 / 中奖时间；默认按中奖时间倒序、每页 10 条；<strong>必须用 TanStack Table</strong>，禁止手写表格渲染与分页逻辑。窄屏（375-428px）由外层 <code>overflow-x-auto</code> 容器横向滚动。</td>
+      </tr>
+      <tr>
+        <td>分页条（<code>.pager</code>）</td>
+        <td><code>Pagination</code> / <code>PaginationPrevious</code> / <code>PaginationNext</code>（或 TanStack Table 自带分页）</td>
+        <td><code>page</code>、<code>total</code></td>
+        <td>首 / 末页按钮置 disabled（原型已呈现禁用态）；分页与后端查询参数联动。</td>
+      </tr>
+      <tr>
+        <td>奖品类型 / 剩余次数 / 奖品状态标记（<code>.badge</code>）</td>
+        <td><code>Badge</code></td>
+        <td><code>variant="default|secondary|outline|destructive"</code></td>
+        <td>奖池图例的「实物 / 虚拟 / 未中奖」用 <code>outline</code>；剩余次数用 <code>default</code>；次数为 0 时换 <code>destructive</code>（见 <code>#page-draw--noquota</code>）。</td>
+      </tr>
+      <tr>
+        <td>错误态与引导（<code>#page-draw--error</code>、<code>#page-draw--drawfail</code>、<code>#page-records--error</code>、<code>#page-draw--noquota</code>、<code>#page-login--loginfail</code>、<code>#page-login--guard</code>）</td>
+        <td><code>Alert</code> / <code>AlertTitle</code> / <code>AlertDescription</code>（+ <code>Button</code> 重试）</td>
+        <td><code>variant="default"</code>（守卫提示 / 次数用尽）<code>|"destructive"</code>（加载失败 / 系统繁忙 / 登录失败）</td>
+        <td>中性主题无 warning 语义令牌，故「次数用尽」用 default Alert + destructive Badge 表达（未新增令牌）；若产品需要 warning 色，应在 <code>@theme</code> 新增 <code>--color-warning</code> 后再用。</td>
+      </tr>
+      <tr>
+        <td>加载态（<code>#page-draw--loading</code>、<code>#page-records--loading</code>）</td>
+        <td><code>Skeleton</code></td>
+        <td>无 props；尺寸用类名控制</td>
+        <td>转盘用圆形骨架（<code>rounded-full</code>），记录列表用 3 行骨架（表头保持真实渲染）；<code>animate-pulse</code> 在 reduce 模式下静止。</td>
+      </tr>
+      <tr>
+        <td>空态（<code>#page-draw--empty</code>、<code>#page-records--empty</code>）</td>
+        <td>无现成 ui 组件 → <code>components/business/EmptyState</code>（外层包裹 <code>Button</code> + 内联 SVG 插画）</td>
+        <td>props：<code>title</code> / <code>description</code> / 插槽放主操作</td>
+        <td>shadcn-vue 稳定版未含 Empty 组件：按规范建 <code>components/business/EmptyState.vue</code>，插画用内联 SVG（装饰性图形加 <code>aria-hidden="true"</code>，语义由标题文本承载）。</td>
+      </tr>
+      <tr>
+        <td>提交中按钮内 spinner（<code>.spinner</code>）</td>
+        <td><code>Button</code> + <code>Loader2</code> 图标（lucide-vue-next，随 shadcn 组件一并安装）</td>
+        <td><code>:disabled="isSubmitting"</code></td>
+        <td>原型用 CSS 旋转圆环示意；实现用 <code>&lt;Loader2 class="animate-spin"&gt;</code> 并给按钮 <code>disabled</code>（原型受 CSS 限制只能用样式表达禁用）。</td>
+      </tr>
+      <tr>
+        <td>应用条 / 页面顶部导航（<code>.app-bar</code>、<code>nav.nav</code>）</td>
+        <td>无（普通 flex 容器；如后续要下拉菜单可引入 <code>DropdownMenu</code>）</td>
+        <td>-</td>
+        <td>当前用户 + 「我的中奖记录」+「登出」为普通链接；登出动作在实现中须清空 access token 与 Pinia 用户态（规范 3.3）。</td>
+      </tr>
+      <tr>
+        <td>轻提示（系统繁忙等瞬时反馈）</td>
+        <td><code>Toast</code>（本原型<strong>未使用</strong>）</td>
+        <td><code>useToast()</code></td>
+        <td><strong>省略原因</strong>：v1 全部错误提示均为页面内 Alert，无 Toast 承载区块；为不新增第二套反馈形态，v2 保持 Alert。engineer 若确需瞬时提示再 <code>npx shadcn-vue@2.x add toast</code>，并注意同一错误不要 Alert + Toast 双报。</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ------------------------------ a11y 与豁免 ------------------------------ -->
+<section class="block" id="a11y">
+  <h2>可访问性（a11y）与豁免说明</h2>
+  <div class="grid2">
+    <div>
+      <h4>已在原型中覆盖</h4>
+      <ul>
+        <li><strong>对比度（均为本文件实际取值的计算值，WCAG 2.x 相对亮度公式）</strong>：
+          正文 <code>--foreground</code> #0a0a0a / <code>--card</code> 白 ≈ <strong>19.8:1</strong>（≥16:1）；
+          正文 / <code>--background</code> ≈ 18.1:1；
+          次要文本 <code>--muted-foreground</code> 0.439 / 白 ≈ <strong>7.8:1</strong>（AA 正文 4.5:1 上限余量充足）、/ <code>--muted</code> ≈ 7.2:1；
+          错误文本 <code>--destructive</code> 0.46 0.176 27.5 / 白 ≈ <strong>7.8:1</strong>，白字置于 destructive 实底 ≈ 7.8:1（双向均 ≥7:1，故红底白字按钮在小字号下也达 AA）；
+          <code>--primary-foreground</code> / <code>--primary</code> ≈ 17.2:1。
+          三个刻意加深的令牌（muted-foreground 默认 4.7:1、destructive 默认 4.8:1、ring 默认 2.6:1）在文件顶部注释 [2] 有记录。</li>
+        <li><strong>焦点可见</strong>：统一 <code>:focus-visible</code> 焦点环（<code>--ring</code> 0.556 / 白 ≈ 4.7:1，满足 WCAG 2.4.11 非文本对比 3:1）；按钮 / 输入框额外叠加 3px 环形阴影。</li>
+        <li>语义化结构：<code>nav / section / table / caption / th[scope] / label[for]</code>；标题层级 h1-h4 连续。</li>
+        <li>表单：每个输入绑定 <code>label[for]</code>，规则说明与错误用 <code>aria-describedby</code> 关联；错误文本 <code>role="alert"</code>，提交中提示 <code>role="status"</code>。</li>
+        <li>弹层：<code>role="dialog" aria-modal="true" aria-labelledby</code>（标题 id 指向 DialogTitle 等价物）。</li>
+        <li>键盘可达：全部交互元素为原生 <code>a / button / input</code>（Tab 可达、Enter/Space 激活）。</li>
+        <li>装饰性图形（转盘 SVG、指针、空态插画、Alert 图标、spinner）统一 <code>aria-hidden="true" focusable="false"</code>，语义由相邻文本 / 图例承载，不依赖图形阅读。</li>
+        <li>错误态不只用颜色表达：destructive 边框同时配 <code>FormMessage</code> 文本 + 图标；Badge 内均有文字。</li>
+        <li>保留 skip link（<code>跳到「页面 x 状态」索引表</code>），首个 Tab 即可见。</li>
+      </ul>
+    </div>
+    <div>
+      <h4>豁免项（静态原型，原因与补齐方）</h4>
+      <ul>
+        <li><strong>焦点陷阱 / 焦点回收</strong>：静态原型无真实弹层生命周期 → 由 shadcn-vue <code>Dialog</code>（reka-ui）自带，engineer 无需自实现。</li>
+        <li><strong>屏幕阅读器实时播报（live region）</strong>：状态由 CSS 切换、无真实事件流 → 实现时抽奖结果由 Dialog 获得焦点后播报，次数变化用 <code>aria-live="polite"</code>。</li>
+        <li><strong>真实 disabled 属性</strong>：CSS 无法切换 <code>disabled</code>，原型禁用态仅为样式 → 实现必须使用真实 <code>disabled</code>（规范红线：前端禁用只是体验，鉴权与限量以服务端为准）。</li>
+        <li><strong>移动端抽屉 / 断点下的表格卡片化</strong>：原型在 375-428px 用横向滚动保证可读（PRD 4.4）；若产品要求卡片化，由 engineer 结合组件规范决定。</li>
+        <li><strong>暗色模式（.dark）令牌</strong>：本次不做原型；engineer 从 shadcn 主题块引入并重跑对比度检查。</li>
+        <li><strong>颜色对比度自动化检测</strong>：本文件为静态原型，不接 axe / Pa11y；上述比率为人工按 WCAG 公式计算，E2E 阶段可加 <code>@axe-core/playwright</code> 复核。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =======================================================================
+     页面 1：注册页
+     ======================================================================= -->
+<section class="page" id="page-register">
+  <h2>页面 1：注册页（FR-01）</h2>
+  <table class="meta">
+    <tr><td class="k">页面名称</td><td>注册页（Register）</td></tr>
+    <tr><td class="k">路由建议</td><td><code>/register</code>（公开页，路由 meta <code>public: true</code>）—— 路由命名最终由 <code>docs/30-architecture.md</code> 决定</td></tr>
+    <tr><td class="k">入口</td><td>① 登录页页脚「去注册」；② 未登录访问受保护页时由路由守卫重定向到登录页后再进入本页</td></tr>
+    <tr><td class="k">关键交互</td><td>用户名 / 密码 / 确认密码三项前端校验（与后端 DTO 规则一致）→ 提交中按钮禁用并显示 spinner → 校验通过提交 → 成功后自动登录并跳转抽奖页（无需二次登录）</td></tr>
+    <tr><td class="k">视觉与组件</td><td>Card 承载表单；Input 四态（default / focus / error / disabled）此处覆盖 default、focus、error；错误经 FormMessage 就地展示（destructive 语义 + 图标 + 文本，不只靠颜色）</td></tr>
+  </table>
+
+  <div class="screen">
+    <p class="screen-bar">屏幕区域（高保真）：注册表单。表单常驻显示，状态仅切换「校验错误」与「提交中」区块——与 v1 一致，锚点不变。</p>
+
+    <div class="card card-auth" id="page-register--default">
+      <div class="card-head">
+        <p class="badge badge-secondary mb-2">Step 1 / 2</p>
+        <h3 class="card-title">创建账号</h3>
+        <p class="card-desc">注册成功后将自动登录并进入抽奖页（FR-01 / AC-01）。</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="reg-username">用户名</label>
+        <input class="input js-reg-input" id="reg-username" name="username" type="text" autocomplete="username"
+               placeholder="请输入用户名" aria-describedby="reg-username-hint page-register--invalid">
+        <p class="form-hint" id="reg-username-hint">4-20 位，仅字母、数字、下划线；全局唯一且不区分大小写</p>
+        <p class="form-message state state-invalid" id="page-register--invalid" role="alert">
+          <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+          <span>用户名已被占用</span>
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="reg-password">密码</label>
+        <input class="input js-reg-input" id="reg-password" name="password" type="password" autocomplete="new-password"
+               placeholder="请输入密码" aria-describedby="reg-password-hint reg-password-err">
+        <p class="form-hint" id="reg-password-hint">8-20 位，须同时包含大写字母、小写字母与数字</p>
+        <p class="form-message state state-invalid" id="reg-password-err" role="alert">
+          <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+          <span>密码需 8-20 位且同时含大写字母、小写字母与数字</span>
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="reg-password2">确认密码</label>
+        <input class="input js-reg-input" id="reg-password2" name="confirmPassword" type="password" autocomplete="new-password"
+               placeholder="请再次输入密码" aria-describedby="reg-password2-err">
+        <p class="form-message state state-invalid" id="reg-password2-err" role="alert">
+          <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+          <span>两次输入不一致</span>
+        </p>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary btn-lg only-default" type="button">注册</button>
+        <button class="btn btn-primary btn-lg state-submit" id="page-register--submit" type="button" disabled aria-disabled="true">
+          <span class="spinner" aria-hidden="true"></span>注册中…
+        </button>
+      </div>
+
+      <div class="card-footer">已有账号？<a class="link" href="?page=login&amp;state=default#page-login--default">去登录</a></div>
+    </div>
+  </div>
+
+  <div class="anno">
+    <h4>原型注解 / 实现提示（不进入实现，仅供 engineer 参考）</h4>
+    <ul>
+      <li>校验用 Zod Schema + vee-validate，错误经 <code>FormMessage</code> 就地展示，禁止手写 if-else；Schema 与后端 DTO（DataAnnotations + FluentValidation）规则严格一致。</li>
+      <li>用户名唯一性必须服务端校验（含大小写变体）：前端「占用」提示来自后端业务错误码，不能仅靠前端判断。</li>
+      <li>提交中禁用按钮（真实 <code>disabled</code>，原型仅样式表达）；接口需 <code>Idempotency-Key</code>（规范 6.5：提交类接口）。</li>
+      <li>成功后签发 JWT 双 token（access 存 localStorage、refresh 走 httpOnly Cookie，规范 3.3）并跳转抽奖页。</li>
+      <li>用户可见文案集中管理，为 i18n 外置预留（PRD 4.5-1）。</li>
+      <li>对比度：错误文案 <code>--destructive</code> 于白底 ≈ 7.8:1；helper 文案 <code>--muted-foreground</code> ≈ 7.8:1，均达 AA。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- =======================================================================
+     页面 2：登录页
+     ======================================================================= -->
+<section class="page" id="page-login">
+  <h2>页面 2：登录页（FR-02）</h2>
+  <table class="meta">
+    <tr><td class="k">页面名称</td><td>登录页（Login）</td></tr>
+    <tr><td class="k">路由建议</td><td><code>/login</code>（公开页，路由 meta <code>public: true</code>）—— 路由命名最终由 <code>docs/30-architecture.md</code> 决定</td></tr>
+    <tr><td class="k">入口</td><td>① 站点根路径 / 直接访问；② 注册页页脚「去登录」；③ 未登录访问抽奖页或记录页时被路由守卫重定向至此（登录后回跳原目标页）</td></tr>
+    <tr><td class="k">关键交互</td><td>用户名 + 密码提交 → 提交中按钮禁用并显示 spinner → 失败统一 Alert 提示「用户名或密码错误」→ 成功进入抽奖页（有回跳目标则回跳原页）；登出后回到本页</td></tr>
+    <tr><td class="k">视觉与组件</td><td>Card 承载表单；<code>guard</code> 用 Alert（default 语义，引导性提示）；<code>loginfail</code> 用 Alert（destructive 语义，失败）；密码框在失败态与 Alert 通过 <code>aria-describedby</code> 关联</td></tr>
+  </table>
+
+  <div class="screen">
+    <p class="screen-bar">屏幕区域（高保真）：登录表单。表单常驻显示，状态仅切换「守卫提示」「登录失败」「提交中」区块——与 v1 一致，锚点不变。</p>
+
+    <div class="card card-auth" id="page-login--default">
+      <div class="card-head">
+        <p class="badge badge-secondary mb-2">Step 2 / 2</p>
+        <h3 class="card-title">登录</h3>
+        <p class="card-desc">登录后即可参与转盘抽奖（每人每日 3 次）。</p>
+      </div>
+
+      <div class="alert state state-guard" id="page-login--guard" role="status">
+        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+        <div>
+          <p class="alert-title">请先登录</p>
+          <p class="alert-desc">请先登录后再访问抽奖页；登录成功后将回到原目标页（FR-02-3 / AC-05）。</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="login-username">用户名</label>
+        <input class="input" id="login-username" name="username" type="text" autocomplete="username" placeholder="请输入用户名">
+      </div>
+
+      <div class="field">
+        <label class="label" for="login-password">密码</label>
+        <input class="input" id="login-password" name="password" type="password" autocomplete="current-password"
+               placeholder="请输入密码" aria-describedby="page-login--loginfail">
+      </div>
+
+      <div class="alert alert-destructive state state-loginfail" id="page-login--loginfail" role="alert">
+        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+        <div>
+          <p class="alert-title">用户名或密码错误</p>
+          <p class="alert-desc">请检查后重试。为防账号枚举，此处不区分「用户名不存在」与「密码错误」（FR-02 / AC-04）。</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary btn-lg only-default" type="button">登录</button>
+        <button class="btn btn-primary btn-lg state-submit" id="page-login--submit" type="button" disabled aria-disabled="true">
+          <span class="spinner" aria-hidden="true"></span>登录中…
+        </button>
+      </div>
+
+      <div class="card-footer">还没有账号？<a class="link" href="?page=register&amp;state=default#page-register--default">去注册</a></div>
+    </div>
+  </div>
+
+  <div class="anno">
+    <h4>原型注解 / 实现提示（不进入实现，仅供 engineer 参考）</h4>
+    <ul>
+      <li>登录失败必须使用统一文案，不区分「用户不存在 / 密码错误」，避免账号枚举（FR-02 / AC-04）。</li>
+      <li>登录接口配置限流（PRD 4.2）；前端提示不暴露后端错误细节。</li>
+      <li>凭证失效且刷新失败时按 FR-10-1 引导重新登录，登录后回跳原目标页（<code>guard</code> 状态示意）。</li>
+      <li>登出入口建议放在抽奖页 / 记录页的应用条（本原型已在两页应用条给出「登出」占位链接）。</li>
+      <li>刷新失败路径注意：业务异常按规范 6.4 返回 HTTP 200，刷新函数必须自判 <code>response.data.code</code>（规范 3.4）。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- =======================================================================
+     页面 3：抽奖页
+     ======================================================================= -->
+<section class="page" id="page-draw">
+  <h2>页面 3：抽奖页（FR-03 / FR-04 / FR-05 / FR-06 / FR-07）</h2>
+  <table class="meta">
+    <tr><td class="k">页面名称</td><td>抽奖页（Draw / Lottery）</td></tr>
+    <tr><td class="k">路由建议</td><td><code>/draw</code>（需登录，未登录由守卫重定向登录页）—— 路由命名最终由 <code>docs/30-architecture.md</code> 决定</td></tr>
+    <tr><td class="k">入口</td><td>① 登录成功后默认进入；② 注册成功后自动登录进入；③ 记录页应用条 / 空态「去试试手气」；④ 顶部导航条「抽奖页」</td></tr>
+    <tr><td class="k">关键交互</td><td>进入页面自动拉取奖池（loading 骨架 / error 可重试 / empty 空态）→ 展示转盘与今日剩余次数 → 点击抽奖（按钮立即禁用、带幂等键提交）→ 收到后端结果后播放动画（≥2 圈后停稳在返回扇区）→ Dialog 反馈中奖 / 未中奖 → 次数刷新；次数为 0 时按钮禁用并引导「明日 0 点重置」</td></tr>
+    <tr><td class="k">视觉与组件</td><td>转盘为<strong>内联 SVG 真实扇区路径</strong>（5 条与奖池一一对应）+ 顶部指针 + 扇区文字沿径向排布 + ①-⑤ 编号环；图例用 Badge 标类型；加载态为 Skeleton 骨架屏；错误态为 destructive Alert；结果反馈为 Dialog。所有图形 <code>aria-hidden</code>，语义由右侧图例与文案承载</td></tr>
+  </table>
+
+  <div class="screen">
+    <p class="screen-bar">屏幕区域（高保真）：内联 SVG 转盘（真实扇区路径 / 指针 / 径向文字 / 编号环）+ 右侧信息区。奖池 5 条为 PRD FR-03 默认奖池示例数据。窄屏（375-428px）下转盘与信息区改为上下布局。</p>
+
+    <!-- ---------- 默认态（也是 win / lose / noquota / drawing / drawfail 的基础层） ---------- -->
+    <div class="state state-default" id="page-draw--default">
+
+      <div class="app-bar">
+        <span class="brand">转盘抽奖</span>
+        <span class="user">当前用户：demo_user（占位示例，可替换）</span>
+        <a class="link" href="?page=records&amp;state=default#page-records--default">我的中奖记录</a>
+        <a class="link" href="?page=login&amp;state=default#page-login--default">登出</a>
+      </div>
+
+      <div class="draw-grid">
+        <!-- 转盘：内联 SVG 真实扇区；win/lose 时转子旋转使中奖扇区停在顶部指针下方 -->
+        <div>
+          <div class="wheel-stage">
+            <div class="wheel-rotor" aria-hidden="true">
+              <svg class="wheel-svg" viewBox="0 0 320 320" focusable="false">
+                <!-- 5 个扇区：各 72°，圆心 (160,160)，半径 144，自 12 点方向顺时针依次为奖池 1-5 条 -->
+                <path class="wheel-sector sec-1" d="M160 160 L160 16 A144 144 0 0 1 296.95 115.5 Z"/>
+                <path class="wheel-sector sec-2" d="M160 160 L296.95 115.5 A144 144 0 0 1 244.64 276.5 Z"/>
+                <path class="wheel-sector sec-3" d="M160 160 L244.64 276.5 A144 144 0 0 1 75.36 276.5 Z"/>
+                <path class="wheel-sector sec-4" d="M160 160 L75.36 276.5 A144 144 0 0 1 23.05 115.5 Z"/>
+                <path class="wheel-sector sec-5" d="M160 160 L23.05 115.5 A144 144 0 0 1 160 16 Z"/>
+                <circle class="wheel-rim" cx="160" cy="160" r="142"/>
+                <!-- 扇区短名：沿径向排布（rotate 定位到扇区中角 + rotate(-90) 令文字沿半径方向阅读） -->
+                <g transform="rotate(36 160 160) rotate(-90 160 52)"><text class="wheel-label" x="160" y="52" dominant-baseline="middle">一等奖</text></g>
+                <g transform="rotate(108 160 160) rotate(-90 160 52)"><text class="wheel-label" x="160" y="52" dominant-baseline="middle">二等奖</text></g>
+                <g transform="rotate(180 160 160) rotate(-90 160 52)"><text class="wheel-label" x="160" y="52" dominant-baseline="middle">三等奖</text></g>
+                <g transform="rotate(252 160 160) rotate(-90 160 52)"><text class="wheel-label" x="160" y="52" dominant-baseline="middle">幸运奖</text></g>
+                <g transform="rotate(324 160 160) rotate(-90 160 52)"><text class="wheel-label" x="160" y="52" dominant-baseline="middle">谢谢参与</text></g>
+                <!-- 编号环 ①-⑤：与图例逐条对应，角标不参与旋转 -->
+                <circle class="wheel-num-circle" cx="196.44" cy="109.84" r="11"/><text class="wheel-num-text" x="196.44" y="109.84" dominant-baseline="middle">1</text>
+                <circle class="wheel-num-circle" cx="218.97" cy="179.16" r="11"/><text class="wheel-num-text" x="218.97" y="179.16" dominant-baseline="middle">2</text>
+                <circle class="wheel-num-circle" cx="160" cy="222" r="11"/><text class="wheel-num-text" x="160" y="222" dominant-baseline="middle">3</text>
+                <circle class="wheel-num-circle" cx="101.03" cy="179.16" r="11"/><text class="wheel-num-text" x="101.03" y="179.16" dominant-baseline="middle">4</text>
+                <circle class="wheel-num-circle" cx="123.56" cy="109.84" r="11"/><text class="wheel-num-text" x="123.56" y="109.84" dominant-baseline="middle">5</text>
+              </svg>
+            </div>
+            <!-- 指针：固定在 12 点方向，不随转子旋转 -->
+            <svg class="wheel-pointer" viewBox="0 0 40 56" aria-hidden="true" focusable="false">
+              <path d="M20 54 L4 8 A16 16 0 0 1 36 8 Z" fill="var(--foreground)"/>
+              <circle cx="20" cy="12" r="4.5" fill="var(--card)"/>
+            </svg>
+            <div class="wheel-hub" aria-hidden="true">
+              <span class="hub-brand">转盘抽奖</span>
+              <span class="hub-quota">剩 <b class="only-not-noquota">3</b><b class="only-noquota">0</b> 次</span>
+            </div>
+          </div>
+          <p class="hint tc">5 个扇区与奖池 5 条一一对应（含「谢谢参与」）；库存为 0 的奖品仍保留扇区，不改变转盘形态。</p>
+        </div>
+
+        <!-- 右侧：次数 / 抽奖按钮 / 状态提示 / 奖池图例 -->
+        <div>
+          <p class="quota">
+            <span>今日剩余次数：</span>
+            <b class="num only-not-noquota">3</b><b class="num only-noquota">0</b>
+            <span>次</span>
+            <span class="badge badge-secondary only-not-noquota">每日上限 3 次</span>
+            <span class="badge badge-destructive only-noquota">次数已用完</span>
+          </p>
+          <p class="hint">每日上限 3 次，UTC+8 自然日 00:00 重置；<strong>未中奖同样消耗次数</strong>；最终判定以后端为准（前端展示仅为体验）。</p>
+
+          <div class="actions actions-left">
+            <button class="btn btn-primary btn-lg draw-btn js-draw-btn" type="button">开始抽奖</button>
+            <span class="hint">点击后按钮立即禁用 → 收到后端结果才播动画（FR-05 / FR-06）</span>
+          </div>
+
+          <div class="alert state state-noquota" id="page-draw--noquota" role="status">
+            <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+            <div>
+              <p class="alert-title">今日抽奖次数已用完，明日 0 点重置</p>
+              <p class="alert-desc">每日 3 次，按 UTC+8 自然日 00:00 重置；绕过前端直接调接口同样会被后端拒绝（FR-04 / FR-07 / AC-10）。</p>
+            </div>
+          </div>
+
+          <p class="hint state state-drawing" id="page-draw--drawing" role="status">
+            <span class="spinner-neutral" aria-hidden="true"></span>正在抽奖…（按钮已禁用；请求与动画期间禁止再次点击）
+          </p>
+
+          <div class="alert alert-destructive state state-drawfail" id="page-draw--drawfail" role="alert">
+            <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+            <div>
+              <p class="alert-title">系统繁忙，请稍后重试</p>
+              <p class="alert-desc">不播放动画（转盘停在原位）；重试沿用同一幂等键（Idempotency-Key），不会重复扣次（FR-08-4 / AC-17）。</p>
+              <div class="alert-actions"><button class="btn btn-outline btn-sm" type="button">重试</button></div>
+            </div>
+          </div>
+
+          <ol class="legend">
+            <li><span class="swatch sw-1" aria-hidden="true"></span><span class="num" aria-hidden="true">1</span><span class="name">一等奖 · 机械键盘</span><span class="badge badge-outline">实物</span></li>
+            <li><span class="swatch sw-2" aria-hidden="true"></span><span class="num" aria-hidden="true">2</span><span class="name">二等奖 · 蓝牙耳机</span><span class="badge badge-outline">实物</span></li>
+            <li><span class="swatch sw-3" aria-hidden="true"></span><span class="num" aria-hidden="true">3</span><span class="name">三等奖 · 定制马克杯</span><span class="badge badge-outline">实物</span></li>
+            <li><span class="swatch sw-4" aria-hidden="true"></span><span class="num" aria-hidden="true">4</span><span class="name">幸运奖 · 平台优惠券</span><span class="badge badge-outline">虚拟</span></li>
+            <li><span class="swatch sw-5" aria-hidden="true"></span><span class="num" aria-hidden="true">5</span><span class="name">谢谢参与</span><span class="badge badge-secondary">未中奖</span></li>
+          </ol>
+          <p class="hint">扇区与奖池启用中的条目一一对应（默认 5 条）。<strong>权重与库存不返回前端</strong>、前端不参与概率计算、不预设落点（FR-03-1）。</p>
+          <p class="hint">奖池权重 / 库存仅供评审参考，不进入前端展示：1 权重 1、库存 3；2 权重 3、库存 10；3 权重 10、库存 50；4 权重 20、库存 200；5 权重 66、库存不限。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- 加载态：奖池拉取中（骨架屏） ---------- -->
+    <div class="state state-loading" id="page-draw--loading" aria-busy="true">
+      <div class="draw-grid">
+        <div>
+          <div class="skeleton skeleton-circle" aria-hidden="true">骨架占位</div>
+        </div>
+        <div>
+          <div class="skeleton sk-line sk-h24 sk-55" aria-hidden="true"></div>
+          <p></p>
+          <div class="skeleton sk-line sk-h20 sk-40" aria-hidden="true"></div>
+          <p></p>
+          <div class="skeleton sk-line sk-85" aria-hidden="true"></div>
+          <p></p>
+          <div class="skeleton sk-line sk-70" aria-hidden="true"></div>
+          <p class="hint" role="status">正在加载奖池…（骨架屏占位；加载期间不展示剩余次数与抽奖按钮，也不允许提交抽奖）</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- 失败态：奖池加载失败，可重试（Alert destructive） ---------- -->
+    <div class="state state-error" id="page-draw--error">
+      <div class="alert alert-destructive" role="alert">
+        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+        <div>
+          <p class="alert-title">奖池加载失败</p>
+          <p class="alert-desc">系统繁忙，请稍后重试（FR-10-3）；页面不白屏，重试为只读查询、无需幂等键。</p>
+          <div class="alert-actions"><button class="btn btn-outline btn-sm" type="button">重试</button></div>
+        </div>
+      </div>
+      <p class="hint">进入页面自动拉取奖池，失败可重试（FR-03）。</p>
+    </div>
+
+    <!-- ---------- 空态：候选集为空（内联 SVG 插画 + 主操作） ---------- -->
+    <div class="state state-empty" id="page-draw--empty">
+      <div class="empty-wrap">
+        <svg class="illus" viewBox="0 0 132 132" aria-hidden="true" focusable="false">
+          <circle class="dashed" cx="66" cy="66" r="58"/>
+          <rect class="solid" x="34" y="58" width="64" height="44" rx="7"/>
+          <path class="stroke" d="M34 72h64M34 58l8-14h48l8 14M66 58v44M56 44l10 14M76 44L66 58"/>
+          <circle class="accent" cx="100" cy="34" r="7"/>
+          <path class="stroke" d="M28 30l4 8 8 4-8 4-4 8-4-8-8-4 8-4z"/>
+        </svg>
+        <p class="empty-title">奖品已抽完，请稍后再来</p>
+        <p class="empty-desc">候选集 = 启用中条目 与（「谢谢参与」或 库存 &gt; 0）的交集，为空时返回该业务错误（FR-05-R3）。默认奖池含常驻「谢谢参与」，正常情况下不触发本状态。</p>
+        <p><button class="btn btn-primary btn-lg js-draw-btn" type="button" disabled aria-disabled="true">开始抽奖</button></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- 结果弹层：中奖（Dialog） ---------- -->
+  <div class="overlay state state-win" id="page-draw--win" role="dialog" aria-modal="true" aria-labelledby="draw-win-title">
+    <div class="modal">
+      <div class="dialog-badge is-win" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M8 21h8M12 17v4M6 4h12v4a6 6 0 0 1-12 0z"/><path d="M6 6H4a2 2 0 0 0 2 4M18 6h2a2 2 0 0 1-2 4"/></svg>
+      </div>
+      <h3 id="draw-win-title">恭喜获得 三等奖 · 定制马克杯</h3>
+      <p>已记入我的中奖记录</p>
+      <p class="hint">今日剩余次数：2 次（来自后端返回的最新剩余次数，FR-05-R10）；转盘已停稳在 3 号扇区（落点与后端返回条目严格一致，FR-06）。</p>
+      <div class="actions">
+        <a class="btn btn-outline" href="?page=records&amp;state=default#page-records--default">查看我的中奖记录</a>
+        <a class="btn btn-primary" href="?page=draw&amp;state=default#page-draw--default">继续抽奖</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- 结果弹层：未中奖（Dialog） ---------- -->
+  <div class="overlay state state-lose" id="page-draw--lose" role="dialog" aria-modal="true" aria-labelledby="draw-lose-title">
+    <div class="modal">
+      <div class="dialog-badge is-lose" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3-2 3.5-2 3.5 2 3.5 2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>
+      </div>
+      <h3 id="draw-lose-title">谢谢参与，再接再厉</h3>
+      <p class="hint">今日剩余次数：2 次；未中奖同样消耗 1 次机会，且不生成中奖记录；转盘停在 5 号「谢谢参与」扇区。</p>
+      <div class="actions">
+        <a class="btn btn-outline" href="?page=records&amp;state=default#page-records--default">查看我的中奖记录</a>
+        <a class="btn btn-primary" href="?page=draw&amp;state=default#page-draw--default">继续抽奖</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="anno">
+    <h4>原型注解 / 实现提示（不进入实现，仅供 engineer 参考）</h4>
+    <ul>
+      <li><strong>结果只能来自后端</strong>：请求不携带任何影响结果的业务参数（幂等键除外）；前端只负责按返回的条目标识定位扇区、播动画（FR-05-R1 / FR-06）。</li>
+      <li><strong>动画口径</strong>：原型用纯 CSS（<code>@keyframes</code> 转 3 圈 + 落点 <code>transition</code>）示意「≥2 圈后减速停稳」；实现时按返回条目标识计算目标角度（<code>360 * n + 目标角度</code>），最终落点必须等于后端返回条目。关闭「减少动态效果」时原型仍会直接呈现静止落点。</li>
+      <li><strong>顺序</strong>：点击后按钮立即禁用 → 等待响应 → 成功才播动画 → 动画结束展示 Dialog；失败不播动画并复位（FR-05 交互细节 / FR-06-2）。</li>
+      <li><strong>幂等</strong>：每次新抽奖生成新的 <code>Idempotency-Key</code>（UUID）；失败重试沿用同一 key（FR-08-4）。</li>
+      <li><strong>次数</strong>：判定以服务端为准（UTC+8 自然日，不信任客户端时间）；每次进入页面与每次抽奖后与服务端同步剩余次数（FR-04 / FR-07-2）。</li>
+      <li><strong>按钮禁用仅为体验</strong>：服务端仍逐次校验；前端隐藏 / 禁用不构成鉴权与限额（规范红线）。原型受 CSS 限制只能用样式表达禁用，实现必须用真实 <code>disabled</code>。</li>
+      <li><strong>可测试性</strong>：测试环境可用确定性随机源 / 权重覆盖以稳定验证中奖与未中奖两条链路（FR-05-R9），生产不可达。</li>
+      <li><strong>图例与转盘的一致性</strong>：图例为有序列表、转盘为装饰性 SVG（<code>aria-hidden</code>），屏幕阅读器只读图例；扇区短名（一等奖 / 二等奖 …）与图例全名一一对应，扇区颜色同时由图例色块承载，不依赖颜色单独区分。</li>
+      <li><strong>未覆盖</strong>：中奖彩带 / 音效（PRD Could-C1）不做。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- =======================================================================
+     页面 4：我的中奖记录页
+     ======================================================================= -->
+<section class="page" id="page-records">
+  <h2>页面 4：我的中奖记录页（FR-09）</h2>
+  <table class="meta">
+    <tr><td class="k">页面名称</td><td>我的中奖记录页（My Winning Records）</td></tr>
+    <tr><td class="k">路由建议</td><td><code>/records</code>（需登录，未登录由守卫重定向登录页）—— 路由命名最终由 <code>docs/30-architecture.md</code> 决定</td></tr>
+    <tr><td class="k">入口</td><td>① 抽奖页应用条「我的中奖记录」；② 中奖 / 未中奖 Dialog 的「查看我的中奖记录」；③ 记录页空态「去抽奖」反向链接至抽奖页</td></tr>
+    <tr><td class="k">关键交互</td><td>进入页面拉取本人中奖记录（分页、按中奖时间倒序、每页 10 条）→ 展示「奖品名称 / 中奖时间」→ 空态给出去抽奖引导；加载失败可重试；记录只读，无修改 / 删除入口</td></tr>
+    <tr><td class="k">视觉与组件</td><td>Table（表头 muted 小字、行 hover 高亮、末行为首行下边框）+ 分页条；加载态为 Skeleton 骨架行；错误态为 destructive Alert；空态为内联 SVG 插画 + 主操作按钮。窄屏（375-428px）表格容器横向滚动</td></tr>
+  </table>
+
+  <div class="screen">
+    <p class="screen-bar">屏幕区域（高保真）：记录列表。表头在加载 / 空 / 失败态下保留，表体整块替换——与 v1 一致。示例数据 3 条为占位，可替换。</p>
+
+    <!-- ---------- 默认态：有记录 ---------- -->
+    <div class="state state-default" id="page-records--default">
+      <div class="app-bar">
+        <span class="brand">我的中奖记录</span>
+        <span class="user">当前用户：demo_user（占位示例，可替换）</span>
+        <a class="link" href="?page=draw&amp;state=default#page-draw--default">返回抽奖页</a>
+        <a class="link" href="?page=login&amp;state=default#page-login--default">登出</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <caption>我的中奖记录（仅本人可见，按中奖时间倒序，每页 10 条）</caption>
+          <thead>
+            <tr><th scope="col">奖品名称</th><th scope="col">中奖时间</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>三等奖 · 定制马克杯</td><td>2026-09-17 09:24</td></tr>
+            <tr><td>幸运奖 · 平台优惠券</td><td>2026-09-16 21:05</td></tr>
+            <tr><td>幸运奖 · 平台优惠券</td><td>2026-09-15 18:42</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="分页">
+        <button class="btn btn-outline btn-sm" type="button" disabled aria-disabled="true">上一页</button>
+        <span>第 1 页 / 共 1 页（每页 10 条）</span>
+        <button class="btn btn-outline btn-sm" type="button" disabled aria-disabled="true">下一页</button>
+      </nav>
+      <p class="hint">时间以 ISO 8601 存储，展示格式 <code>yyyy-MM-dd HH:mm</code>（UTC+8）；记录只读，不提供修改 / 删除入口。</p>
+    </div>
+
+    <!-- ---------- 加载态：Skeleton 骨架行 ---------- -->
+    <div class="state state-loading" id="page-records--loading" aria-busy="true">
+      <div class="table-wrap">
+        <table class="table">
+          <caption>我的中奖记录（加载中）</caption>
+          <thead>
+            <tr><th scope="col">奖品名称</th><th scope="col">中奖时间</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="skeleton sk-line sk-60" aria-hidden="true"></span></td><td><span class="skeleton sk-line sk-70" aria-hidden="true"></span></td></tr>
+            <tr><td><span class="skeleton sk-line sk-80" aria-hidden="true"></span></td><td><span class="skeleton sk-line sk-60" aria-hidden="true"></span></td></tr>
+            <tr><td><span class="skeleton sk-line sk-50" aria-hidden="true"></span></td><td><span class="skeleton sk-line sk-65" aria-hidden="true"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" role="status">加载中…（表头保留，表体为骨架行）</p>
+    </div>
+
+    <!-- ---------- 空态：内联 SVG 插画 + 主操作 ---------- -->
+    <div class="state state-empty" id="page-records--empty">
+      <div class="table-wrap">
+        <table class="table">
+          <caption>我的中奖记录（暂无记录）</caption>
+          <thead>
+            <tr><th scope="col">奖品名称</th><th scope="col">中奖时间</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="placeholder" colspan="2">还没有中奖记录，去试试手气吧</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-wrap">
+        <svg class="illus" viewBox="0 0 132 132" aria-hidden="true" focusable="false">
+          <circle class="dashed" cx="66" cy="66" r="58"/>
+          <rect class="solid" x="34" y="58" width="64" height="44" rx="7"/>
+          <path class="stroke" d="M34 72h64M34 58l8-14h48l8 14M66 58v44M56 44l10 14M76 44L66 58"/>
+          <circle class="accent" cx="100" cy="34" r="7"/>
+          <path class="stroke" d="M28 30l4 8 8 4-8 4-4 8-4-8-8-4 8-4z"/>
+        </svg>
+        <p class="empty-title">还没有中奖记录，去试试手气吧</p>
+        <p class="empty-desc">仅中奖记录入表；「谢谢参与」不生成记录（FR-09 / FR-05-R6）。今日还有 3 次机会。</p>
+        <p><a class="btn btn-primary btn-lg" href="?page=draw&amp;state=default#page-draw--default">去抽奖</a></p>
+      </div>
+    </div>
+
+    <!-- ---------- 失败态：Alert destructive + 重试 ---------- -->
+    <div class="state state-error" id="page-records--error">
+      <div class="table-wrap">
+        <table class="table">
+          <caption>我的中奖记录（加载失败）</caption>
+          <thead>
+            <tr><th scope="col">奖品名称</th><th scope="col">中奖时间</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="placeholder" colspan="2">加载失败</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="alert alert-destructive" role="alert">
+        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.4h.01"/></svg>
+        <div>
+          <p class="alert-title">加载失败</p>
+          <p class="alert-desc">系统繁忙，请稍后重试（FR-10-3）；页面不白屏，重试为只读查询、无需幂等键。</p>
+          <div class="alert-actions"><button class="btn btn-outline btn-sm" type="button">重试</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="anno">
+    <h4>原型注解 / 实现提示（不进入实现，仅供 engineer 参考）</h4>
+    <ul>
+      <li>接口恒定返回当前登录用户的数据，<strong>不接受 userId 参数</strong>（天然隔离越权，FR-09-1 / AC-15）；前端不传任何用户标识。</li>
+      <li>列表必须用 TanStack Table（<code>ColumnDef&lt;T&gt;</code>）并强制分页（<code>pageIndex</code> 从 1 起、<code>pageSize</code> 默认 10、上限 100），禁止全量查询（规范 3.2 / PRD 4.1）。</li>
+      <li>排序固定为按中奖时间倒序（后端排序，前端不自行排序）。</li>
+      <li>窄屏（375-428px，PRD 4.4 / Q12）：原型用 <code>overflow-x-auto</code> 容器保证表格可读；实现时如需卡片化展示由 engineer 结合组件规范决定。</li>
+      <li>时间展示统一 <code>yyyy-MM-dd HH:mm</code>，来源为 ISO 8601 字符串。</li>
+      <li>行内若后续要加操作按钮：TanStack Table 行内按钮禁止用 <code>v-auth</code>（每次翻页 / 排序重建节点会抛 <code>NotFoundError</code>），必须条件渲染（规范 3.5）。本期记录只读，无行内按钮。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ------------------------------ 文案清单（可替换） ------------------------------ -->
+<section class="block" id="copy-list">
+  <h2>文案清单（集中管理，可直接替换；对应 PRD 4.5-1 的 i18n 预留）</h2>
+  <div class="table-scroll">
+  <table class="idx">
+    <thead>
+      <tr><th scope="col">文案</th><th scope="col">出现位置（锚点）</th><th scope="col">来源</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>用户名已被占用</td><td>#page-register--invalid</td><td>FR-01-1 / AC-02</td></tr>
+      <tr><td>密码需 8-20 位且同时含大写字母、小写字母与数字</td><td>#page-register--invalid（同状态第三处错误：两次输入不一致）</td><td>FR-01-2 / AC-02</td></tr>
+      <tr><td>两次输入不一致</td><td>#page-register--invalid</td><td>FR-01-2 / AC-02</td></tr>
+      <tr><td>注册中… / 登录中…</td><td>#page-register--submit、#page-login--submit</td><td>FR-01 / FR-02 提交中禁用按钮</td></tr>
+      <tr><td>用户名或密码错误</td><td>#page-login--loginfail</td><td>FR-02 / AC-04（统一文案，防账号枚举）</td></tr>
+      <tr><td>请先登录后再访问抽奖页；登录成功后将回到原目标页</td><td>#page-login--guard</td><td>FR-02-3 / FR-10-1 / AC-05</td></tr>
+      <tr><td>正在加载奖池…</td><td>#page-draw--loading</td><td>FR-03</td></tr>
+      <tr><td>奖池加载失败 / 系统繁忙，请稍后重试</td><td>#page-draw--error、#page-records--error</td><td>FR-03、FR-09 / FR-10-3</td></tr>
+      <tr><td>奖品已抽完，请稍后再来</td><td>#page-draw--empty</td><td>FR-05-R3</td></tr>
+      <tr><td>今日抽奖次数已用完，明日 0 点重置</td><td>#page-draw--noquota</td><td>FR-04 / FR-07 / AC-10</td></tr>
+      <tr><td>正在抽奖…</td><td>#page-draw--drawing</td><td>FR-05 / FR-06-1（防连点）</td></tr>
+      <tr><td>恭喜获得 {奖品名称} / 已记入我的中奖记录</td><td>#page-draw--win</td><td>FR-06-1 / AC-08</td></tr>
+      <tr><td>谢谢参与，再接再厉</td><td>#page-draw--lose</td><td>FR-06-1 / AC-09</td></tr>
+      <tr><td>系统繁忙，请稍后重试</td><td>#page-draw--drawfail</td><td>FR-10-3 / AC-17</td></tr>
+      <tr><td>还没有中奖记录，去试试手气吧</td><td>#page-records--empty</td><td>FR-09</td></tr>
+      <tr><td>加载中…</td><td>#page-records--loading</td><td>FR-09（Should-S1）</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ------------------------------ 与接口的交互点 ------------------------------ -->
+<section class="block" id="api-touchpoints">
+  <h2>与接口的交互点（占位说明，最终以 <code>docs/30-architecture.md</code> 为准）</h2>
+  <p class="hint">本原型不预设接口路径与模块编号（属 software-architect 职责），仅标注前端需要的交互点，供 engineer 对齐：</p>
+  <ul class="plain">
+    <li>1. <strong>拉取奖池</strong>（页面进入时）—— 响应需含条目标识（供扇区定位）+ 名称 + 类型 + 启用状态；<strong>不含权重与库存</strong>（FR-03-1）。</li>
+    <li>2. <strong>提交抽奖</strong>（点击抽奖时）—— 请求不携带影响结果的业务参数；请求头带 <code>Idempotency-Key</code>（UUID，重试沿用同一值）；响应返回结果条目标识 + 最新剩余次数（FR-05-R10）。</li>
+    <li>3. <strong>我的中奖记录</strong>（记录页）—— 分页参数 <code>pageIndex</code>（从 1 起）/ <code>pageSize</code>（默认 10）；不接受 userId 参数（FR-09-1）。</li>
+    <li>4. <strong>通用</strong>：受保护接口未登录返回 401（前端引导登录并回跳）；统一响应 <code>ApiResult&lt;T&gt;</code>，<code>code=0</code> 成功、<code>&gt;=1000</code> 为业务异常且前端直出后端文案（错误码由 engineer 按 <code>docs/error-codes.md</code> 取号登记，PRD 不预设号码）。</li>
+  </ul>
+</section>
+
+<!-- ------------------------------ 待确认清单 ------------------------------ -->
+<section class="block" id="assumptions">
+  <h2>待确认清单（默认假设）</h2>
+  <p class="hint">
+    <strong>P1（原型档位）已由用户决断为「高保真」</strong>，故从本表移除，决断记录见「元信息」块；v2 即该决断的执行结果。
+    PRD 附录 B 的 Q1-Q12 已由用户全部确认，本原型不再沿用 PRD 层的假设。
+  </p>
+  <div class="table-scroll">
+  <table class="idx">
+    <thead>
+      <tr><th scope="col">编号</th><th scope="col">缺失信息</th><th scope="col">本原型采用的默认假设</th><th scope="col">若假设不成立的影响</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>P2</td><td>路由路径命名</td><td>维持 v1 假设：<code>/register</code>、<code>/login</code>、<code>/draw</code>、<code>/records</code> 仅为建议，等待 <code>docs/30-architecture.md</code> 确认</td><td>仅影响本原型文案与链接标注，不影响状态与流程设计（高保真下亦未变化）</td></tr>
+      <tr><td>P3</td><td>抽奖触发点位置</td><td>维持 v1 假设：抽奖主按钮置于转盘右侧信息区（键盘可达、便于评审）；转盘中心圆盘仅展示品牌与剩余次数，不放按钮。窄屏下改为转盘在上、按钮在下</td><td>若要求中心按钮：需调整转盘区块结构与中心圆盘的层级（不影响状态设计）</td></tr>
+      <tr><td>P4</td><td>令牌取值口径（高保真档新增）</td><td>设计令牌沿用 shadcn-vue neutral 默认值，<strong>仅 <code>--muted-foreground</code> / <code>--destructive</code> / <code>--ring</code> 三处加深</strong>以满足 WCAG（AA 正文 4.5:1、非文本 3:1），度量见「a11y」小节</td><td>若要求与 shadcn 官方默认完全一致：三处文本对比度将降至 4.7:1 / 4.8:1 / 2.6:1，其中 ring 不满足 WCAG 2.4.11，需产品确认是否接受（改动仅限 <code>@theme</code> 取值，不影响结构与状态）</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<p class="foot">
+  写入范围：本文件为 prototype-designer 唯一产物 <code>docs/20-prototype.html</code>（v3；上游 <code>docs/10-prd.md</code> v2 / <code>docs/00-brief.md</code> v2 均只读，未修改）。
+  本原型不含真实业务逻辑、不接后端、不含真实数据；示例数据与文案可直接替换。零外链：无 CDN、无字体文件、无图片、无 icon font，离线打开无退化；唯一脚本仅做 URL 参数 → <code>data-state</code> / <code>data-page</code> 的状态开关。
+  高保真视觉的令牌为 shadcn-vue <code>@theme inline</code> 的镜像（详见文件顶部注释 [2]），engineer 需按 Tailwind 4 <code>@theme</code> 真实配置，禁止搬运本文件 class 名与手写 CSS。
+  上游 PRD 变更时按 <code>docs/artifacts.md</code> 第 5 节失效传播矩阵重出本产物并升版本（20-prototype 变更同时影响 30 / 40 / 50 / 51 / 52 的复核）。
+</p>
+</div><!-- /wrap -->
+</body>
+</html>
