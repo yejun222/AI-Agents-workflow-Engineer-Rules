@@ -16,8 +16,8 @@ Vue 3 + .NET 10 全栈项目的 Claude Code 规范模板：精简版工作规范
 | [docs/state-machine.md](docs/state-machine.md) | 缺陷闭环状态机——发布结论的唯一权威定义 |
 | [docs/role-protocol.md](docs/role-protocol.md) | 角色公共协议（交接 / 信息不足 / 摘要格式 / 冲突上报） |
 | [docs/config-checklist.md](docs/config-checklist.md) | 配置交叉核对清单（需要人判断的条目） |
-| [tools/check-config.py](tools/check-config.py) | 配置一致性自检脚本（`python3 tools/check-config.py`） |
-| [global/CLAUDE.md](global/CLAUDE.md) | 个人全局版工作规范，复制到 `~/.claude/CLAUDE.md` |
+| [tools/check-config.py](tools/check-config.py) | 配置一致性自检脚本（`python3 tools/check-config.py`）；`--self-test` 做突变自测（负向验证护栏本身） |
+| [global/CLAUDE.md](global/CLAUDE.md) | 个人全局版工作规范（**技术栈无关**，只放跨项目通用条款），复制到 `~/.claude/CLAUDE.md` |
 | [global/settings.json](global/settings.json) | 个人全局版权限规则，合并进 `~/.claude/settings.json` |
 | [docs/distribution.md](docs/distribution.md) | 如何让**所有新建项目**都遵守本规范并带上流水线（模板 / 全局 / 同步 三层方案） |
 
@@ -163,3 +163,4 @@ Vue 3 + .NET 10 全栈项目的 Claude Code 规范模板：精简版工作规范
 - 主会话持有子代理派发工具（`Agent`）：`/feature` 及单步命令在 frontmatter 已声明 `allowed-tools`（含 `Agent`），可免去逐次授权；但若 `settings.json` 中该工具被显式 **deny**，该声明无法覆盖，编排仍会中断。首次使用请先跑一个最小流程确认可用。
 - 项目目录有 `docs/`（产物落盘）、`src/`（研发写入）、`tests/`（测试分区）目录；没有时让对应角色按 `docs/artifacts.md` 约定创建。
 - 用 `tools/check-config.py` 做配置一致性自检：`python3 tools/check-config.py`（Windows 无 python3 时用 `python` 或 `py`），应全部通过；改动任何角色 / 命令 / 文档后重跑。
+- **改动护栏本身时必须跑 `python3 tools/check-config.py --self-test`**：它逐条突变 → 断言目标断言会 FAIL → 还原 → 断言恢复全 PASS，把「负向验证」从人工清单变成可执行命令。新增断言后**必须把对应突变追加进脚本内的 `MUTATIONS`**，否则新断言永远没被负向验证过。

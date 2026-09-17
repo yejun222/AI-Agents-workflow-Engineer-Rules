@@ -5,7 +5,9 @@
 用法：python3 tools/check-config.py
 改动角色 / 命令 / 文档后运行；全部 PASS 才可交付。stdlib only，无外部依赖。
 """
+import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -400,6 +402,252 @@ check("T14 命令表环境前提（两处逐字一致）", _env_note in claude_m
       "或两处措辞不一致（双落点漂移会让后来者只改一处）")
 check("T14 环境前提的边界声明", "`npm ci` 不经 script-shell" in claude_md and "`npm ci` 不经 script-shell" in spec,
       "环境前提缺「npm ci 不经 script-shell / Linux / CI 不受影响」——只给失败条件不给边界，会把特例误读成通用禁令")
+
+# ---- 15. 跨文件 ID 引用完整性（防「规范正文引用未登记的号码」）----
+# 背景：1203/1204 早已被 development-spec 正文引用，却从未登记进 error-codes.md ——「补录历史欠账」。
+# 引用的号码与注册表之间没有任何机制强制一致，只能靠护栏。
+art = read(DOCS / "artifacts.md") or ""
+ec = read(DOCS / "error-codes.md") or ""
+
+_referenced = set()
+for _m in re.finditer(r"(?:code|如)\s*`?\s*(\d{4})(?:\s*/\s*(\d{4}))?", spec, re.I):
+    _referenced.add(_m.group(1))
+    if _m.group(2):
+        _referenced.add(_m.group(2))
+_referenced = {c for c in _referenced if int(c) >= 1000}
+_registered = set(re.findall(r"^\|\s*(\d{4})\s*\|", ec, re.M))
+_dangling = sorted(_referenced - _registered)
+
+check("T15 规范引用的业务错误码均已登记", not _dangling,
+      f"development-spec 正文引用了未在 error-codes.md 登记的号码: {_dangling or '（提取为空，请检查提取正则）'} ——"
+      "号码引用与注册表之间没有强制一致的机制，只能靠本断言（历史案例：1203/1204 长期悬空）")
+check("T15 错误码提取非空（防断言空转）", bool(_referenced),
+      "未能从 development-spec 提取到任何业务错误码引用 —— 提取正则已失效，本组断言退化为空转（假绿）")
+check("T15 OBS 编号命名空间规则已声明", "按产物命名空间限定" in art and "51:OBS-nn" in art,
+      "artifacts.md 未声明 OBS 编号「按产物命名空间限定」—— 实测同一编号在 51/52 指向不同内容且无人发现")
+check("T15 未审/未执行项须有责任人与时点", "责任人 + 计划执行时点" in art,
+      "artifacts.md 未要求「未审 / 未执行项必须含责任人 + 计划执行时点」——"
+      "只声明「如实未审」不足以让它被处理（实测有项跨 4 个版本仍挂着）")
+
+# ---- 16. 双落点一致性（T14 范式的推广：同一事实禁止多落点，不可避免时必须由护栏绑死）----
+# 背景：本仓库跨领域的六个坑是同一个根因 —— 同一事实存在第二落点而两者无任何强制一致机制。
+# 此处把「精简版 ↔ 全量版」的措辞逐字绑定，新增双落点事实时照此追加锚句。
+_DUAL_ANCHORS = [
+    ("重试判定 / 事务边界统一分类", "必须在事务边界统一分类"),
+    ("超时配置互相约束（4.4）", "服务端同类超时"),
+    ("安全配置单一来源 + fail-fast（8.7）", "安全敏感配置只允许一个取值来源"),
+    ("引用用稳定 ID 不用行号（13.4）", "引用一律用稳定 ID，禁止用行号"),
+    ("断言辨别力：禁止固化当前行为（7.5）", "禁止把当前行为固化成期望"),
+    ("契约分支必须可构造（6.6）", "每个分支都必须可构造"),
+    ("模板层必须有组件渲染测试（7.2）", "组件渲染测试（模板层）必须有"),
+    ("路径含 # 时前端单测全量失败", "仓库绝对路径含 `#` 时"),
+    ("长驻实例锁死 bin（命令表）", "长驻开发实例会锁死"),
+    ("E2E 首次必做装浏览器内核（命令表）", "浏览器内核不在 `npm ci` 范围内"),
+]
+for _label, _anchor in _DUAL_ANCHORS:
+    check(f"T16 双落点逐字一致: {_label}",
+          _anchor in claude_md and _anchor in spec,
+          f"锚句「{_anchor}」未在 CLAUDE.md 与 development-spec.md 同时出现 ——"
+          "双落点措辞漂移（只改一处即制造新的不一致），两处必须逐字同步")
+check("T16 新增规范条款存在性: 7.5 断言辨别力", "### 7.5 断言辨别力" in spec,
+      "development-spec 缺 §7.5 断言辨别力（断言只允许加强 / 必须给出辨别力依据 / 禁止把当前行为固化成期望）")
+check("T16 新增规范条款存在性: 6.6 契约表达与可测性", "### 6.6 契约表达与可测性" in spec,
+      "development-spec 缺 §6.6 契约表达与可测性（键值表优先 / 分支可构造 / 通用错误响应体形态 / 架构五问）")
+check("T16 新增规范条款存在性: 8.7 安全配置 fail-fast", "### 8.7 安全配置的加载与失效" in spec,
+      "development-spec 缺 §8.7 安全配置的加载与失效（单一来源 + 启动期 fail-fast）")
+check("T16 新增规范条款存在性: 14.1 跨层超时预算", "### 14.1 跨层超时预算" in spec,
+      "development-spec 缺 §14.1 跨层超时预算（四层数值必须成表，不能各层各配）")
+check("T16 新增规范条款存在性: 13.4 文档与引用", "### 13.4 文档与引用" in spec,
+      "development-spec 缺 §13.4 文档与引用（稳定 ID / 只写应然 / 引用前实测）")
+check("T16 role-protocol 证据卫生节", "## 7. 证据卫生" in rp,
+      "role-protocol 缺「证据卫生」节（证据落在框架清理范围外 / 文件名唯一 / 引用前核验 / 时间戳脚本生成 / 证据强度分级）")
+check("T16 role-protocol 长驻进程锁输出目录", "长驻进程会锁死构建输出目录" in rp,
+      "role-protocol 缺「长驻进程锁死 bin/ → 一律写临时 OutputPath」的处置约定 ——"
+      "实测该锁使 E2E 复跑前置条件跨多轮无法满足，整条验证链被堵死")
+check("T16 role-protocol 同一事实禁止多落点", "同一事实禁止多落点" in rp,
+      "role-protocol §1 缺「同一事实禁止多落点，不可避免时必须由护栏绑死」通则")
+
+# ---- 17. 启动模板唯一性（把「规则」与「实现」绑定，而非只写散文）----
+# 背景：role-protocol §5 早就写了「启动逻辑收敛为唯一模板」，但**只约束了 Playwright spec 侧**，
+# 手工起实例这条最容易复现 ContentRoot 错误（cwd 由人的位置决定）的路径**仍然裸奔**；
+# 这正是 config-checklist §D 警告的「规则已改而门禁判据未改」。故把该规则落到结构断言上。
+_LIB = ROOT / "tests" / "e2e" / "lib" / "launch-api.mjs"
+_cov = read(ROOT / "tests" / "e2e" / "coverage.spec.ts") or ""
+check("T17 唯一启动模板文件存在", _LIB.exists(),
+      "tests/e2e/lib/launch-api.mjs 不存在 —— role-protocol §5 的「唯一模板」失去落点")
+check("T17 role-protocol 指向唯一模板", "tests/e2e/lib/launch-api.mjs" in rp,
+      "role-protocol §5 未指向唯一启动模板（旧文指向 coverage.spec.ts 的 launchApi()，实现搬家后即成失效引用）")
+check("T17 role-protocol 说明手工起实例入口", "launch-api.mjs --port" in rp,
+      "role-protocol §5 未说明「手工起实例也必须走同一入口」——"
+      "实测出问题的正是手敲 dotnet 这条路径，只约束 spec 侧等于漏掉主路径")
+check("T17 coverage.spec.ts 不再自带启动实现", "spawn('dotnet'" not in _cov,
+      "coverage.spec.ts 内又出现了 spawn('dotnet') —— 启动实现被复制回 spec，"
+      "逐份复制正是「cwd 漏写 → 配置不加载 → 接口 500 且日志 0 字节」反复复发的原因")
+check("T17 coverage.spec.ts 从唯一模板导入", "./lib/launch-api.mjs" in _cov,
+      "coverage.spec.ts 未从唯一模板导入启动函数")
+
+# 更一般的不变量：tests/e2e/** 下除唯一模板外，任何文件都不得直接 spawn dotnet 实例
+_stray = []
+for _p in sorted((ROOT / "tests" / "e2e").rglob("*")):
+    if not _p.is_file() or _p.suffix not in (".ts", ".mjs", ".js"):
+        continue
+    if _p == _LIB:
+        continue
+    _txt = read(_p) or ""
+    if "spawn('dotnet'" in _txt or 'spawn("dotnet"' in _txt:
+        _stray.append(str(_p.relative_to(ROOT)))
+check("T17 tests/e2e 下无第二份启动实现", not _stray,
+      f"以下文件自行启动了 dotnet 实例（应改用 tests/e2e/lib/launch-api.mjs）: {_stray}")
+
+# ---- 18. 全局兜底文件的定位约束（技术栈无关）与附录 C 的不复述约束 ----
+# 背景：global/CLAUDE.md 对本机**所有项目**生效，且**无法引用**任何项目的规范文件 ——
+# 它只能是手抄副本，抄了必然分叉。实测旧版：18 条红线里 17 条是技术栈特化的，
+# 且落后项目规范 7 条规则、**从未被安装**（死文件）。故用断言把它钉在「技术栈无关」上。
+_gm = read(ROOT / "global" / "CLAUDE.md") or ""
+check("T18 全局文件声明边界节", "## 本文件的边界" in _gm,
+      "global/CLAUDE.md 缺「本文件的边界」节 —— 该节是定位约束的载体，删掉即等于放弃「技术栈无关」原则")
+# 「边界」一节按设计会举例提及技术栈名词，故先剔除，再检查正文不得出现技术栈特化规则
+_m = re.search(r"^##\s+本文件的边界.*?(?=^##\s)", _gm, re.S | re.M)
+_gm_body = _gm.replace(_m.group(0), "") if _m else _gm
+_tech_marks = ["Composition API", "shadcn", "TanStack", "AsNoTracking", "v-auth", "Tailwind", "EF Core", "vue"]
+_hit = [t for t in _tech_marks if t in _gm_body]
+check("T18 全局文件正文不含技术栈特化规则", not _hit,
+      f"global/CLAUDE.md 正文出现技术栈特化内容: {_hit} ——"
+      "该文件对本机所有项目生效且无法引用项目规范，技术栈特化规则必然错配并漂移；应下沉到项目级 CLAUDE.md")
+
+# 附录 C 不得复述权限规则（复述即第二落点：权限规则会随平台版本变化，两处措辞必然分叉）
+_appc = ""
+_mc = re.search(r"^##\s+附录 C.*?(?=^##\s|\Z)", spec, re.S | re.M)
+if _mc:
+    _appc = _mc.group(0)
+check("T18 附录 C 不复述权限规则", _appc and "允许（免确认）" not in _appc and "拒绝（不可执行）" not in _appc,
+      "development-spec 附录 C 又在复述 allow/ask/deny 三组规则 ——"
+      "权威在 .claude/settings.json 与 .claude/README.md，复述即制造第二落点")
+check("T18 附录 C 指向权威来源", ".claude/README.md" in _appc,
+      "development-spec 附录 C 未指向 .claude/README.md（删掉复述后必须留下指针，否则读者找不到权威清单）")
+
+# ---- 19. E2E 环境就绪（工具链自身）与 Bash 约定（env 劫持）----
+# 背景：两种「环境没搭好」都以**产品缺陷的表象**出现（58 条里 55 条同时失败），
+# 而常规探测（GET / → 200、GET /api → 401、GET /src/main.ts → 200）**全部返回"正常"**。
+check("T19 §6 禁用 env 写法", "不要用 `env VAR=value cmd`" in rp,
+      "role-protocol §6 仍在推荐 env VAR=value cmd —— 实测可被 PATH 上的同名脚本（uv 的 PATH 片段）"
+      "劫持：只改 PATH、不执行传入命令、静默空转且退出 0")
+check("T19 §6 记录 env 劫持机理", "静默空转" in rp and "只改 PATH" in rp,
+      "role-protocol §6 缺 env 被劫持的机理（只改 PATH / 不执行传入命令 / 退出 0）——"
+      "只给禁令不给机理，换个环境又会踩")
+check("T19 退出码0无输出纪律", "不等于成功，可能命令根本没跑" in rp and "验证副作用" in rp,
+      "role-protocol 缺「退出码 0 + 无输出 ≠ 成功，可能是命令根本没跑；关键命令必须验证副作用」的纪律")
+check("T19 §5 浏览器内核就绪前提", "install chromium" in rp,
+      "role-protocol §5 缺 Playwright 浏览器内核前置检查 —— 缺它会让所有浏览器用例 1ms 瞬时失败，"
+      "而纯 API 级用例照常通过（表象像「产品坏了」）")
+check("T19 §5 前端就绪判据=应用挂载", "返回 200 不算前端就绪" in rp and "page-login--default" in rp,
+      "role-protocol §5 缺「GET / 返回 200 不算前端就绪，必须用浏览器断言应用已挂载」的判据")
+check("T19 §5 先隔离复跑再定性", "先隔离复跑，再定性" in rp,
+      "role-protocol §5 缺「失败用例先隔离复跑再定性」的归因纪律 —— 实测全量超时的 4 条隔离复跑全部秒过")
+
+# ---- 自测：把「负向验证」从人工清单变成可执行命令 ----
+# 用法：python3 tools/check-config.py --self-test
+# 背景：config-checklist 要求「新增断言后逐条负向验证（故意破坏 → 必须 FAIL → 还原 → 必须 PASS）」，
+# 并特别警告「每例必须先断言变更确实发生」——不先断言，replace 未匹配会静默不动，
+# 于是「没验证」被当成「验证通过」，把假阴性写进护栏。本函数把这两条要求一并自动化。
+MUTATIONS = [
+    ("CLAUDE.md", "必须在事务边界统一分类", "必须在任意位置分别处理", "T16 双落点逐字一致: 重试判定"),
+    ("docs/development-spec.md", "服务端同类超时", "服务端相近超时", "T16 双落点逐字一致: 超时配置"),
+    ("CLAUDE.md", "安全敏感配置只允许一个取值来源", "安全敏感配置允许就地兜底", "T16 双落点逐字一致: 安全配置"),
+    ("docs/development-spec.md", "引用一律用稳定 ID，禁止用行号", "引用可用行号", "T16 双落点逐字一致: 引用用稳定 ID"),
+    ("CLAUDE.md", "禁止把当前行为固化成期望", "允许按当前行为编写期望", "T16 双落点逐字一致: 断言辨别力"),
+    ("docs/development-spec.md", "每个分支都必须可构造", "分支不要求可构造", "T16 双落点逐字一致: 契约分支"),
+    ("docs/development-spec.md", "### 7.5 断言辨别力", "### 7.6 断言辨别力", "T16 新增规范条款存在性: 7.5"),
+    ("docs/development-spec.md", "### 14.1 跨层超时预算", "### 14.2 跨层超时预算", "T16 新增规范条款存在性: 14.1"),
+    ("docs/role-protocol.md", "## 7. 证据卫生", "## 8. 证据卫生", "T16 role-protocol 证据卫生节"),
+    ("docs/role-protocol.md", "长驻进程会锁死构建输出目录", "长驻进程不影响构建输出目录", "T16 role-protocol 长驻进程锁输出目录"),
+    ("docs/role-protocol.md", "同一事实禁止多落点", "同一事实允许多落点", "T16 role-protocol 同一事实禁止多落点"),
+    ("docs/error-codes.md", "| 1203 |", "| 9203 |", "T15 规范引用的业务错误码均已登记"),
+    ("docs/artifacts.md", "按产物命名空间限定", "按产物顺序编号", "T15 OBS 编号命名空间规则已声明"),
+    ("docs/role-protocol.md", "tests/e2e/lib/launch-api.mjs", "tests/e2e/coverage.spec.ts",
+     "T17 role-protocol 指向唯一模板"),
+    ("tests/e2e/coverage.spec.ts", "./lib/launch-api.mjs", "./lib/launch-api-x.mjs",
+     "T17 coverage.spec.ts 从唯一模板导入"),
+    ("global/CLAUDE.md", "## 通用红线（任何技术栈都成立）",
+     "## 通用红线（任何技术栈都成立）\n\n- EF Core 只读查询必须 AsNoTracking()。",
+     "T18 全局文件正文不含技术栈特化规则"),
+    ("docs/development-spec.md", ".claude/README.md", ".claude/README-x.md",
+     "T18 附录 C 指向权威来源"),
+    ("CLAUDE.md", "仓库绝对路径含 `#` 时", "仓库绝对路径含 `%` 时",
+     "T16 双落点逐字一致: 路径含 # 时前端单测全量失败"),
+    ("docs/development-spec.md", "长驻开发实例会锁死", "长驻开发实例不影响",
+     "T16 双落点逐字一致: 长驻实例锁死 bin（命令表）"),
+    ("docs/role-protocol.md", "不要用 `env VAR=value cmd`", "推荐用 `env VAR=value cmd`",
+     "T19 §6 禁用 env 写法"),
+    ("docs/role-protocol.md", "install chromium", "install browser",
+     "T19 §5 浏览器内核就绪前提"),
+    ("CLAUDE.md", "浏览器内核不在 `npm ci` 范围内", "浏览器内核随 npm ci 一起安装",
+     "T16 双落点逐字一致: E2E 首次必做装浏览器内核（命令表）"),
+]
+
+
+def run_self_test() -> int:
+    """逐条突变 → 断言被捕获 → 还原 → 断言恢复全 PASS。任一步不成立即自测失败。"""
+    bad = []
+    print(f"自测开始：{len(MUTATIONS)} 条突变，逐条负向验证")
+    me = str(Path(__file__).resolve())
+    for rel, old, new, expect in MUTATIONS:
+        path = ROOT / rel
+        if not path.exists():
+            bad.append(f"{rel}: 文件不存在")
+            print(f"  ✗ [{rel}] 文件不存在")
+            continue
+        original = path.read_text(encoding="utf-8")
+        # 「先断言变更确实发生」：不先断言，replace 未匹配会静默不动，把「没验证」当成「验证通过」
+        if old not in original:
+            bad.append(f"{rel}: 突变目标不存在（{old!r}）")
+            print(f"  ✗ [{rel}] 突变目标不存在: {old!r}")
+            continue
+        try:
+            # 替换**全部**落点：只改第一处的话，锚句仍在同一文件的其他位置，突变根本没破坏事实
+            # （实测教训：两条锚句各在同一文件出现 2 次，用 count=1 突变时空转，差点被当成"护栏瞎了"）
+            hits = original.count(old)
+            mutated = original.replace(old, new)
+            path.write_text(mutated, encoding="utf-8")
+            if path.read_text(encoding="utf-8") == original:
+                bad.append(f"{rel}: 变更未生效")
+                print(f"  ✗ [{rel}] 变更未生效")
+                continue
+            proc = subprocess.run([sys.executable, me, "--json"],
+                                  capture_output=True, text=True, encoding="utf-8")
+            got = json.loads(proc.stdout or "{}").get("failures", [])
+            if any(expect in g for g in got):
+                print(f"  ✓ [{rel}] 已捕获（突变 {hits} 处）→ {expect}")
+            else:
+                bad.append(f"{rel}: 突变未被捕获（期望 {expect}）")
+                print(f"  ✗ [{rel}] 未被捕获（突变 {hits} 处），期望 {expect}")
+        except Exception as exc:  # noqa: BLE001
+            bad.append(f"{rel}: 自测异常 {exc!r}")
+            print(f"  ✗ [{rel}] 异常: {exc!r}")
+        finally:
+            path.write_text(original, encoding="utf-8")  # 必须还原
+    proc = subprocess.run([sys.executable, me, "--json"],
+                          capture_output=True, text=True, encoding="utf-8")
+    if proc.returncode != 0:
+        bad.append("还原后未恢复全 PASS")
+        print("  ✗ 还原后仍有失败项")
+    if bad:
+        print(f"自测 FAIL: {len(bad)} 条")
+        for b in bad:
+            print("  ✗ " + b)
+        return 1
+    print(f"自测 PASS ✓（{len(MUTATIONS)}/{len(MUTATIONS)} 条突变均被捕获，还原后全 PASS）")
+    return 0
+
+
+# ---- 输出 ----
+if "--json" in sys.argv:
+    print(json.dumps({"total": len(checks),
+                      "failures": [n for n, ok, _ in checks if not ok]}, ensure_ascii=False))
+    sys.exit(1 if failures else 0)
+
+if "--self-test" in sys.argv:
+    sys.exit(run_self_test())
 
 print(f"共 {len(checks)} 项检查")
 if failures:
