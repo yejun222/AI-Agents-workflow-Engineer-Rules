@@ -15,11 +15,15 @@
  *   TC-85：生产构建产物路由懒加载分包 + 主 chunk gzip 预算 + 列表强制分页口径
  */
 import { test, expect, type Page, type Route } from '@playwright/test';
-import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawnSync, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+// 后端实例启动的**唯一模板**（docs/role-protocol.md §5）。
+// 本文件**禁止**再自行实现启动逻辑：逐份复制的启动代码正是「cwd 漏写 → ContentRoot 错 →
+// 配置不加载 → 接口 500 且日志 0 字节」反复复发的原因。手工起实例请用该模块的命令行入口。
+import { launchApi, waitExit, REPO_ROOT, PUBLISH_DIR, PUBLISH_DLL, TEST_DB } from './lib/launch-api.mjs';
 
 const PW = 'Abcd1234';
 const API = '/api/v1';
@@ -237,40 +241,15 @@ test.describe('覆盖补做（回归轮）', () => {
 // 生产构建产物 = `dotnet publish -c Release` 输出（tests/e2e/deploy/publish-tc76，由 TC-76 用例按需生成）。
 // ============================================================================
 
-const REPO_ROOT = ((): string => {
-  let dir = process.cwd();
-  for (let i = 0; i < 6; i += 1) {
-    if (fs.existsSync(path.join(dir, 'playwright.config.ts'))) return dir;
-    dir = path.dirname(dir);
-  }
-  throw new Error('未找到仓库根（playwright.config.ts）：请于仓库根目录运行 E2E');
-})();
-
-const PUBLISH_DIR = path.join(REPO_ROOT, 'tests', 'e2e', 'deploy', 'publish-tc76');
-const PUBLISH_DLL = path.join(PUBLISH_DIR, 'LuckyDraw.Api.dll');
 const API_PROJECT_DIR = path.join(REPO_ROOT, 'src', 'backend', 'src', 'LuckyDraw.Api');
 const FRONTEND_DIR = path.join(REPO_ROOT, 'src', 'frontend');
-const LOGS_DIR = path.join(REPO_ROOT, 'tests', 'e2e', 'logs');
-const DEPLOY_DB = 'luckydraw_test'; // 独立测试库（与集成测试同库），避免污染开发库 luckydraw_dev
-const CONNECTION_STRING =
-  `Server=localhost;Port=3307;Database=${DEPLOY_DB};User Id=root;Password=devonly;CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=True`;
-
-const stamp = ((): (() => string) => {
-  let seq = 0;
-  return (): string => {
-    const d = new Date();
-    const p = (n: number): string => String(n).padStart(2, '0');
-    seq += 1;
-    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${String(seq).padStart(2, '0')}`;
-  };
-})();
 
 /** 直连独立测试库（部署验收专用；仅测试环境，50 §0 授权口径）。 */
 function deploySql(statement: string): string {
   try {
     return execFileSync(
       'docker',
-      ['exec', 'luckydraw-mysql', 'mysql', '-uroot', '-pdevonly', '-D', DEPLOY_DB, '-N', '-B', '-e', statement],
+      ['exec', 'luckydraw-mysql', 'mysql', '-uroot', '-pdevonly', '-D', TEST_DB, '-N', '-B', '-e', statement],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
     ).trim();
   } catch (e) {
@@ -289,43 +268,6 @@ function restoreDeployPrizes(): void {
 }
 
 type LaunchedApi = { child: ChildProcess; logPath: string };
-
-/** 以环境变量注入配置、另起一个 API 实例（不落任何配置文件；工作目录 = 生产产物目录）。 */
-function launchApi(port: number, env: Record<string, string>, logName: string): LaunchedApi {
-  fs.mkdirSync(LOGS_DIR, { recursive: true });
-  const logPath = path.join(LOGS_DIR, `${logName}-${stamp()}.log`);
-  const stream = fs.createWriteStream(logPath, { flags: 'a' });
-  const child = spawn('dotnet', [PUBLISH_DLL], {
-    cwd: PUBLISH_DIR,
-    env: {
-      ...process.env,
-      ASPNETCORE_URLS: `http://localhost:${port}`,
-      ConnectionStrings__Default: CONNECTION_STRING,
-      Redis__Configuration: 'localhost:6379,defaultDatabase=2',
-      Jwt__SigningKey: 'tc76-production-signing-key-0123456789abcdef',
-      ...env
-    },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
-  child.stdout?.pipe(stream);
-  child.stderr?.pipe(stream);
-  return { child, logPath };
-}
-
-/** 进程退出等待；超时返回 null。 */
-function waitExit(child: ChildProcess, timeoutMs: number): Promise<number | null> {
-  return new Promise((resolve) => {
-    if (child.exitCode !== null) {
-      resolve(child.exitCode);
-      return;
-    }
-    const timer = setTimeout(() => resolve(null), timeoutMs);
-    child.once('exit', (code) => {
-      clearTimeout(timer);
-      resolve(code ?? -1);
-    });
-  });
-}
 
 /** 轮询 HTTP 直至返回任一状态码；连接失败视为未就绪，超时返回 null。 */
 async function waitHttp(url: string, timeoutMs: number): Promise<number | null> {
