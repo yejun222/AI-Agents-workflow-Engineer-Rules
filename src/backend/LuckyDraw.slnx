@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/LuckyDraw.Api/LuckyDraw.Api.csproj" />
+  <Project Path="src/LuckyDraw.Application/LuckyDraw.Application.csproj" />
+  <Project Path="src/LuckyDraw.Infrastructure/LuckyDraw.Infrastructure.csproj" />
+  <Project Path="src/LuckyDraw.Domain/LuckyDraw.Domain.csproj" />
+</Solution>
