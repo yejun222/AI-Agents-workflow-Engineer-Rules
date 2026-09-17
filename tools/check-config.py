@@ -347,6 +347,60 @@ check("T11 test-executor 声明行3.5不在建议范围",
       "行 3.5" in tex and "不在你的建议范围内" in tex,
       "test-executor 未声明行 3.5 须主对话转达 F6 后才由其在重调度中落盘")
 
+# ---- 12. 产物保护：每评审门一次 wip 提交（防「交付前全裸奔」+ 证据强度降级）----
+# 背景：Step 0–8 之间产物全为未跟踪文件 —— 一次错误 Write 即无从恢复，
+# 且审查角色无法用 diff 取证，只能自认「旁证」（实测见 docs/60-review.md:265/398/411）。
+feat = read(COMMANDS / "feature.md") or ""
+rp = read(DOCS / "role-protocol.md") or ""
+
+check("T12 feature 每门 wip 提交规则", "wip(step-" in feat and "每个评审门通过后" in feat,
+      "feature 缺「每个评审门通过后做 wip 提交」的产物保护规则 —— "
+      "产物在交付前全为未跟踪文件，一次错误 Write 即抹掉数小时工作且无从恢复")
+check("T12 feature 开工建分支与基线 SHA", "git checkout -b feat/" in feat and "记录基线 SHA" in feat,
+      "feature Step 0 缺「建分支 + 记录基线 SHA」—— 没有基线则 Step 8 无法 reset --soft 重整")
+check("T12 feature reset --soft 重整", "git reset --soft <基线SHA>" in feat,
+      "feature Step 8 缺 reset --soft 交付单元重整步骤（wip 历史不重整就会混进交付历史）")
+check("T12 feature 禁用 rebase -i", "不得用 `git rebase -i`" in feat,
+      "feature 未声明禁止用 git rebase -i 重整 —— 本环境不支持交互式标志，会让后来者踩空")
+check("T12 feature wip 历史核验", "--grep='wip(step-'" in feat,
+      "feature Step 8 缺 wip 历史条数核验 —— 漏提交不阻断交付，但必须如实登记，"
+      "否则「某一步的产物当时长什么样」永久失据")
+check("T12 role-protocol 取证优先级", "能用 diff 就别用旁证" in rp,
+      "role-protocol 缺「能用 diff 就别用旁证」取证优先级规则 —— "
+      "有版本控制却仍用 mtime / 锚点旁证，等于白拿 wip 提交")
+check("T12 role-protocol 子代理仍禁止提交", "不提交代码" in rp and "不构成你可以自行提交的先例" in rp,
+      "role-protocol 的「角色不得提交」在新增 wip 规则后有被冲掉的风险（子代理会自行提交）")
+
+# ---- 13. 实例启动 / 就绪检查（防「伪就绪检查」复发：判据绕过真正会坏的那条路径）----
+# 背景：ContentRoot 错 → appsettings 不加载 → 密钥为空 → 全接口 500 且日志 0 字节；
+# 而 401 类判据在不带 token 时根本不进入签名校验，故障态与正常态给出完全相同的信号。
+check("T13 §5 发布目录启动", "必须先进到发布目录再启动" in rp and "ContentRoot" in rp,
+      "role-protocol §5 缺「必须先进到发布目录再启动」—— dotnet <相对路径>.dll 会把 cwd 当 ContentRoot")
+check("T13 §5 启动模板唯一且 cwd 锁死", "收敛为唯一模板" in rp and "cwd: PUBLISH_DIR" in rp,
+      "role-protocol §5 缺唯一的启动模板（含 cwd 锁死）—— 逐份复制的启动代码正是 cwd 漏写反复复发的原因")
+check("T13 §5 就绪路径按项目定", "签发路径按项目定" in rp and "注册或登录" in rp and "auth/register" in rp,
+      "role-protocol §5 把就绪检查的签发路径钉死成单一样例（旧文为 login）——"
+      "照抄者会漏掉自己项目里真正会坏的那条路径")
+check("T13 §5 伪就绪检查机理", "根本不会进入签名校验" in rp and "伪就绪检查" in rp,
+      "role-protocol §5 缺「401 类判据为什么测不出配置缺失」的机理说明 ——"
+      "只禁 health 而不给机理，新项目无法自行识破其它形态的伪就绪检查")
+check("T13 §5 可迁移原则", "依赖配置最深" in rp,
+      "role-protocol §5 缺「就绪判据必须走依赖配置最深的路径」这条可迁移原则")
+check("T13 checklist 规则与脚本一致性核对项", "伪就绪检查" in cc and "门禁判据未改" in cc,
+      "config-checklist 缺「§5 规则与 tests/e2e 实际代码是否一致」的人工核对项 ——"
+      "实测出现过规则已改而脚本就绪门禁未改（签发调用排在门禁之后）")
+
+# ---- 14. 前端命令的环境前提（路径含 & 时 npm run * 必失败；规范双落点措辞须逐字一致）----
+# 背景：CLAUDE.md 与 development-spec.md 都是权威命令表，只改一处即制造新的不一致。
+claude_md = read(ROOT / "CLAUDE.md") or ""
+spec = read(DOCS / "development-spec.md") or ""
+_env_note = "仓库绝对路径含 `&`（或空格）时"
+check("T14 命令表环境前提（两处逐字一致）", _env_note in claude_md and _env_note in spec,
+      "CLAUDE.md 与 development-spec.md 的前端命令表缺「路径含 `&` 时 npm run * 必失败」的环境前提，"
+      "或两处措辞不一致（双落点漂移会让后来者只改一处）")
+check("T14 环境前提的边界声明", "`npm ci` 不经 script-shell" in claude_md and "`npm ci` 不经 script-shell" in spec,
+      "环境前提缺「npm ci 不经 script-shell / Linux / CI 不受影响」——只给失败条件不给边界，会把特例误读成通用禁令")
+
 print(f"共 {len(checks)} 项检查")
 if failures:
     print(f"FAIL: {len(failures)} 项未通过")

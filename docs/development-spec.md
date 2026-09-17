@@ -594,6 +594,8 @@ lint → build → test（单测+集成）→ 覆盖率卡点 → E2E（Playwrig
 | E2E 测试 | `npx playwright test` |
 | 新增 shadcn 组件 | `npx shadcn-vue@2.x add <组件名>`（固定主版本，禁止 @latest） |
 
+> ⚠️ **仓库绝对路径含 `&`（或空格）时**（Windows）：`npm run *` 经 `cmd.exe` 展开脚本会把 `&` 当作命令分隔符而**必然失败**，且报错指向完全错误的方向（`'xxx' 不是内部或外部命令` / `Cannot find module 'D:\...'`）→ 改直调工具入口 `node node_modules/<tool>/bin/<tool>.js`（如 `vue-tsc/bin/vue-tsc.js`、`vite/bin/vite.js`）。**`npm ci` 不经 script-shell，不受影响**；Linux / CI 同样不受影响。
+
 ### 后端
 
 | 用途 | 命令 |
