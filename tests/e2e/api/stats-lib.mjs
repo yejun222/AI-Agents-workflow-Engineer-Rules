@@ -4,11 +4,11 @@
  * 运行对象：独立的 Testing 实例（默认 `http://127.0.0.1:5199`），数据库为**独立测试库 `luckydraw_test`**
  *          （与主对话的 :5180 / `luckydraw_dev` 完全隔离，见 stats-suite.mjs 头部「实例启动口径」）。
  *
- * 夹具复用口径（CLAUDE.md 工作准则 2）：`tests/e2e/qa.spec.ts:20-99` 已有同名夹具，但其为 Playwright/TS
+ * 夹具复用口径（CLAUDE.md 工作准则 2）：`tests/e2e/qa.spec.ts` 已有同名夹具，但其为 Playwright/TS
  * 内联实现且未导出（`safeRegister(page, …)` 还依赖 Page 对象），直接 import 会连带注册其全部 `test()`
  * 用例（重复执行）；抽取公共模块则须改动已冻结通过的用例文件。按「最小改动」原则，本模块**沿用同一套
  * 夹具语义与同一 DB 通道**（`docker exec luckydraw-mysql mysql -uroot -pdevonly -D <db>`），并在 Node 侧复用；
- * 库存 / 权重 / 启用状态的复位 SQL 直接取自 `tests/integration/LuckyDraw.IntegrationTests/IntegrationFixture.cs:66-79`。
+ * 库存 / 权重 / 启用状态的复位 SQL 直接取自集成测试夹具 `IntegrationFixture.ResetAsync`（`tests/integration/LuckyDraw.IntegrationTests/IntegrationFixture.cs`）。
  *
  * 严格模式：夹具 SQL 失败即抛错（上一轮曾出现「sql() 吞异常导致夹具静默失效」的教训，不重复）。
  */
@@ -123,9 +123,9 @@ export function prizeRows() {
 }
 
 /**
- * 候选集枚举 —— 与 `PrizeRepository.GetDrawCandidatesAsync`（`PrizeRepository.cs:44-46`）同口径：
+ * 候选集枚举 —— 与 `PrizeRepository.GetDrawCandidatesAsync` 同口径：
  *   `IsEnabled && !IsDeleted && (Type == NoPrize || Stock > 0)`
- * 其中 `!IsDeleted` 来自 `AppDbContext.cs:90` 的全局查询过滤器。
+ * 其中 `!IsDeleted` 来自 `AppDbContext` 的全局查询过滤器。
  */
 export function candidateSet() {
   const raw = sql(
@@ -140,7 +140,7 @@ export const setWeight = (code, v) => sql(`UPDATE PrizeItem SET Weight = ${v} WH
 export const setEnabled = (code, v) => sql(`UPDATE PrizeItem SET IsEnabled = ${v} WHERE Code = '${code}'`);
 export const pinStockAll = (v) => sql(`UPDATE PrizeItem SET Stock = ${v} WHERE Type <> 3`);
 
-/** 复位为 FR-03 默认奖池（SQL 取自 IntegrationFixture.ResetAsync:66-79，语义一致）。 */
+/** 复位为 FR-03 默认奖池（SQL 取自集成测试夹具 `IntegrationFixture.ResetAsync`，语义一致）。 */
 export function restorePrizes() {
   sql(
     'UPDATE `PrizeItem` SET ' +

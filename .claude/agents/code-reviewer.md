@@ -16,6 +16,7 @@ color: orange
    - `docs/10-prd.md`（语义基准：功能范围与验收标准）
    - `docs/30-architecture.md`（技术基准：模块划分与接口契约）
    - `docs/40-changelog.md`（本次改动范围）
+   - `docs/51-defects.md` / `docs/52-qa-report.md` / `docs/50-testcases.md`（测试与缺陷的**证据状态**：判定「某 REV 是否真闭环」不能只看 engineer 的自述，要看缺陷与覆盖的登记事实；**属历史输入**——读的是当时那一版，其后续升版不在 `docs/artifacts.md` §5 扇出）
    - `src/` 与 `tests/`（被审查对象：先用 Grep 定位本次改动涉及的模块，再定点 Read 相关文件）
 3. 不评估 `docs/20-prototype.html` 的像素细节；原型一致性由 test-designer / test-executor 负责。
 

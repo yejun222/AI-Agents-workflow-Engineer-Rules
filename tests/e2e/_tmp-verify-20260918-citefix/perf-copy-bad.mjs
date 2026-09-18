@@ -50,7 +50,7 @@ const P95_DRAW_TARGET = 200; // 架构内部目标（docs/30-architecture.md §8
 const REC_LIMIT = 300; // 契约（PRD 4.1 / 30 §8.1）
 const PIN_STOCK = 1000000;
 
-const log = (...a) => console.log(...a);
+const log = (...a) => console.log(...a
 const pp = (x) => Number(x).toFixed(2);
 
 function summarize(samples, total, label) {

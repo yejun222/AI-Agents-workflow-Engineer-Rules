@@ -6,6 +6,6 @@ allowed-tools: Agent, Read, Write, Edit, Glob, Grep, Bash
 
 调度 software-architect 子代理：
 
-- 输入：`docs/10-prd.md` + `docs/20-prototype.html`
+- 输入：`docs/00-brief.md` + `docs/10-prd.md` + `docs/20-prototype.html`（+ 由 REV-xx 驱动时的 `docs/60-review.md`）
 - 产出：`docs/30-architecture.md`
 - 若返回摘要含「待确认清单 / 契约冲突上报」，转达给我暂停确认。

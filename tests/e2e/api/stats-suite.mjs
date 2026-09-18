@@ -15,7 +15,7 @@
  * 全程只经**环境变量**注入，不修改任何 appsettings*.json / launchSettings.json / src/**。
  *
  * ═══ 前置条件与 50 原文的偏差（如实登记，不伪造） ═══
- *   TC-78 原文要求「默认奖池 + **固定随机源**」。实测实现（`DrawService.cs:312-338`）的确定性机制是
+ *   TC-78 原文要求「默认奖池 + **固定随机源**」。实测实现（`DrawService` 的确定性分支，配置契约见 `docs/30-architecture.md` D-06）的确定性机制是
  *   **按用户名强制结果**（`Draw:Deterministic:ForcedResults[].UserName` → `PrizeItemCode`），
  *   **不存在可播种的随机源**；用户名未命中即回退 `WeightedSampler.Pick(…, _randomSource)` 真随机
  *   （生产路径，`SystemRandomSource` = `RandomNumberGenerator.GetInt32`）。

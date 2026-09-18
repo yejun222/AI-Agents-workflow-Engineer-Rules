@@ -6,15 +6,15 @@
 
 | 产物 | 路径 | 写入者 | 读取者 |
 | --- | --- | --- | --- |
-| 原始需求（brief） | `docs/00-brief.md` | 主对话 | product-manager / prototype-designer / test-designer / test-executor |
+| 原始需求（brief） | `docs/00-brief.md` | 主对话 | product-manager / prototype-designer / **software-architect** / test-designer / test-executor |
 | PRD | `docs/10-prd.md` | product-manager | prototype-designer / software-architect / engineer / code-reviewer / test-designer / test-executor |
 | 交互原型 | `docs/20-prototype.html` | prototype-designer | software-architect / engineer / test-designer / test-executor |
 | 技术方案 | `docs/30-architecture.md` | software-architect | engineer / code-reviewer / test-designer / test-executor |
 | 改动说明 | `docs/40-changelog.md` | engineer | engineer / code-reviewer / test-executor |
-| 测试用例 | `docs/50-testcases.md` | test-designer | test-executor / engineer |
-| 缺陷报告 | `docs/51-defects.md` | test-executor | engineer / test-executor / 主对话 |
-| 质量评估 | `docs/52-qa-report.md` | test-executor | 主对话 / test-executor |
-| 代码审查 | `docs/60-review.md` | code-reviewer | engineer / test-executor / 主对话 |
+| 测试用例 | `docs/50-testcases.md` | test-designer | test-executor / engineer / code-reviewer |
+| 缺陷报告 | `docs/51-defects.md` | test-executor | engineer / test-executor / **code-reviewer** / 主对话 |
+| 质量评估 | `docs/52-qa-report.md` | test-executor | 主对话 / test-executor / **code-reviewer** |
+| 代码审查 | `docs/60-review.md` | code-reviewer | **software-architect**（**仅 v1 历史输入**，见 §5）/ engineer / test-executor / 主对话 |
 
 ## 2. 写入范围速查（写入者只能写本行列出的文件）
 
@@ -23,7 +23,7 @@
 | 主对话 | `docs/artifacts.md`、`docs/00-brief.md`（含 CR 追加）、`docs/error-codes.md`（**仅架构期登记**，见下表后注） | 各角色产物（只协调、不代写；最终结论由其交付总结签署） |
 | product-manager | `docs/10-prd.md` | `docs/00-brief.md`、代码、原型、技术方案 |
 | prototype-designer | `docs/20-prototype.html` | PRD、原始需求、技术方案、`src/` |
-| software-architect | `docs/30-architecture.md` | `src/`、`docs/10-prd.md`、`docs/20-prototype.html` |
+| software-architect | `docs/30-architecture.md` | `src/`、`docs/00-brief.md`、`docs/10-prd.md`、`docs/20-prototype.html`、`docs/60-review.md`（**仅 v1 历史输入**，见 §5） |
 | engineer | `src/`、`tests/unit/**`、`tests/integration/**`、`docs/40-changelog.md`、`docs/error-codes.md`（**仅实现期新增登记**，见下表后注） | `docs/10/20/30-*`、`docs/50-testcases.md`、`docs/51-defects.md`、`docs/60-review.md`；不擅自 git commit / push |
 | code-reviewer | `docs/60-review.md` | 除 `docs/60-review.md` 外一切只读（`src/`、`tests/`、`docs/`） |
 | test-designer | `docs/50-testcases.md` | `src/` 与实现代码（**禁读**）；`docs/00/10/20/30-*` 只读输入；不读 `docs/40-*` 与 `docs/60-*` |
@@ -47,6 +47,14 @@
 | CR | 需求变更 | 主对话 | 追加在 00-brief 末尾，不覆盖原文 |
 | REV | 审查问题项 | code-reviewer | 60-review 内稳定编号（关联 CHG / MOD / API）；供 engineer 闭环回写、test-executor 判定「是否纳入 51」 |
 | OBS | 观察项（未立 BUG 的事实 / 契约空白 / 未审未执行项 / **审查未复核项**） | test-executor（51 / 52）、code-reviewer（60） | **按产物命名空间限定**：`51:OBS-nn` / `52:OBS-nn` / `60:OBS-nn` 各自独立序列；跨产物引用必须带文件名前缀（见下） |
+| QX | 待确认项 / 默认假设（信息不足时提请用户裁决的项） | 各产物作者（登记在本产物的「待确认清单」节） | 现行前缀；编号在本产物内稳定，跨产物引用带文件名前缀（`50:QX-02`）。复合形态 `QX-<发起角色首字母>-nn`（本仓既有 `QX-E-nn`，`E` = engineer 发起）同属本序列 |
+| D | 架构决策项 | software-architect | `docs/30-architecture.md` 内稳定编号（`D-08`）；`docs/development-spec.md` 13.4 已点名可用 |
+| RSK | 风险项 | software-architect | `docs/30-architecture.md` 内稳定编号（`RSK-14`）；`docs/development-spec.md` 13.4 已点名可用 |
+| AS | 默认假设项（**既有前缀，登记备查，不再新造**） | engineer（`docs/40-changelog.md`） | 实测用于 40 的「待确认清单（默认假设）」：`AS-01…AS-07`；2026-09-18 补登记，新条目一律用 `QX` |
+| QA | 契约冲突上报项（**既有前缀，登记备查，不再新造**） | test-designer（`docs/50-testcases.md`） | 实测 `QA-01…QA-03`；新条目一律用 `QX` |
+| CAR | 交付残留项（**既有前缀，登记备查，不再新造**） | test-designer（`docs/50-testcases.md`） | 实测 `CAR-01`；新条目一律用 `QX` |
+
+> **登记表是闭集，且由护栏机检**：`docs/`、`.claude/`、`CLAUDE.md`、`README.md` 里出现的 `<前缀>-<数字>` 形态，其前缀必须在本表登记——**就地自造前缀即为违规**（实测教训：同一类「待确认 / 假设 / 冲突上报」事实在产物里被自造出 `QX` / `AS` / `QA` / `CAR` 四个前缀，跨文件检索无法收敛，而任何单文件校验都看不出来）。新增前缀必须先在本表登记再使用；历史正文里的既有前缀按 13.4 不回改，只补登记。
 
 ### 3.1 观察项（OBS）与「未审 / 未执行」项
 
@@ -57,10 +65,18 @@
 - **审查侧的「未复核项」同样必须登记**（`60:OBS-nn`，与测试侧同规则）：code-reviewer 每轮复审中**未能独立复核 / 未复跑 / 环境不具备 / 超出变更面**的项，一律逐条登记，含**缘由 + 责任人 + 计划复核时点**。只写「如实声明」不足以免除登记义务——本仓库实测：`docs/60-review.md` §H.6 与 §F.5 各 5 项未复核项**无编号、无责任人、无期限**，跨版本是否仍挂着**无从查证**；而测试侧的同类项（51 / 52 的未执行项）有台账有期限，待遇不对称。
 - **两侧的 OBS 都必须逐条标注「阻断 / 非阻断」**（`docs/state-machine.md` D2 第 2 项；`52:OBS-nn` 由 test-executor 标注、`60:OBS-nn` 由 code-reviewer 标注）：标注是**发布门禁的输入**，必须是**可机械提取的结构化字段**，不得写成「不再构成任何阻断」这类散文式否定——**只登记不给权重的项等于永不处置**（本仓库实测有项跨 4 个版本仍挂着，见上条）。**漏标注者按「阻断」推定**：推定阻断才能逼登记方表态，沉默不得成为放行手段。**判别口径**（与 `docs/state-machine.md` D2 及两个角色文件逐字一致，由护栏绑定）：**环境 / 证据 / 工具链类**默认按**阻断**登记；仅在「该观察项不影响任何结论的成立」时才标 `非阻断`，并写明**为何不影响结论**。
 - **「有理由的未复跑」是闭集，三类之外一律视为未复核**：① 变更**不触及该断言面**（须给出检索证据：检索命令 + 命中数，如「全量检索 `tests/integration` 对 `X` 零命中」）；② **环境客观不具备**（须登记 `60:OBS-nn` + 责任人 + 时点）；③ **已由其他角色在同一版本上复跑**（须给出证据路径 + 版本一致声明）。不符合任一类而跳过复跑 → 按 §5 失效传播矩阵补做，且该轮产物须带失效标记。
+- **护栏绑定**：判别口径的四处逐字一致与「裸引用」由 **T26** 守护；**产物侧**的阻断列取值、`60:OBS-nn` 台账字段（缘由 / 责任人 / 计划复核时点）、编号前缀闭集由 **T30** 守护（`tools/check-config.py`）。
 
 ## 4. 版本与冻结
 
 - 契约文件（00/10/20/30/50/51/52/60）头部必须包含**元信息块**：产物、版本（v1 起，冻结后变更升 v2…）、冻结时间（ISO 8601）、上游依赖（引用文件名 + 版本）。
+- **冻结时间的判据（**唯一出处：本条**；其余处的取值与勘误一律引用本条，不各自重述）**：
+  - **取值 = 该版本末次实际落盘时刻**（ISO 8601；可向下取整到该次落盘的分钟）。**未采集到时刻的写日粒度**并显式标注「未采集具体时刻」（体例见 `docs/50-testcases.md` 冻结时间行）。
+  - **禁止标称钟点**：取值**晚于**该产物实际落盘时刻即越界（本仓实例：`docs/30-architecture.md` 原 v3 `20:00` / v4 `22:00`、`docs/51-defects.md` 原 `18:30`、`docs/52-qa-report.md` 原 `18:45`）。越界的取值**不得保留**；时刻未采集时**改日粒度**，**不得**另推一个钟点顶替。
+  - **落盘证据只认 git 提交时刻**（写明 `hash` + 时间）。**文件 mtime 不作证据** —— 它会被后续写入、护栏自测实验与还原操作改写（本仓实测）。
+  - **同一日内不主张先后**：跨产物比较一律用日粒度；「上游依赖」行声明的版本必须满足**上游落盘日 ≤ 下游落盘日**，不满足者不得写入该行（同日落盘即满足）。
+  - **冻结后仍有落盘时的处置**（**一律只登记，不擅自升版**）：先按性质区分——**头部元信息 / 引用勘误**不改版本（体例：`docs/51-defects.md` / `docs/52-qa-report.md` 各自在冻结时间行内订正取值、`docs/51-defects.md` 的证据引用勘误行，均未升版）；**正文契约内容变更**才须按上条升版。凡**无法由证据判定落盘日**的（如追加块自标日期与承载提交不同日），在该产物**冻结时间行的勘误里逐次登记**（承载提交 `hash` + 提交时间 + 变更内容 + 「落盘日无法确证 / 未升版」事实），**不擅自升版** —— 升版牵动第 5 节失效传播与全部下游，须用户裁决。 **第三类：台账类回写**（OBS / 未复核项 / 待确认项的新增与状态回写、阻断标注、编号勘误）——**不升版**，但必须在头部或勘误块**登记**（改了哪一类、何时、依据哪条规则）；**判定结论本身变化**（如 `docs/52-qa-report.md` §2 的结论行、`docs/60-review.md` 的分级判定）不属台账回写，按前款**升版**。
+  - **标称钟点的可机检形态**：冻结时间行内任何 `\d\d:00:00` 形态的取值（含 `T` 前缀形态，如 `2026-09-17T22:00:00`），其**所在括号组**或**所在句子**（以 `。` / `；` 为界）必须写明来源（`实测` / `勘误` / `未采集` / `标称`）——后者覆盖「原记 X / Y 均为**标称钟点**」这类不用括号的勘误写法；两处都未写来源的整点钟点一律判为标称钟点。本条是护栏 **T30** 的判据，与「禁止标称钟点」同源、同一处定义。
 - **00-brief 归档即冻结**：需求变更不修改原文，以 `CR-xx` 追加在文件末尾（含变更说明、时间、影响范围），涉及下游契约时按第 5 节失效传播矩阵处理。
 
 ## 5. 失效传播矩阵（上游变更 → 必须重跑的下游）
@@ -78,3 +94,7 @@
 | 60-review 变更 | 51-defects、52-qa-report |
 
 规则：受影响下游需重跑或人工复核，并在头部加**失效标记**（「上游 vX 变更，本产物基于 vY，待复核」）；不重跑不能进入下一阶段。
+- **「上游依赖」行是可机检的声明**：该行声明的**产物**（00–60）必须在该产物**写入者**的读取清单内（§1「读取者」列 / §2「只读」列，护栏 **T30** 机检）；不满足者要么补清单、要么订正该行。
+- **上游依赖行声明的是「已消费的版本」**：若该版本是**历史输入**（如 `docs/30-architecture.md` 声明消费 `docs/60-review.md` **v1** 的裁决），上游后续升版时**不在本表扇出**——但必须在行内写明版本号，使「历史输入」与「持续依赖」可区分。
+
+- **登记表本身也会漏登读取者，故「上游依赖」行必须与读取清单对账**（实测：`docs/30-architecture.md` 声明消费 `docs/00-brief.md` **v2** 与 `docs/60-review.md` **v1**，而这两个产物此前**都不在本表 §1「读取者」列、也不在 §2 的 software-architect 只读列里**——声明的**是真事实**（30 的 v3 修订正是依 60 v1 §8 的 Q1–Q3 裁决），漏的是登记表。这类漏登**没有任何单文件校验看得出来**：30 自己看着没问题，本表也看着没问题。现已在两处补登，并由护栏 **T30** 断言「上游依赖行声明的产物 ∈ 该写入者的读取清单」——**对账方向固定为「声明 → 清单」**：声明属实就补清单，声明不实就订正该行，二者必居其一）

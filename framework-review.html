@@ -1,0 +1,111 @@
+<html style="margin:0;padding:0;">
+<title>Agent 框架与技术规范审查结论</title>
+<div style="width:100%;box-sizing:border-box;font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#f6f7f9;color:#1f2430;padding:20px 22px 28px;">
+  <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;border-bottom:3px solid #2f6fed;padding-bottom:10px;">
+    <span style="font-size:22px;font-weight:700;">AI-Agents-workflow-Engineer-Rules · 框架审查结论</span>
+    <span style="font-size:13px;color:#5a6472;">2026-09-18 · 基于磁盘实测（337 项护栏断言全绿）</span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
+    <div style="flex:1;min-width:220px;background:#e8f0ff;border:1px solid #bcd2ff;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;color:#3a4a66;">总体判断</div>
+      <div style="font-size:15px;font-weight:600;margin-top:2px;">自洽性极强的高纪律多 Agent 流水线样板</div>
+    </div>
+    <div style="flex:1;min-width:220px;background:#e8f0ff;border:1px solid #bcd2ff;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;color:#3a4a66;">框架构成</div>
+      <div style="font-size:15px;font-weight:600;margin-top:2px;">7 角色 · 7 命令 · 3 规范层 · 28 组护栏（T1–T29）</div>
+    </div>
+    <div style="flex:1;min-width:220px;background:#e8f0ff;border:1px solid #bcd2ff;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;color:#3a4a66;">审查结论</div>
+      <div style="font-size:15px;font-weight:600;margin-top:2px;">21 项 REV：16 闭环 / 5 用户接受 / 0 未闭环</div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:14px;font-weight:600;color:#2f3b4d;">流水线架构（三层）</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+    <div style="flex:1;min-width:230px;background:#ffffff;border:1px solid #d8dde5;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;color:#2f6fed;">① 角色层（.claude/agents）</div>
+      <div style="font-size:12.5px;line-height:1.7;margin-top:4px;color:#333b48;">
+        product-manager → prototype-designer → software-architect → engineer → code-reviewer → test-designer → test-executor<br>
+        每角色统一四节：输入要求 / 输出要求 / 写入范围 / 工作原则
+      </div>
+    </div>
+    <div style="flex:1;min-width:230px;background:#ffffff;border:1px solid #d8dde5;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;color:#2f6fed;">② 契约层（docs/）</div>
+      <div style="font-size:12.5px;line-height:1.7;margin-top:4px;color:#333b48;">
+        00-brief / 10-prd / 20-prototype / 30-architecture / 40-changelog / 50-testcases / 51-defects / 52-qa-report / 60-review<br>
+        + role-protocol · artifacts · state-machine · error-codes · development-spec
+      </div>
+    </div>
+    <div style="flex:1;min-width:230px;background:#ffffff;border:1px solid #d8dde5;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;color:#2f6fed;">③ 护栏层（tools/check-config.py）</div>
+      <div style="font-size:12.5px;line-height:1.7;margin-top:4px;color:#333b48;">
+        337 项断言：措辞逐字一致（T14/T28）· 错误码登记闭环（T15）· 状态机行序守护（T11/T24/T29）· 突变负向验证<br>
+        实测运行：全部 PASS
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:14px;font-weight:600;color:#2f3b4d;">发现问题（5 项，按影响排序）</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+    <div style="flex:1;min-width:280px;background:#fff7ec;border:1px solid #f0c36d;border-left:5px solid #e8a33d;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;">A · 中｜产物保护缺口：12 个规范/护栏文件未提交</div>
+      <div style="font-size:12.5px;line-height:1.65;margin-top:3px;color:#333b48;">
+        git status 显示 README、docs/30/40/50/51/52、artifacts、role-protocol、state-machine、check-config.py 等已修改未 commit。<br>
+        框架自身规则要求"每个评审门后 wip 提交（产物保护与取证）"；60-review v2 曾因空 Write 覆盖且未入 git 而不可恢复。<b>当前最新产物处于同样风险。</b>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;background:#eef6ff;border:1px solid #bcd2ff;border-left:5px solid #4a8cf0;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;">B · 轻｜行号引用漂移（规范自违反 13.4）</div>
+      <div style="font-size:12.5px;line-height:1.65;margin-top:3px;color:#333b48;">
+        DrawService.cs:27 注释引用"30-architecture D-08（:544）"，实际在 :567（v4 修订后漂移 +23 行）。<br>
+        40-changelog 全文大量 `:511/:519/:544/:567/:780-864` 等行号引用；60-review v6 已记录"陈旧锚点"但未列 REV。
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;background:#eef6ff;border:1px solid #bcd2ff;border-left:5px solid #4a8cf0;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;">C · 轻｜60-review v6 证据陈述与事实不符</div>
+      <div style="font-size:12.5px;line-height:1.65;margin-top:3px;color:#333b48;">
+        §H.3-c 称"src/ 未入 git（git ls-files src = 0）"；实测 190 个 src 文件被跟踪、git log 含 feat(backend/frontend) 提交。<br>
+        影响：该轮本可取得"版本控制级"证据（git diff），却降级为行号位移旁证；结论正确但证据声明失实。
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;background:#eef6ff;border:1px solid #bcd2ff;border-left:5px solid #4a8cf0;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;">D · 轻｜D-06 散文句与配置文件现状张力</div>
+      <div style="font-size:12.5px;line-height:1.65;margin-top:3px;color:#333b48;">
+        架构称"确定性配置只允许出现在 appsettings.Development.json"，但生产基线 appsettings.json 与 Testing.json 均含该节（Enabled=false / 空覆盖）。<br>
+        功能安全（校验规则泄漏即拒启）；属文档内措辞不自洽，规范 3.x 第 1 条已记录同类教训但未回改 D-06 散文。
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;background:#f2f4f7;border:1px solid #d8dde5;border-left:5px solid #8a94a6;border-radius:6px;padding:10px 12px;">
+      <div style="font-size:13px;font-weight:700;">E · 观察｜附录 A 第 6 条"±1 转换"描述与实现形态不符</div>
+      <div style="font-size:12.5px;line-height:1.65;margin-top:3px;color:#333b48;">
+        规范称 usePagination 收敛"TanStack pageIndex(0 起)↔接口(1 起)"的 ±1 转换；实际 usePagination 纯 1 起直通后端，TanStack 仅用 getCoreRowModel 渲染、未接入分页状态机。<br>
+        实现更简、规范滞后（转换点实际不存在）。
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:14px;font-weight:600;color:#2f3b4d;">一致性验证亮点（实测确认，非问题）</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+    <div style="flex:1;min-width:200px;background:#eafaf0;border:1px solid #b9e4c8;border-radius:6px;padding:9px 11px;font-size:12.5px;line-height:1.65;color:#2b4034;">
+      <b>密码规则三处逐字一致</b>：Zod regex = FluentValidation regex = 原型文案（CR-01 收紧口径 8-20 位含大小写+数字）
+    </div>
+    <div style="flex:1;min-width:200px;background:#eafaf0;border:1px solid #b9e4c8;border-radius:6px;padding:9px 11px;font-size:12.5px;line-height:1.65;color:#2b4034;">
+      <b>错误码闭环</b>：ErrorCodes.cs = error-codes.md = 架构 §5.3 = 前端 AUTH_ERROR_CODE；429 限流 code=1001 三处（spec/ec/Program.cs）一致
+    </div>
+    <div style="flex:1;min-width:200px;background:#eafaf0;border:1px solid #b9e4c8;border-radius:6px;padding:9px 11px;font-size:12.5px;line-height:1.65;color:#2b4034;">
+      <b>D-08 锁序落地</b>：DrawService ①→⑨ 与架构逐条对齐；重试 1 次、终态 1001、CRITICAL 告警口径经负向验证
+    </div>
+    <div style="flex:1;min-width:200px;background:#eafaf0;border:1px solid #b9e4c8;border-radius:6px;padding:9px 11px;font-size:12.5px;line-height:1.65;color:#2b4034;">
+      <b>会话安全口径</b>：token 仅内存（stores/auth + auth-token）；401 刷新与受保护路由恢复共用同一在途 Promise（防 D-11 复用误杀）
+    </div>
+    <div style="flex:1;min-width:200px;background:#eafaf0;border:1px solid #b9e4c8;border-radius:6px;padding:9px 11px;font-size:12.5px;line-height:1.65;color:#2b4034;">
+      <b>幂等语义闭环</b>：DrawRequest 唯一索引 + Redis 降级（D-03）；认证 NX+轮询（D-15）；409 仅幂等冲突
+    </div>
+  </div>
+
+  <div style="margin-top:14px;font-size:12px;color:#5a6472;border-top:1px solid #d8dde5;padding-top:8px;">
+    数据来源：磁盘实测（git status / git ls-files / check-config.py 337 项 PASS / 前后端源码与文档交叉比对）。本图为示意结构，非官方文档。
+  </div>
+</div>
+</html>

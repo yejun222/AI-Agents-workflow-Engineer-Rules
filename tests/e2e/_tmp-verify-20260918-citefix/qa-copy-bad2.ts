@@ -443,7 +443,7 @@ test.describe('M3 会话与恢复', () => {
 test.describe('M4 奖池展示', () => {
   test('TC-26 转盘扇区与后端启用的奖池条目一一对应（默认 5 条）', async ({ page }) => {
     forceNoPrize();
-    await forceOnly('prize-keyboard');
+    await forceOnly('prize-keyboard'
     const name = `e26${tag()}`;
     const u = await safeRegister(page, name);
     const res = await page.request.get(`${API}/prizes`, { headers: { Authorization: `Bearer ${u.token}` } });
@@ -796,7 +796,7 @@ test.describe('M9 中奖记录', () => {
     const rows = await page.locator('[data-testid^="records-row-"]').count();
     expect.soft(rows, '仅 A 本人 2 条').toBe(2);
     // 列头断言必须作用到表头行：data-testid="page-records--default" 挂在 <TableBody> 上（仅表体），
-    // 表头 <TableHeader> 是其上方兄弟节点。
+    // 表头 <TableHeader> 是其上方兄弟节点（WinningRecordsView.vue:120-127 vs :199-202）。
     const thead = page.locator('table thead');
     await expect.soft(thead, '表头应存在').toHaveCount(1);
     const headText = (await thead.innerText()).replace(/\n/g, ' | ');

@@ -24,7 +24,7 @@ public class DrawService : IDrawService
 
     /// <summary>
     /// 数据库瞬时错误（死锁 1213 / 锁等待超时 1205）下整个事务的最大**尝试**次数 = 2（即重试 1 次）。
-    /// 数值对齐 `docs/30-architecture.md` D-08「异常与重试」（:544 原文「整个事务重试 1 次」）；
+    /// 数值对齐 `docs/30-architecture.md` D-08「异常与重试」（原文「整个事务重试 1 次」）；
     /// 单次尝试最坏吃满服务端 `innodb_lock_wait_timeout`（默认 50s），故用户最坏等待 ≈ 2 × 50s = 100s。
     /// </summary>
     private const int MaxTransactionAttempts = 2;
@@ -120,10 +120,10 @@ public class DrawService : IDrawService
             }
             catch (TransientDataException exception) when (attempt >= MaxTransactionAttempts)
             {
-                // D-08（架构 :544）承诺：重试仍未成功 → CRITICAL 告警。
-                // 终态错误码经用户裁决保持 `1001`「系统繁忙」（架构侧同步修订 :544 的表述，本仓不动该契约文件）
+                // D-08「异常与重试」承诺：重试仍未成功 → CRITICAL 告警。
+                // 终态错误码经用户裁决保持 `1001`「系统繁忙」（架构侧同步修订 D-08「异常与重试」的表述，本仓不动该契约文件）
                 // REV-21（CHG-18）：计数口径为「重试次数」= 尝试次数 - 1，与同日志的 WRN「第 N 次」及 D-08
-                // （30-architecture.md:567「整个事务重试 1 次」）自洽 —— 传 attempt - 1，勿改回 attempt。
+                // （30-architecture.md D-08「异常与重试」原文「整个事务重试 1 次」）自洽 —— 传 attempt - 1，勿改回 attempt。
                 // 守护断言：DrawServiceTests.DrawAsync_WhenTransientErrorPersists_CriticalLogReportsRetryCountNotAttempts
                 _logger.LogCritical(
                     exception,

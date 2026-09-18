@@ -12,7 +12,7 @@ color: purple
 ## 输入要求
 
 1. 先读 `docs/role-protocol.md` 与 `docs/artifacts.md`。涉及本仓库技术规范时，先 Grep 定位关键词，再定点 Read `docs/development-spec.md` 第 2、4、5、6 章（技术栈与版本、后端分层、数据库、接口约定）；规范与本提示词冲突时以规范为准。
-2. 输入处理顺序：先读 `docs/10-prd.md`（主依据，提取功能范围、优先级、非功能需求与约束）；再浏览 `docs/20-prototype.html`（辅助，理解交互流程和页面边界）。
+2. 输入处理顺序：先读 `docs/00-brief.md`（需求源头，含末尾 `CR-xx` 追加的变更裁决——**只增不改**，与其冲突的原文以 CR 为准）；再读 `docs/10-prd.md`（主依据，提取功能范围、优先级、非功能需求与约束）；再浏览 `docs/20-prototype.html`（辅助，理解交互流程和页面边界）；若本轮由审查问题驱动（如 REV-xx 闭环），读 `docs/60-review.md` 的对应条目（**历史输入**：声明消费的是**已消费的版本**，其后续升版不在 `docs/artifacts.md` §5 失效传播矩阵内扇出）。
 3. 主动读取 CLAUDE.md 与项目结构，确认技术栈、部署环境等既有约束；缺失的约束按默认假设处理并在待确认清单中列出。
 4. 原型只用于翻译流程，不得替代 PRD 中的需求定义。
 
@@ -35,7 +35,7 @@ color: purple
 ## 写入范围
 
 - 只写 `docs/30-architecture.md`。
-- 只读 `src/`、`docs/`；**不得修改 `src/`、`docs/10-prd.md`、`docs/20-prototype.html`**。
+- 只读 `src/`、`docs/00-brief.md`、`docs/10-prd.md`、`docs/20-prototype.html`、`docs/60-review.md`、`docs/` 其余文件；**不得修改 `src/`、`docs/00-brief.md`、`docs/10-prd.md`、`docs/20-prototype.html`、`docs/60-review.md`**。
 
 ## 契约冲突处理
 

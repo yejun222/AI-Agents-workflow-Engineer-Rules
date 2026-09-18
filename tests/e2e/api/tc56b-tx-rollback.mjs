@@ -5,7 +5,7 @@
  * 前置：Testing 实例已在 :5199 运行（发布目录启动、库 luckydraw_test、Redis db 2）。
  *
  * ═══ 注入手法（InnoDB 父行锁阻塞子表 FK 检查） ═══
- *   抽奖事务写入顺序（DrawService.ExecuteDrawAsync:149-208）：
+ *   抽奖事务写入顺序（`DrawService.ExecuteDrawAsync`）：
  *     ① DrawRequest 幂等行 → ② 条件扣次（UserDrawQuota）→ ③ 候选集/加权随机/条件扣库存（PrizeItem）
  *     → ⑥ WinningRecord INSERT → ⑦ 审计 INSERT → ⑧ 回填流水 → COMMIT。
  *   实测 FK 事实（SHOW CREATE TABLE，本脚本内复核并落盘）：
@@ -374,7 +374,7 @@ try {
     (rowsModifiedBeforeBlock >= 1 || incDelta.drawRequest >= 1 || incDelta.winningRecord >= 1) &&
     elapsedMs > 2000;
   // 终态契约（CHG-17 经用户裁决）：重试耗尽 → HTTP 200 / code=1001「系统繁忙，请稍后重试」，
-  // 不再是旧的 500「系统内部错误」。1001 系「限流 / 依赖不可用的降级提示」（docs/error-codes.md:32）。
+  // 不再是旧的 500「系统内部错误」。1001 系「限流 / 依赖不可用的降级提示」（docs/error-codes.md §「使用边界」1001 条）。
   const terminalOk = draw.http === 200 && draw.json?.code === 1001;
   // 耗时预算（D-08 / CHG-17）：单次尝试最坏吃满 innodb_lock_wait_timeout 50s、MaxTransactionAttempts=2
   // → 预期 ≈ 2 × 50s ≈ 100s。低于 90s 说明整事务重试未真正发生（单次尝试 ~50s）；

@@ -5,11 +5,12 @@
 | 项 | 内容 |
 | --- | --- |
 | 产物 | `docs/40-changelog.md`（engineer 交付的改动台账，含回滚建议） |
-| 版本 | v1 |
-| 冻结时间 | 2026-09-17（ISO 8601：2026-09-17） |
-| 上游依赖 | `docs/30-architecture.md` v2、`docs/10-prd.md` v2、`docs/20-prototype.html` v3 |
+| 版本 | **v2**（v1 → v2：本批新增 `CHG-19`「引用修复改动集（两角色同源 8 文件 18/18）＋ 同批护栏与规则文本加固」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见下方「本轮变更登记」行。v1 冻结取值 `2026-09-17` 早于 `CHG-14`…`CHG-18` 的落盘且头部未同步，本轮按 §4「末次实际落盘时刻」口径一并订正） |
+| 冻结时间 | **2026-09-18T17:54:00+08:00**（**实测**：`date` 输出 `2026-09-18 17:54:33 +0800`，向下取整到分钟 = 本批（v2）末次落盘时刻；**证据强度 = 旁证** —— 本批尚未提交，**无提交级落盘证据**（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**。v1 取值 `2026-09-17`（日粒度）见「版本」行说明） |
+| 上游依赖 | `docs/30-architecture.md` **v4**、`docs/10-prd.md` v2、`docs/20-prototype.html` v3（**2026-09-18 勘误**：原值 30 **v2** 与本文正文不符——CHG-13 以 30 **v3** 为契约基准，CHG-16 / CHG-17 / CHG-18 均对齐 30 **v4** 的 D-08；按 `docs/artifacts.md` §5，30 变更时本产物是受影响下游，但本文正文**已随每次变更逐条回写**（CHG-16…18 即其落地），故**无需补失效标记**，只需订正本行） |
 | 写入范围 | `src/**`、`tests/unit/**`、`tests/integration/**`、本文件 |
 | 说明 | 改动逐条 ID 稳定（CHG-01…），关联 FR / AC；「测试结果」栏只在**实际执行**后填写，未执行的一律标注原因 |
+| 本轮变更登记（2026-09-18） | **改了哪一类**：新增 `CHG-19`（引用修复改动集补登 ＋ 同批护栏与规则文本加固）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更**；**何时**：落盘日 `2026-09-18`（具体时刻见本文件「冻结时间」行的实测读数）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」（正文变更 → 升版；头部元信息块同步）+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v1 → v2**、冻结时间同步取本批末次落盘。**范围声明（本批覆盖提交面）**：`git diff --numstat -- src tests` 实测 8 文件 / 18 增 18 删（`src/**` + `tests/unit/**` 归 engineer；`tests/e2e/**` 归 test-executor —— 同轮两角色同源；逐处清单见 CHG-19 §1）＋ 护栏与规则文本三件（`tools/check-config.py`、`docs/role-protocol.md`、`.gitignore`，由主对话落盘；见 CHG-19 §1b）；工作区其余脏文件（`docs/*`、`.claude/*` 等属其他角色）**不在本 CHG 清单内**，提交时以 `git show --stat` 逐文件核对 |
 
 ## 变更索引
 
@@ -33,6 +34,7 @@
 | CHG-16 | 缺陷闭环：BUG-04（结果条目不在奖池快照时重拉一次 + 兜底文案）、BUG-05（抽奖事务 ⑥⑦⑧ 瞬时错误分类 + 命令超时 60s + 重试耗尽 CRITICAL 告警） | BUG-04、BUG-05、TC-48c、TC-56b、FR-05-R10、FR-08-3、D-08、`docs/artifacts.md` §5 | 已落地（2/2，实跑验证见本节）；其上报的 **2 项契约冲突已于 CHG-17 经用户裁决闭合**（终态错误码保持 `1001`；重试次数改代码对齐） |
 | CHG-17 | 用户裁决落地：重试预算 3 → 2 次尝试对齐架构 D-08（最坏等待 150s → **100s**）+ `CommandTimeout` 接线守护性断言（含 2 项负向验证） | BUG-05、D-08（架构 `:544`）、CHG-16、`docs/artifacts.md` §5 | 已落地（实跑 + 负向验证见本节；附 1 项交付残留：前端 15s 与后端最坏 100s 不匹配，裁决本轮不动） |
 | CHG-18 | REV-21 闭环：重试耗尽 CRITICAL 告警的计数口径修正（**尝试次数 → 重试次数**，对齐 D-08「重试 1 次」）+ 同源根因治理的守护性断言（含 2 项负向验证） | REV-21、D-08（架构 `:567`）、CHG-16、CHG-17、`docs/artifacts.md` §5 | 已落地（实跑 + 负向验证见本节；**上游契约变更 = 无**，仅日志文案，不改错误码 / HTTP 状态码） |
+| CHG-19 | 引用修复改动集（裸行号锚点 → 稳定 ID；含 `TC-39b` 幽灵编号判定）＋ 同批护栏 T30 扩面与临时目录前缀闭集双向锁、规则文本同步加固 | `60:OBS-32`、`60:OBS-05`、`docs/development-spec.md` 13.4、`D-08`、`TC-39`、`docs/artifacts.md` §5、`docs/role-protocol.md` §6 / §7.6 | 已落地（构建 0/0 + 单测 96/0/0 + 护栏 369 项全 PASS 实跑；**集成未通过：环境不具备**，见本节） |
 
 ---
 
@@ -865,6 +867,148 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 
 ---
 
+## CHG-19 引用修复改动集：代码 / 用例注释与用例标题的裸行号锚点改稳定 ID（两角色同源，8 文件 / 18 行）＋ 同批护栏 T30 扩面与规则文本加固（补登 CHG —— `60:OBS-32` 的「无 CHG 记录」一半）
+
+- **状态**：**已落地**（`src/**` + `tests/**` 8 个文件已落盘；构建 0 警告 / 0 错误、单测 96/0/0、护栏 369 项 / 突变自测 134 条 均实跑通过）；**集成复跑未通过 —— 环境不具备**（43 例全部止于夹具初始化期，逐条见 §4、归类见 §5）。
+- **来源与调度**：`docs/60-review.md` v6 §I **`60:OBS-32`（阻断）**登记「工作区存在未提交、未复核、且无 CHG 记录的引用修复改动集（现行末条为 CHG-18）」；本 CHG 为该改动集中**引用修复部分**的补登。同源项：**`60:OBS-05`**（`DrawService.cs` 既有注释的行号锚点，登记时点即已观察到未提交修复，并入 `60:OBS-32` 统一处置）。同批同源登记：`docs/51-defects.md` / `docs/52-qa-report.md` 的「执行侧补验标签勘误（2026-09-18）」行。**同轮两角色同源**：`src/**` + `tests/unit/**` 由 engineer 改、`tests/e2e/**` 由 test-executor 改（本 CHG 覆盖**提交面全量**，权威口径 = `git diff --numstat -- src tests` 实测 8 文件 / 18 增 18 删）。**同批第二部分**（护栏与规则文本加固）由主对话落盘、与前半同一提交批次，一并登记在本条（不另立 CHG-20）。
+- **性质**：**① 引用修复**（`docs/development-spec.md` 13.4「禁止只用行号」）—— **非缺陷修复**（无 `BUG` / `REV` 编号）；故按角色输出要求第 2 条，负向验证以**等价负向样本**形态给出（见 §6）。**② 护栏与规则文本加固**（同批，见 §1b）—— 属 **CHG 的实现期变更**（护栏断言扩面 + 规则文本同步 + `.gitignore` 口径），**非引用勘误**、非台账回写；其负向验证 = 护栏自测逐条「造错 → 断言必红 → 还原复绿」（实测 134/134，见 §4 / §6）。
+- **上游契约变更**：**无** —— 未修改任何契约文件（`docs/10/20/30/50/51/52/60-*` 与 `docs/error-codes.md` 一律未触碰）。
+- **未触发「必须确认的场景」**：无新第三方依赖、无表结构 / 迁移变更、无 DTO / 接口结构变更、无破坏性接口变更、无目录结构变更、无新增或删除测试用例、未改公共封装。
+- **落盘证据强度（如实标注）**：本批**尚未提交**（本角色不执行 git 提交，提交由主对话统一执行）→ **无提交级落盘证据**；下文读数均为**实测**（命令 + 工作目录 + 实际结果），引用路径已逐个核验存在。
+
+### 1. 改动清单与逐处前后对照（提交面全量：`git diff --numstat -- src tests` 实测 8 文件 / 18 增 18 删）
+
+| # | 文件 | 改动处数 | 改前形态 | 改后（稳定 ID） |
+| --- | --- | --- | --- | --- |
+| 1 | `src/backend/src/LuckyDraw.Application/Services/DrawService.cs` | 4 行（常量 `<summary>` 1 处 + `catch` 块 `//` 注释 3 处） | `docs/30-architecture.md` 的**裸行号锚点**（v3 / v4 两代取值，均已随架构升版漂移失效；具体旧值登记于该文件「引用勘误」块与 `60:OBS-05`） | `D-08「异常与重试」`（保留原文引用「整个事务重试 1 次」） |
+| 2 | `tests/unit/LuckyDraw.UnitTests/Services/DrawServiceTests.cs` | 2 行（XML `<summary>`） | 同上（`CHG-17` / `CHG-18` 用例内的裸行号锚点） | `D-08「异常与重试」` |
+| 3 | `tests/e2e/api/perf-suite.mjs` | 1 行（常量注释） | `docs/30-architecture.md` 的裸行号锚点 | `docs/30-architecture.md` §8.2「后端接口」：`POST /api/v1/draw` 目标 P95 ≤ 200ms |
+| 4 | `tests/e2e/api/tc56b-tx-rollback.mjs` | 2 行（文件头块注释 1 处 + 终态契约注释 1 处） | ①事务写入顺序注释里的 `DrawService.ExecuteDrawAsync` 行号区段；②`docs/error-codes.md` 的裸行号锚点 | ①方法名 `DrawService.ExecuteDrawAsync`（去行号）；②`docs/error-codes.md` §「使用边界」`1001` 条 |
+| 5 | `tests/e2e/api/tc56c-redis-degradation.mjs` | 1 行（文件头块注释） | `docs/30-architecture.md` §6.1 + 裸行号区段 | `docs/30-architecture.md` §6.1「依赖降级矩阵」：表列为「链路 / Redis 不可用时的行为 / 是否可用」 |
+| 6 | `tests/e2e/qa.spec.ts` | 2 行（用例标题字符串 1 行 + M9 用例注释 1 行） | ①标题 `TC-39 / TC-39b 确定命中：转盘落点与后端结果一致，弹层显示奖品名与入账提示`（逐字）；②M9 表头说明注释里的 `WinningRecordsView.vue` 行号引用（同句 2 处，含裸 `:NNN` 区段形态） | ①`TC-39 确定命中：转盘落点与后端结果一致，弹层显示奖品名与入账提示`（逐字）——判定见 §2；②「表头 `<TableHeader>` 是其上方兄弟节点。」（去行号） |
+| 7 | `tests/e2e/api/stats-lib.mjs`（test-executor 面） | 5 行（文件头块注释 2 处 + 候选集枚举注释 2 处 + `restorePrizes` 注释 1 处） | 裸露行号锚点 5 处（`tests/e2e/qa.spec.ts` 区段、`IntegrationFixture.cs` 区段、`PrizeRepository.cs`、`AppDbContext.cs`、`IntegrationFixture.ResetAsync` 区段；均在注释内） | 对应稳定锚点：`tests/e2e/qa.spec.ts`（去区段）、集成测试夹具 `IntegrationFixture.ResetAsync`（2 处）、`PrizeRepository.GetDrawCandidatesAsync` 同口径、`AppDbContext` 全局查询过滤器 |
+| 8 | `tests/e2e/api/stats-suite.mjs`（test-executor 面） | 1 行（文件头块注释） | TC-78 偏差说明中 `DrawService.cs` 的裸行号区段 | `DrawService` 的确定性分支 + 配置契约 `D-06` |
+
+- **归属（同轮两角色同源，覆盖提交面全量）**：`src/**` + `tests/unit/**` 由 **engineer** 改；`tests/e2e/**` 由 **test-executor** 改（本表行 3～8 即其写入面）。两半为同一轮、同一提交批次，不拆成两条 CHG。
+- **逐字对照的唯一权威记录 = 本批工作区的 `git diff -- src tests`**（本批未提交 → 无提交 hash；提交后 = 该提交对这两个路径的 diff）。本表只记形态与落点、**不转录行号**（13.4：行号只允许作被叙述对象出现；旧值已登记于 `docs/30-architecture.md`「引用勘误」块与 `60:OBS-05`，不在此重复第三处）。
+- 改动量（实测 `git diff --numstat -- src tests`，2026-09-18 17:48 读数）：**18 增 / 18 删** —— 逐文件 `4/4`（`DrawService.cs`）、`1/1`（`perf-suite.mjs`）、`5/5`（`stats-lib.mjs`）、`1/1`（`stats-suite.mjs`）、`2/2`（`tc56b-tx-rollback.mjs`）、`1/1`（`tc56c-redis-degradation.mjs`）、`2/2`（`qa.spec.ts`）、`2/2`（`DrawServiceTests.cs`）。
+
+### 1b. 同批第二部分：护栏与规则文本加固（实现期变更，非引用勘误）
+
+| # | 落点 | 改前 → 改后 | 归属 |
+| --- | --- | --- | --- |
+| 1 | `tools/check-config.py`（T30 行号引用断言） | `_LN_REF` **扩面**：此前只匹配 `#LNN` 与 `xxx.md:NN`，看不见「代码文件:行号」形态 → 改为按扩展名清单匹配（`_LN_REF_EXT` 单点定义，扫描面扩展名自同一元组派生，消除「两处清单漂移」）；跳过判据改用声明闭集 `_TMP_PREFIXES`（`.tmp-` / `_tmp-`）；`_LN_EXEMPT` 增列 `docs/development-spec.md` 13.4 漂移示例的完整形态（行号是被叙述对象）；**新增断言**「临时目录前缀闭集与 `docs/role-protocol.md` §6 声明一致（双向锁）」（含反查：扫描面内不得存在形如临时目录而前缀未声明的目录） | 主对话（护栏维护方） |
+| 2 | `docs/role-protocol.md` | §6 把临时目录前缀**闭集**写成明文（`.tmp-` / `_tmp-`），并注明义务「新增前缀须同时改本句与护栏 `_TMP_PREFIXES`，单边改即 FAIL」；原文里与护栏不一致的示例前缀已删除。同文件其余 hunk（§2 QX 编号段、§7.4 冻结时间条、新增 §7.6 校验基线条等规则文本加固）逐字见 `git diff -- docs/role-protocol.md` | 主对话 |
+| 3 | `.gitignore` | `.tmp-*` 证据目录的放行只针对**本仓运行日志**（顶层 `.log`）；dotnet 每次调用新生成的 `Microsoft.NET.Workload_<pid>_<日期>_<时间>_<毫秒>.log`（约 1KB 工具链遥测，名字与内容每次调用都变）在其后**重新排除**（git 对同一路径按「末条匹配优先」判定，故该行不可上移）；并注明不做 `.tmp-*/**/*.log` 的死规则放行 | 主对话 |
+| 4 | `tests/e2e/**` 的 6 处残余行号引用（T30 扩面后报出的 6 条，第 4 组） | `stats-lib.mjs` 4 处、`stats-suite.mjs` 1 处、`qa.spec.ts` 1 处 → 稳定锚点（逐处见 §1 表行 6 / 7 / 8） | test-executor |
+
+- **如实记录（第 4 组的两点事实）**：①被报出的 6 处是 **HEAD 里既有**的（不是本批新引入的脏改动）；②`stats-lib.mjs` / `stats-suite.mjs` 两个文件**此前不在 `60:OBS-32` 登记的改动集清单里** → **本批提交面比 `60:OBS-32` 原登记宽这两个文件**，登记义务在本 CHG 内补齐（`60:OBS-32` 的状态回写归 code-reviewer）。
+- **护栏读数（同一棵树实测，2026-09-18）**：检查总数 `364`（扩面前，`全部 PASS` —— 规则说「无行号引用」而扫描面上实有 6 处，属**机制比规则窄**）→ `365`（扩面后，`FAIL: 1 项`，逐条列出上述 6 处）→ `369`（终值，`全部 PASS`，6 处改完）；突变自测终值 `134/134 均被捕获、还原后全 PASS`（中间态实测 `132` 条 / `FAIL 4 条`，发生于并行落盘过程中）。该 `PASS → FAIL → PASS` 序列同时是 T30 扩面的**辨别力实测**（详见 §4 读数时序）。
+- **三件改动量（实测 `git diff --numstat`，基线 HEAD `fc138ae`；读数时刻 2026-09-18 17:54，engineer 复测）**：`tools/check-config.py` **`656/19`**（`wc -l` = 1903 行）。**时点声明**：该文件在本批提交前仍由护栏维护方（主对话）持续加固 —— 此处记的是「**本 CHG 落盘时刻的读数**」、**不构成终值**；提交后的权威口径 = `git show --numstat <hash>`。（本行前稿曾记 `557/15`，系该文件的中间态读数，按 13.4 作废订正 —— 订正前已复测：三方口径交叉一致。）`docs/role-protocol.md` `6/3`、`.gitignore` `17/0`（三者均含同轮其他 hunk，逐字见各自 diff）。
+
+### 2. `TC-39b` 判定：引用修复，非覆盖丢失
+
+- **判定**：`TC-39b` **从未在 `docs/50-testcases.md` 登记过** —— 它是挂在用例标题上的**幽灵编号**，不承载任何独立判据；把它从标题去掉**不减少任何断言**，故属**引用修复**而非覆盖丢失。
+- **依据（三条，逐条实测）**：
+  1. `git log -S "TC-39b" --oneline -- docs/50-testcases.md` → **零命中**（无任何提交曾把该串写入用例表）。
+  2. 用例表**字母后缀闭集**实测（`docs/50-testcases.md`）：`TC-18b`／`TC-25b`／`TC-38b`／`TC-38c`／`TC-48b`／`TC-48c`／`TC-56b`／`TC-56c`／`TC-59b`／`TC-68b`／`TC-73b`／`TC-79b` —— **无 `TC-39b`**。
+  3. 用例体三条断言 ↔ `TC-39` 契约行（原文：「转盘**旋转 ≥ 2 圈**后停稳，落点与该奖品扇区**严格一致**；弹层（`page-draw--win`）显示「恭喜获得 {奖品名称}」+「已记入我的中奖记录」」）逐一对上：`expect.soft(winText).toContain('恭喜获得')`、`expect.soft(winText).toContain('中奖记录')`（弹层文案判据拆成的两条子串断言）与 `expect.soft(drawBody?.itemId, '落点（弹层奖品）与后端返回条目一致').toBe(1)`（落点判据）。即：**三条断言全部归属于 `TC-39`**。
+- **如实说明（非本批引入、本批未改）**：契约判据中的「旋转 ≥ 2 圈」与「已记入我的中奖记录」全句**未被逐字断言**（弹层按子串「中奖记录」断言）——此为**既有覆盖粒度**；本批**未增删任何断言**，也未据此下调任何期望；如需补齐属测试设计 / 执行侧（`docs/50-testcases.md` 与 `tests/e2e/**`），本角色不越权处置。
+- **同批同源**：`docs/51-defects.md` / `docs/52-qa-report.md` 各自已登记同一判定（对应契约用例 = `TC-39`；处置 = 订正标题；历史运行日志中的旧标题属历史快照、不回改）。本条与其口径一致。
+
+### 3. 改后锚点核验（引用前实测，逐条读回原文）
+
+| 新锚点 | 实测方式 | 结果 |
+| --- | --- | --- |
+| `D-08`（`docs/30-architecture.md` §3「异常与重试」） | Grep `D-08` + 读该节正文 | 存在；正文含「死锁 1213 → 整个事务重试 1 次，仍失败 → `1001`（HTTP 200）+ CRITICAL 告警」，与用例所钉口径一致 |
+| `docs/30-architecture.md` §8.2「后端接口」 | 读该节表 | 存在；`POST /api/v1/draw` 行「目标 P95 = **≤ 200ms**」，与常量注释所写逐字一致 |
+| `docs/30-architecture.md` §6.1「依赖降级矩阵」 | 读该节表头 | 存在；列名「链路 / Redis 不可用时的行为 / 是否可用」，与注释所写逐字一致 |
+| `docs/error-codes.md` §「使用边界」（`1001` 条） | 读该节 | 存在；`1001`（系统繁忙）= 业务层主动降级提示（限流、熔断、依赖服务不可用等可重试场景），与注释所写语义一致 |
+| `docs/50-testcases.md` `TC-39` | Grep `TC-39` + 读契约行 | 存在；判据见 §2 |
+| `D-06`（`docs/30-architecture.md`，配置契约；`stats-suite.mjs` 新锚点） | Grep `D-06` | 存在（该文件内 20 行命中） |
+| 集成测试夹具 `IntegrationFixture.ResetAsync`（`stats-lib.mjs` 新锚点） | Grep `ResetAsync` + 读签名 | 存在（`public async Task ResetAsync()`） |
+| `PrizeRepository.GetDrawCandidatesAsync`（`stats-lib.mjs` 新锚点） | Grep 方法名 + 读签名 | 存在（`public async Task<IReadOnlyList<DrawCandidateDto>> GetDrawCandidatesAsync(CancellationToken)`） |
+| `DrawService.ExecuteDrawAsync`（`tc56b` 新锚点） | Grep 方法名 + 读签名 | 存在（`private async Task<DrawResponseDto> ExecuteDrawAsync(…)`） |
+
+### 4. 本轮验证记录（实际命令 / 工作目录 / 实际结果）
+
+| # | 实际命令 | 工作目录 | 实际结果 |
+| --- | --- | --- | --- |
+| 1 | `dotnet build "src/backend/LuckyDraw.slnx" --nologo` | 仓库根 | **Build succeeded，0 Warning / 0 Error**（4.37 s）—— engineer 本轮**复跑实测** |
+| 2 | 调度侧构建批次（输出目录见下「证据路径核验」） | 仓库根 | **0 警告 / 0 错误** —— **转述**调度侧读数（与 #1 同值；目录已实测存在） |
+| 3 | `dotnet test "tests/unit/LuckyDraw.UnitTests" --nologo` | 仓库根 | **通过 96 / 失败 0 / 跳过 0 / 总计 96**，366 ms —— engineer 本轮**复跑实测**（与调度侧读数 96/0/0 一致） |
+| 4 | 集成批次（调度侧；原始输出见下「证据路径核验」） | 仓库根 | **未通过**：`Failed: 43, Passed: 0, Skipped: 0, Total: 43`，106 ms —— 读原始日志汇总行实测；43 例**全部**止于夹具 `InitializeAsync`（`MigrateAsync`），错误原文 `MySqlConnector.MySqlException : Unable to connect to any of the specified MySQL hosts.` |
+| 5 | `docker ps -a --format "{{.Names}} \| {{.Status}} \| {{.Ports}}"`（表内转义显示；实际命令用竖线分隔三列） | 仓库根 | **两个时点读数（如实并列）**：①集成批次运行时点（13:2x）—— `luckydraw-mysql` / `luckydraw-redis` 均 `Exited (255)`（端口映射仍登记为 3307 / 6379）；②17:5x 复测 —— 命令**失败**：`failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine … cannot find the file specified`（引擎不可达） |
+| 6 | `docker info --format '{{.ServerVersion}}'` | 仓库根 | ①13:2x：`29.7.2` —— **引擎可达**；②17:5x 复测：不可达（同 #5 ②） |
+| 7 | `netstat -ano` 全量输出中检索 `:3307` | 仓库根 | ①13:2x：**零命中**（宿主机无监听）；②17:5x 复测：**仍零命中** |
+| 8 | `node --check`（复测：5 个改动过的 `.mjs` + 1 个已知坏样本） | 仓库根 | 改动文件 **exit 0 ×5**（`perf-suite` / `stats-lib` / `stats-suite` / `tc56b` / `tc56c`）；坏样本 `bad.mjs` **exit 1**（`SyntaxError`）—— 见 §6 |
+| 9 | `python tools/check-config.py`（终值复跑） | 仓库根 | **共 369 项 / 全部 PASS ✓**；**校验基线：HEAD `fc138ae` / 工作区 脏 33 个文件**（按 `docs/role-protocol.md` §7.6：该 PASS 只证明工作区状态，不构成仓库级证明）。**读数时序（均 engineer 实测，同一棵树）**：`364 / 全部 PASS`（T30 扩面前 —— 扫描面上实有 6 处行号引用未被看见）→ `365 / FAIL 1 项`（扩面后，逐条列出 6 处）→ `369 / 全部 PASS`（6 处改完后） |
+| 10 | `python tools/check-config.py --self-test` | 仓库根 | `自测开始：134 条突变，逐条负向验证` → `自测 PASS ✓（134/134 条突变均被捕获，还原后全 PASS）` —— engineer 实测复跑（同轮中间态读数 `132 条 / 自测 FAIL 4 条`，并行落盘进行中；两读数均为实测，终值以本条为准）。**机理说明（mtime 假阳性来源）**：该自测逐条改写护栏扫描面上的文件、断言捕获后**还原** —— 还原后闸门读数与自测前一致（`369 / 全部 PASS`）、`wc -l` 仍为 1903，但 **mtime 被刷新**（实测 `tools/check-config.py` mtime = `2026-09-18 17:49:48.733382800 +0800`，晚于同日首测读数时刻）。后续维护者看到「mtime 晚于编辑时刻」应归因于本自测，**不代表内容被改**（按 `docs/artifacts.md` §4，mtime 本就不作落盘证据） |
+
+- **证据路径核验（逐个实测存在）**：
+  - `D:\AI test\AI-Agents-workflow-Engineer-Rules\.tmp-build-annot-20260918-123530\`（调度侧构建输出目录，**登记绝对路径**）
+  - `D:\AI test\AI-Agents-workflow-Engineer-Rules\.tmp-test-annot-20260918-123713\`（调度侧测试输出目录，含 `unit\` 与 `integration\` 子树）
+  - `D:\AI test\AI-Agents-workflow-Engineer-Rules\.tmp-test-annot-20260918-123713\integration-run2.log`（**190197 字节**：集成失败的**原始输出**，运行时直接落盘、不在任何框架的清理范围内）
+- **如实说明**：上述测试输出目录内**没有**单测 stdout 的落盘日志（只有构建产物与集成日志）；故单测读数以 #3 的本轮复跑为准，调度侧读数为同值对照。
+
+### 5. 环境缺口与责任归属（「有理由的未复跑」闭集归类）
+
+- **归类 = ② 环境客观不具备**（`docs/artifacts.md` §3.1 闭集）。分类说明：①「变更不触及该断言面」的检索证据（本批零可执行语句改动）**虽可给出**，但本轮**不复跑的事实依据是 ②** —— 以 ① 免除复跑会把「环境没搭好」静默转写成「不需要跑」；③ 无他人同版本复跑证据。
+- **环境缺口（实测，两个时点如实并列）**：①集成批次运行时点（13:2x）：Docker 引擎**可达**（`docker info` → `29.7.2`），但 `luckydraw-mysql` 与 `luckydraw-redis` **两容器均 `Exited (255)`** → 宿主 `3307` / `6379` **无监听**（`netstat -ano` 检索零命中；17:5x 复测仍零命中）。②17:5x 复测：**引擎已不可达**（docker 命令报 `failed to connect to the docker API … cannot find the file specified`）—— 缺口加深，复跑仍受阻。集成夹具按 `AS-01` 连宿主 `3307` 与 `localhost:6379`，故 43 例**全部**止于夹具 `InitializeAsync`（`db.Database.MigrateAsync()`）—— **失败发生在任何用例进入测试体之前，属环境不具备，非代码缺陷**。
+- **订正调度侧转述（如实记录，两时点并列）**：转述口径为「本机 Docker 引擎未运行」。engineer 在集成批次运行时点复查：**与该口径不符** —— 引擎在跑（`29.7.2`），退出的是两个容器；17:5x 复测时**引擎确已不可达**（该口径在此时点成立）。两时点对本条结论（环境不具备）均无影响；按证据纪律逐时点据实记录，**不以后者覆盖前者**。
+- **责任归属**：**主对话**（环境调度：拉起两容器 / 另起等效实例窗口，然后调度集成复跑）。按 `docs/role-protocol.md` §8 第 5 条，本角色**不擅自启动 / 复位共享容器**（该 `3307` 实例同时承载开发库 `luckydraw_dev` 与测试库 `luckydraw_test`，动它可能抹掉他人正在使用的取证现场）。复跑执行方 = engineer。
+- **`60:OBS-nn` 登记义务**：按 `docs/artifacts.md` §3.1，② 类须登记 `60:OBS-nn` + 责任人 + 计划时点；`docs/60-review.md` 的写入权归 **code-reviewer**，本角色无该文件写入权 → 在此如实登记缺口与责任，并**提请 code-reviewer 落 `60:OBS-nn`**。
+- **计划复跑时点**：2026-09-19 前（与 `60:OBS-32` 的计划复核时点一致）。
+
+### 6. 负向验证 / 等价负向样本（按 `docs/development-spec.md` 7.5 与角色输出要求第 2 条）
+
+- **为何不存在「回退修复 → 断言必红」形态**：本批为引用修复（**非 `BUG` / `REV` 驱动**），且**零断言变更** —— 没有任何测试断言以「注释 / 标题里写的是稳定 ID 还是行号」为观测对象，故不存在可被回退操作翻转的断言；强行构造只能得到恒绿的伪验证。
+- **等价负向样本（本轮实测，两步观测）**：观测对象 = 本批文字改动在**可执行性关口**（`.mjs` 解析）上的通过性 ——
+  1. **已知坏样本必红**：`node --check tests/e2e/_tmp-verify-20260918-citefix/bad.mjs` → **exit 1**，报 `SyntaxError: Unexpected token ';'`（证明该关口非空转，不是「没有东西可检查就返回成功」的配置）；
+  2. **本批改动文件必绿**：同命令对 `tests/e2e/api/perf-suite.mjs`、`tests/e2e/api/tc56b-tx-rollback.mjs`、`tests/e2e/api/tc56c-redis-degradation.mjs` → **exit 0 ×3**。
+  - **证据强度 = 旁证**（本机直读，Node v24.15.0；样本目录为批次临时取证目录，非生产 CI）。
+- **护栏 T30 侧的负向验证（本轮由护栏自测提供，engineer 实测复跑）**：T30 的逐条「造错 → 断言必红 → 还原复绿」由护栏自带 `--self-test` 承担 —— 实测 `自测 PASS ✓（134/134 条突变均被捕获，还原后全 PASS）`；其中对准 T30 行号引用断言与「临时目录前缀闭集（双向锁）」断言各有一条突变捕获记录。**另一条同树辨别力证据**：T30 扩面前后同一棵树读数 `364 / 全部 PASS` → `365 / FAIL 1 项（逐条列出 6 处）` —— 扩面前的「全 PASS」是**漏报**，扩面后才报出真实违反（见 §4 读数时序）。本角色**未修改 `tools/`**（写入范围仅本文件；护栏改动归主对话，见 §1b）；本批既有实验样本留存于 `tests/e2e/_tmp-verify-20260918-citefix/`（含故意坏样本 `bad.mjs`）备复核。
+
+### 7. 影响面
+
+- **零行为变更（本批核心结论）**：本批只改**注释与用例标题文本** ——
+  - **无 `src/` 逻辑变更**：`DrawService.cs` 的 4 处改动全部位于注释 / XML 文档注释，可执行语句改动 **0 处**；
+  - **无接口 / DTO / 错误码 / HTTP 状态码变更**（未触碰任何契约文件与错误码登记表）；
+  - **无测试断言变更**：`git diff -- tests` 的 5 处改动 = 4 处注释 + 1 行用例标题字符串，断言行 **0 处**；
+  - 无数据库 / 迁移 / 配置 / 前端（`src/frontend/**`）连带。
+- **可执行面核查（实测）**：3 个改动过的 `.mjs` 全部 `node --check` **exit 0**；同一关口在坏样本上 **exit 1**（见 §6）。
+- **用例标题变更面**：按标题检索历史 E2E 结果的命令需同步 —— `-g "TC-39"` 仍命中；`-g "TC-39b"` 不再命中（该串本就不属任何契约用例）。历史日志中的旧标题属历史快照、不回改。
+- **护栏面（重测；旧读数「6 行 / 7 处」已失效作废，不再沿用）**：本批清零了行号引用残留 —— 全量扫描（口径同旧读数；另按 `docs/role-protocol.md` §6 前缀闭集排除 `.tmp-` / `_tmp-` 取证目录）**现为零命中**（engineer 实测，2026-09-18 17:5x；复现用）：
+
+  ```text
+  git grep -nE "[0-9a-zA-Z_./]+\.(md|cs|ts|mjs|vue|py|json|html):[0-9]+" -- src tests
+  → 排除 tests/e2e/logs/ 、tests/e2e/.artifacts/ 与 .tmp-/ _tmp- 目录后：0 行
+  ```
+
+  旧读数「6 行 / 7 处」对应本批改动**落地前**的状态（那 6 处即 §1b 第 4 组，已由本批改完）；沿用旧数字会与工作区不符。
+  另据实登记**护栏覆盖面差距（扩面后的剩余盲区，实测）**：T30 扩面后的匹配式仍不能表达两类形态 —— `<标识符>.<方法名>:<行号>`（无扩展名；本批实际清掉的此类有 2 处）与裸 `:NNN` / `:NNN-NNN` 区段（本批实际清掉的此类有 2 处：`tc56c` 的 §6.1 区段、`qa.spec.ts` M9 注释中 `:199-202` 后半段）。engineer 以两条更宽的检索式复扫 `src` + `tests`（同排除项）：**命中项全部为 URL / 端口 / JSON 字面量**（`http://127.0.0.1:5199`、`:5199`、`"code":500` 等），**无残留行号锚点**。该复扫同时证明：本批清掉的引用点里有 2 处**不在 T30 扩面后的报错清单里** —— 机制对上述两类形态仍无拦截，建议护栏维护方评估再扩面（本角色不改 `tools/`）。
+- **安全**：无密码 / Token / 密钥涉及；改动文本不含敏感信息。
+
+### 8. 回滚方式
+
+- 逐文件把稳定 ID 引用换回原**裸行号**形态（反向应用 `git diff -- src tests` 即可逐字复原），并把 `qa.spec.ts` 的标题还原为 `TC-39 / TC-39b 确定命中：转盘落点与后端结果一致，弹层显示奖品名与入账提示`。
+- 回滚后**行为完全等价**（注释 / 标题文本，零行为面）；但**不建议单独回滚**：回滚即重新引入 13.4 明令禁止的行号锚点（漂移后静默失效，本批修的就是这一事故），并使 `TC-39b` 这一幽灵编号重新挂上用例标题。
+- 本产物侧回退：头部版本 v2 → v1、冻结时间回 `2026-09-17`、删除「本轮变更登记」行与「变更索引」的 `CHG-19` 行，并删除本节。
+- **同批第二部分（护栏 / 规则文本 / `.gitignore`）的回退（书面建议，未执行）**：反向应用各自 `git diff` 即可逐字复原；**注意耦合**：`docs/role-protocol.md` §6 前缀闭集与护栏 `_TMP_PREFIXES` 双向锁 —— **单边回退即触发 T30 FAIL**，须成对回退；回退后 T30 恢复窄匹配面（`#LNN` 与 `*.md:NN` 之外的形态再次不可见）、`.gitignore` 回退则重新放行 dotnet 遥测日志噪声，均不建议。
+
+### 9. 失效传播判定（按 `docs/artifacts.md` §5 矩阵）
+
+- **`src/ 变更` → `tests/unit/**`**：**已在本轮实跑**（96 / 0 / 0）。
+- **`src/ 变更` → `tests/integration/**`**：**需复跑 —— 本轮未通过（环境不具备，见 §5）**；在复跑产出有效结论前，本轮**不得**记为「已复跑」。
+- **`src/ 变更` → `tests/e2e/**`**：**归 test-executor 复核 / 复跑** —— 本批在 `tests/e2e/` 改动 12 行（6 文件：注释 11 行 + 用例标题字符串 1 行），断言语句 0 处；脚本 / 用例文件本身已变，是否复跑按 `docs/50-testcases.md` 口径由 test-executor 判定（本角色不越权处置该目录）。
+- **`tools/check-config.py` / `docs/role-protocol.md` / `.gitignore`（同批护栏与规则文本加固）**：`docs/artifacts.md` §5 矩阵**未收录 `tools/**` 与 `docs/role-protocol.md` 两类上游** → 无强制扇出行；按同一机理人工判定：①凡复述护栏 PASS 的产物 / 摘要须带**校验基线**（`docs/role-protocol.md` §7.6，本轮已在本节 §4 执行）；②前缀闭集与护栏 `_TMP_PREFIXES` 双向锁 —— 单边回退即护栏 FAIL（见 §8）；③其余产物（51 / 52 / 60）对本半的复核归 **code-reviewer**。
+- **`40-changelog 变更` → `51-defects` / `52-qa-report` / `60-review`**：**需回写 / 复核** —— `60:OBS-32`（阻断）中「无 CHG 记录」一项可据本条转为**已登记**；其余三项（未提交 / 未复核 / 集成未复跑）仍挂 → **是否闭环由 code-reviewer 判定**；`51` / `52` 的「执行侧补验标签勘误」行与本条同批同源，如引用需同步。本角色无这三份文件的写入权。
+- **前端 `src/frontend/**`**：**零命中**（本批未改）→ 按 §5 不触发该面，未重跑前端单测 / 构建（如需复跑属独立批次）。
+
+- **关联**：`60:OBS-32`（阻断）、`60:OBS-05`（同源）、`docs/development-spec.md` 13.4（行号锚点禁令与漂移实测）、`docs/artifacts.md` §3.1（「有理由的未复跑」闭集）/ §4（版本与冻结）/ §5（失效传播矩阵）、`D-08`（`docs/30-architecture.md` §3「异常与重试」）、`docs/error-codes.md` §「使用边界」、`docs/50-testcases.md` `TC-39`、`CHG-16` / `CHG-17` / `CHG-18`（本批注释锚点的产生来源；`CHG-18` §1「未改动（刻意）」明写「如需统一锚点，建议单独批次处理」—— **本批即该批次**）、`docs/51-defects.md` / `docs/52-qa-report.md`「执行侧补验标签勘误（2026-09-18）」、`docs/role-protocol.md` §6（临时目录前缀闭集 / 双向锁义务）/ §7.6（校验基线）、`tools/check-config.py` T30（扩面与双向锁；自测 134/134）、`.gitignore`（`.tmp-*` 放行口径）。
+
+---
+
 ## 待确认清单（默认假设）
 
 | 编号 | 假设 | 依据 |
@@ -876,3 +1020,4 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 | AS-05 | API-08 的 `winTime` 线上取值由 `2026-09-17T06:51:42.397853`（无时区标识）变为 `2026-09-17T06:51:42.397853+00:00`（BUG-02 修复），判为**向后兼容的格式补全**，v1 **不升版** | 契约本就要求 `winTime` = ISO 8601（UTC）（架构 §5.1 / API-08），修复是让实现补齐契约；前端 `parseUtc` 对新旧两种形态均兼容（实测）。**若产品认为线上取值变化需走 v2 升版，请裁决**——本轮按「补齐契约、不升版」执行 |
 | AS-06 | 重试耗尽的终态错误码**为 `1001`「系统繁忙，请稍后重试」**（HTTP 200） | **已由用户裁决确认（CHG-17）**：保持代码现状 `1001`；架构 `:544` 的「500」表述由 software-architect 并行修订 `docs/30-architecture.md`（本角色未触碰该文件）。原冲突记录见 CHG-16「未裁决项 (1)」 |
 | AS-07 | 整事务重试预算**为 2 次尝试（重试 1 次），最坏用户等待 100s** | **已由用户裁决确认并落地（CHG-17）**：`MaxTransactionAttempts` 由 3 改为 2，对齐架构 `:544`「整个事务重试 1 次」；原冲突记录见 CHG-16「未裁决项 (2)」 |
+| QX-01 | 新增 CHG 条目是否应升版：本产物头部原为「版本 v1 / 冻结时间 `2026-09-17`」，而 `CHG-14`…`CHG-18` 落盘后头部未同步；本批（`CHG-19`）按 `docs/artifacts.md` §4「正文契约内容变更 → 升版」执行 **v1 → v2** 并同步冻结时间。**若需与历史批次口径一致（只登记、不升版）**，请裁决后回退（回退办法见 `CHG-19` §8 末条）。 | `docs/artifacts.md` §4「冻结后仍有落盘时的处置」；主对话调度指令（本批次） |

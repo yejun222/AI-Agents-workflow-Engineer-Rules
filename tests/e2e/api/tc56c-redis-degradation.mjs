@@ -5,7 +5,7 @@
  * 前置：Testing 实例已在 :5199 运行（发布目录启动、库 luckydraw_test、Redis db 2）。
  *      本脚本会 `docker stop` / `docker start` 容器 **luckydraw-redis**（收尾必复位，finally 中执行）。
  *
- * ═══ 被测承诺（docs/30-architecture.md §6.1 降级矩阵 :979-989） ═══
+ * ═══ 被测承诺（docs/30-architecture.md §6.1「依赖降级矩阵」：表列为「链路 / Redis 不可用时的行为 / 是否可用」） ═══
  *   抽奖判定与扣减「完全走 MySQL（幂等退化为 DB 唯一索引路径）」→ 可用；
  *   剩余次数 / 记录查询「不依赖 Redis」→ 可用；
  *   幂等重放「退化为 DB 路径，重复请求仍不重复扣次」→ 可用；

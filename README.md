@@ -54,6 +54,7 @@ Vue 3 + .NET 10 全栈项目的 Claude Code 规范模板：精简版工作规范
 
 ```
 项目根/
+├── CLAUDE.md                 # 精简版工作规范（每次会话自动加载；与全量规范冲突时以后者为准）
 ├── README.md
 ├── tools/
 │   └── check-config.py
@@ -66,14 +67,16 @@ Vue 3 + .NET 10 全栈项目的 Claude Code 规范模板：精简版工作规范
 │   ├── config-checklist.md
 │   └── distribution.md       # 分发方案（README「如何让所有新建项目都遵守」章节指向它）
 └── .claude/
+    ├── README.md             # 权限配置说明（allow / ask / deny 与规范的对应关系）
+    ├── settings.json         # 权限规则（把「四、必须确认的场景」固化为强制闭环）
     ├── agents/      # 7 个角色文件
     └── commands/    # /feature + 6 个单步命令
 ```
 
-本仓库已按此布局内置。分发到新项目时：把 `README.md`、`tools/`、`docs/` 复制到项目根；`agents/`、`commands/` 复制到项目的 `.claude/` 下（**不要整目录改名放进 `.claude/`**），分发方案见 [docs/distribution.md](docs/distribution.md)。
+本仓库已按此布局内置。分发到新项目时：把 `CLAUDE.md`、`README.md`、`tools/`、`docs/` 复制到项目根；把 `.claude/` 下的 `README.md`、`settings.json`、`agents/`、`commands/` 复制到项目的 `.claude/` 下（**`agents/` 与 `commands/` 不要整目录改名放进 `.claude/`**），分发方案见 [docs/distribution.md](docs/distribution.md)。
 
 1. 打开 VSCode 插件里的 Claude Code，进入项目目录。
-2. 确认角色已加载：输入 `/list-agents`（别名 `/peers`）会列出可调用的子代理与会话——**需 v2.1.224+ 且当前会话启用跨会话消息**，旧版本会报 `Unknown command`；更普适的方式是输入 `@` 看补全列表里有没有 `(agent)` 项，或直接说「用 engineer 角色做 X」。
+2. 确认角色已加载：输入 `/list-agents`（别名 `/peers`）会列出可调用的子代理与会话——**需 v2.1.224+（macOS / Linux）或 v2.1.234+（Windows）且当前会话启用跨会话消息**，旧版本会报 `Unknown command`；更普适的方式是输入 `@` 看补全列表里有没有 `(agent)` 项，或直接说「用 engineer 角色做 X」。
 3. 输入 `/feature <功能描述>` 开始走全流程；或按需用单步命令 `/prd` `/proto` `/arch` `/impl` `/review` `/test`。
 
 ## 使用方式

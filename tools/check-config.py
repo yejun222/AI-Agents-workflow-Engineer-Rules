@@ -33,15 +33,15 @@ CMD_FILES = ["feature.md", "prd.md", "proto.md", "arch.md", "impl.md", "review.m
 
 # artifacts.md 登记：产物 → 读取者（唯一权威）
 READERS = {
-    "00-brief": ["product-manager", "prototype-designer", "test-designer", "test-executor"],
+    "00-brief": ["product-manager", "prototype-designer", "software-architect", "test-designer", "test-executor"],
     "10-prd": ["prototype-designer", "software-architect", "engineer", "code-reviewer", "test-designer", "test-executor"],
     "20-prototype": ["software-architect", "engineer", "test-designer", "test-executor"],
     "30-architecture": ["engineer", "code-reviewer", "test-designer", "test-executor"],
     "40-changelog": ["engineer", "code-reviewer", "test-executor"],
-    "50-testcases": ["test-executor", "engineer"],
-    "51-defects": ["engineer", "test-executor", "主对话"],
-    "52-qa-report": ["主对话", "test-executor"],
-    "60-review": ["engineer", "test-executor", "主对话"],
+    "50-testcases": ["test-executor", "engineer", "code-reviewer"],
+    "51-defects": ["engineer", "test-executor", "code-reviewer", "主对话"],
+    "52-qa-report": ["主对话", "test-executor", "code-reviewer"],
+    "60-review": ["engineer", "test-executor", "software-architect", "主对话"],
 }
 
 CONCLUSIONS = ["可发布", "有条件发布", "有条件发布（含残留缺陷）", "不可发布（待确认接受）", "不可发布"]
@@ -351,7 +351,7 @@ check("T11 test-executor 声明行3.5不在建议范围",
 
 # ---- 12. 产物保护：每评审门一次 wip 提交（防「交付前全裸奔」+ 证据强度降级）----
 # 背景：Step 0–8 之间产物全为未跟踪文件 —— 一次错误 Write 即无从恢复，
-# 且审查角色无法用 diff 取证，只能自认「旁证」（实测见 docs/60-review.md:265/398/411）。
+# 且审查角色无法用 diff 取证，只能自认「旁证」（实测见 `docs/60-review.md` §B 的 BUG-02 结构核验条、§F.3「证据强度声明」、§F.5「未能验证的部分」——引用一律用稳定 ID，不用行号，见 13.4）。
 feat = read(COMMANDS / "feature.md") or ""
 rp = read(DOCS / "role-protocol.md") or ""
 
@@ -896,7 +896,15 @@ for _d in _OBS_DOCS_EXPECT:
     _body = [l for l in _t.splitlines() if not l.lstrip().startswith(">")]
     _quote = [l for l in _t.splitlines() if l.lstrip().startswith(">")]
     _orphan = sorted({m.group(1) for l in _body for m in _OBS_BARE.finditer(l)} - _defs)
-    _registered = {m.group(1) for l in _quote for m in _OBS_BARE.finditer(l)}
+    # 登记必须**点名被登记的编号本身**：① `>` 表格行的首格，或 ② `>` 行里反引号裸形（`OBS-nn`）。
+    # 收紧前口径是「该编号在任一 `>` 行里出现过」——实测 52 的「状态重述」块顺带罗列了全部 11 个
+    # 编号，于是把某条定义行改名后 orphan 被判为「已登记」，断言全绿而事实上无人登记过它。
+    _registered = set()
+    for _l in _quote:
+        _rm = re.match(r"^>\s*\|\s*(OBS-\d{1,2})\s*\|", _l)
+        if _rm:
+            _registered.add(_rm.group(1))
+        _registered |= set(re.findall(r"`(OBS-\d{1,2})`", _l))
     _unreg = [o for o in _orphan if o not in _registered]
     check(f"T26 {_d} 的跨命名空间裸引用已登记", not _unreg,
           f"裸引用 {'、'.join(_unreg)} 既不在本文件定义表内，也未在本文件编号勘误块中登记 —— "
@@ -950,7 +958,13 @@ check("T27 §E.1 现状与绑定结论仍在", "未绑定 0 条" in _cl and "已
 _prd = read(DOCS / "10-prd.md") or ""
 _arch = read(DOCS / "30-architecture.md") or ""
 _429 = "**唯一例外是 `429` 限流：HTTP 429 而响应体 `code=1001`**"
-_LN_REF = re.compile(r"(?:#L\d+|\.md\s*:\s*\d+)")
+# 扩展名单点定义：30-H 扫描面的扩展名从同一元组派生（两处清单必然漂移）。
+_LN_REF_EXT = ("md", "cs", "ts", "vue", "mjs", "js", "json", "html", "py", "yml", "yaml", "sh")
+# **必须覆盖代码文件的「文件:行号」形态**。实测：本模式原为 `#LNN` 与 `md:NN` 两式，于是
+# `tests/e2e/api/*.mjs` 里 6 处「代码文件:行号」形态的定位引用**长期不被检查**，而护栏照报
+# 「活文档与代码无行号引用 ✓」——断言比它声称的规则窄，是本仓库最怕的那种假绿。
+_LN_REF = re.compile(r"(?:#L[0-9]+|[A-Za-z0-9_./-]+[.](?:" + "|".join(_LN_REF_EXT)
+                     + r")[\s]*:[\s]*[0-9]+)")
 
 
 def _scope_row(text, role):
@@ -1011,6 +1025,466 @@ check("T28 error-codes.md 内无行号引用",
       f"error-codes.md 出现行号引用 {_LN_REF.findall(ec)} —— 违反「引用一律用稳定 ID，禁止用行号」"
       "（全量规范 13.4）。实测：本文件原引 development-spec 的某个行号，"
       "该句所处行与引用值已相差 2 行，即规则预言的漂移已经发生过；改用章节号引用")
+
+# ---- T29 状态机「表注 / 历史节」分离 + 行 5 的 D2 披露义务（第五次修订）----
+# 背景：原「修订记录」块把三类性质不同的东西堆在同一个引用块里：① 现行约束（行序要求与前提）；
+# ② 与判定表逐字重复的复述；③ 纯历史因果。后果是改表的人读不出哪句还在生效，而块内那处
+# 不成立的表述（「使 D2 项一律下落到行 4」）在 `F1 = 是` 时是错的，却**零断言覆盖**。
+_NOTE_MARK = "**表注（修订本表前必读）"
+_seq_pos = _sm.find("## 判定顺序")
+_note_pos = _sm.find(_NOTE_MARK)
+_fix_pos = _sm.find("## 修复循环（a → b → c）")
+_hist_pos = _sm.find("## 修订记录（历史，不回改）")
+_hist = _sm[_hist_pos:] if _hist_pos >= 0 else ""
+_row5_m = re.search(r"^\|\s*5\s*\|[^\n]*$", _sm, re.M)
+_row5 = _row5_m.group(0) if _row5_m else ""
+
+check("T29 状态机表注位于判定顺序与修复循环之间",
+      _note_pos > _seq_pos >= 0 and 0 < _note_pos < _fix_pos,
+      "判定顺序表下方缺「表注（修订本表前必读）」或它被挪走了 —— 表注承载的是**现行**的行序约束"
+      "（行 0.5 必在行 1 前 / 行 3.5 必在行 4 前 / 行 3.5 必带致命严重前提），必须紧贴判定表："
+      "读表的人改表前先看到约束，才不会再踩「行序即语义」这一条")
+check("T29 表注含三条行序约束",
+      "**行 0.5 必须位于行 1 之前**" in _sm
+      and "**行 3.5 必须位于行 4 之前**" in _sm
+      and "**行 3.5 必须带「无未闭环致命 / 严重」前提**" in _sm,
+      "表注缺行序约束 —— 这三条是「首个命中即结论」的表里唯一能解释**为什么不能重排**的依据；"
+      "缺任一条，后来者都会按「条件更全的行该排更后」的直觉重排，"
+      "把行 0.5 / 行 3.5 变成永远不可达的死行，而表面上毫无异常（该行永远比前一行后命中）")
+check("T29 行 5 的 D2 刻意例外已声明",
+      "行 5 是本表唯一的「D2 刻意例外」" in _sm and "见文末修订记录第五次" in _sm,
+      "表注未声明「行 5 是唯一的 D2 刻意例外」，或未指向第五次修订 —— 缺这句，"
+      "表注里「五行都带 D2 前提」那条会被读成**全表通则**，后来者会顺手给行 5 也补上该前提："
+      "那样 `F1 = 是` + `F4 = 已指示` + 存在 D2 项的场景将**无任何行命中**（本表在行 5 之后无兜底行）")
+check("T29 行 5 落盘含 D2 披露义务",
+      "一并被接受，但必须逐条登记披露" in _row5
+      and "本行是它们在本表中唯一的落盘位置" in _row5
+      and "已接受残留清单" in _row5,
+      "行 5 的落盘动作只登记「缺陷编号」—— D2 四类里除缺陷者外（契约冲突 / 上游「待复核」/ "
+      "未闭环 REV / 阻断型 OBS）都没有落盘位置，用户一旦在 `F1 = 是` 时选「带残留接受」，"
+      "这些阻断项就被**静默吸收**。本仓「致命 / 严重」两类在 D3 表中标注「无实例」，"
+      "所以该分支从未被踩到 —— 这类「没踩到所以没写」的缺口只能靠断言补")
+check("T29 表注与历史节分离（现行约束未混回历史节）",
+      _hist_pos > 0
+      and not [a for a in ("永远不可达", "必须位于行") if a in _hist]
+      and "永远不可达" in _sm[:_hist_pos],
+      "现行约束混进了文末历史节，或表注里丢了 —— 两者性质相反：表注＝**尚未被改的约束，读表者必须执行**，"
+      "历史节＝**当时的事实，按 13.4 不回改**。混在一处的后果正是本次修订前的状态："
+      "块里同时有行序硬约束与五次修订的复述，改表的人分不清哪句还在生效。"
+      "历史节可以**点名**这些约束（如「把…写进表注」），但不得用现行约束的措辞复述它们")
+check("T29 表注声明守护归属（T11 / T24 / T29）",
+      "由 `tools/check-config.py` 的 **T11** 断言守护" in _sm
+      and "由 **T24** 守护" in _sm
+      and "由 **T29** 守护" in _sm,
+      "表注未写明哪段约束由哪个断言守护 —— 没有归属的约束在改动时会被顺手删掉，"
+      "而删掉之后**没有任何断言会红**：本次修订前整个「修订记录」块零断言覆盖，"
+      "连一处与行为不符的表述（D2 项一律下落到行 4）都能在里面长期存活")
+check("T29 行 5 登记的 D2 四类与 D2 闭集同向",
+      all(a in _row5 for a in ("契约冲突", "待确认清单", "OBS", "待复核", "REV-xx"))
+      and all(a in _sm[_sm.find("### D2　其他阻断项"):_sm.find("### D3　缺陷级别")]
+              for a in ("契约冲突上报", "待确认清单", "阻断", "待复核", "REV-xx")),
+      "行 5 是 D2 项在 `F1 = 是` 时的唯一落盘位置，它列出的类别必须与「判据定义」D2 的闭集同向 —— "
+      "两处是**同一事实的第二个落点**，按 `config-checklist.md` §B 「同一事实的第二个落点」条必须由断言绑死："
+      "少一类 = 那一类在该场景下仍然被静默吸收（本次修订要修的正是这个）；"
+      "改写时两处同步改即可，**不要删断言**")
+
+# ---- 30. 产物侧合规（两份审计的共同根因：护栏断言的是**规则文本**，从不检查**产物是否遵守**）----
+# 失效机理（本仓库实测）：T26 断言了「OBS 必须逐条标注阻断 / 非阻断」这条**规则**在四处逐字一致，
+# 却从没检查 51 / 52 的表里到底有没有那一列、格子里写的是不是这两个取值；T23 断言了
+# 「60:OBS-nn 必须含缘由 + 责任人 + 计划复核时点」，而 60 里根本没有 OBS 表。
+# **规则文本全绿、产物为空**——审计报告的 F1 / F2 / F6 / F7 / F8 / F10 / F12 全是这一个根因的实例：
+# 断言对象是「规范怎么写的」，而不是「产物怎么做的」。本块把断言对象换成产物本身。
+_CONTRACT_DOCS = ["00-brief.md", "10-prd.md", "20-prototype.html", "30-architecture.md",
+                  "50-testcases.md", "51-defects.md", "52-qa-report.md", "60-review.md"]
+_OBS_DOCS = ["51-defects.md", "52-qa-report.md", "60-review.md"]
+_BLOCKING_OK = ("阻断", "非阻断")
+
+
+def _table_header(lines, i):
+    """覆盖第 i 行的那张表的表头行号（markdown 表格：表头 / 分隔行 / 数据行连续，中间无空行）。"""
+    j = i - 1
+    while j >= 0 and lines[j].startswith("|"):
+        j -= 1
+    j += 1
+    return j if j < i else None
+
+
+def _cells(line):
+    return [c.strip().strip("*`").strip() for c in line.strip().strip("|").split("|")]
+
+
+def _obs_entry_lines(lines, i):
+    """条目块：表格行取该行；列表 / 标题式条目取本行起至空行或下一条目。"""
+    if lines[i].startswith("|"):
+        return [lines[i]]
+    out = [lines[i]]
+    for k in range(i + 1, len(lines)):
+        s = lines[k]
+        if not s.strip() or re.match(r"^\|?\s*(?:\*\*)?(?:60:)?OBS-\d+", s) or re.match(r"^#{2,4}\s", s):
+            break
+        out.append(s)
+    return out
+
+
+def _row_indices(lines, name="OBS"):
+    """条目行：markdown 表格行优先，其次 `- ` / `**` 开头的列表项。"""
+    pat = rf"^\|\s*(?:60:)?{name}-\d+\s*\|"
+    hit = [i for i, l in enumerate(lines) if re.match(pat, l)]
+    if hit:
+        return hit
+    return [i for i, l in enumerate(lines)
+            if re.match(rf"^(?:[-*]\s*)?(?:\*\*)?(?:60:)?{name}-\d+", l)]
+
+
+# 30-A 阻断列：**规则**要求逐条标注（T26 已绑死），这里断言**产物**里真有那一列且取值可机械提取。
+# 取值闭集 = 阻断 / 非阻断；**漏标注按「阻断」推定**（state-machine D2），故空格子不是「没意见」而是违规。
+for _d in _OBS_DOCS:
+    _lines = (read(DOCS / _d) or "").split("\n")
+    _no_col, _bad_val = [], []
+    for _i in _row_indices(_lines):
+        _num = re.search(r"(?:60:)?(OBS-\d+)", _lines[_i]).group(1)
+        if _lines[_i].startswith("|"):
+            _h = _table_header(_lines, _i)
+            _hc = _cells(_lines[_h]) if _h is not None else []
+            _k = next((n for n, c in enumerate(_hc) if "阻断" in c), None)
+            if _k is None:
+                _no_col.append(_num)
+                continue
+            _rc = _cells(_lines[_i])
+            _v = _rc[_k] if _k < len(_rc) else ""
+        else:
+            _blk = "\n".join(_obs_entry_lines(_lines, _i))
+            _m = re.search(r"(非阻断|阻断)", _blk)
+            _v = _m.group(1) if _m else ""
+        if _v not in _BLOCKING_OK:
+            _bad_val.append(f"{_num}={_v or '空'}")
+    check(f"T30 {_d} 的 OBS 条目均含「阻断 / 非阻断」列", not _no_col,
+          f"未找到取值列的条目：{'、'.join(_no_col)} —— `docs/state-machine.md` D2 第 2 项以这两列为**发布门禁的输入**，"
+          "而本文件的表里根本没有这一列（**规则写在纸上、事实挂在文件里**）。必须逐条给出结构化取值，"
+          "不得用「不构成任何阻断」这类散文式否定代替")
+    check(f"T30 {_d} 的 OBS 阻断取值合法且无漏标", not _bad_val,
+          f"非法或缺标：{'、'.join(_bad_val)} —— 取值只允许 `阻断` / `非阻断`；"
+          "**漏标注者按「阻断」推定**（D2）：沉默不得成为放行手段，空格子会被 D2 当作阻断项处理，"
+          "而判定者看到的却是一张「什么都没说」的表 —— 两侧读法不同且都不会报错")
+
+
+# 30-A 的第二个盲区：上面两条遍历的是**已存在的条目行** —— 编号被静默丢弃时它们一律看不见。
+# 本仓既有惯例是把缺号写进 `>` 前缀的缺席登记表并给出理由（实测 51 的 OBS-09 / OBS-10：前者与
+# `51:OBS-08` 为同一事实、后者属代码审查发现不进测试台账；52 对同两条亦做了对照登记）。
+# 惯例只活在产物里、无断言时，下一次「顺手删掉一行」不会有任何信号 → 把惯例变成可执行判据：
+# 1..max 内每个编号必须**要么有定义行、要么在 `>` 块里登记缺席理由**（「自 01 起连续」是本仓口径）。
+# 登记通道沿用 T26 对 `>` 块的处理（该块即「编号勘误 / 缺席登记」块），不另立新通道。
+for _d in _OBS_DOCS:
+    _lines = (read(DOCS / _d) or "").splitlines()
+    _nums = sorted(int(re.search(r"OBS-(\d+)", _lines[_i]).group(1)) for _i in _row_indices(_lines))
+    _quoted = [l for l in _lines if l.lstrip().startswith(">")]
+    _absent = [n for n in range(1, (max(_nums) if _nums else 0) + 1)
+               if n not in _nums
+               and not any(re.search("OBS-" + str(n).zfill(2) + "(?![0-9])", l) for l in _quoted)]
+    check(f"T30 {_d} 的 OBS 编号无未登记缺号", not _absent,
+          f"缺号且未登记：{'、'.join('OBS-' + str(n).zfill(2) for n in _absent)} —— 编号是引用的锚点："
+          "缺号被静默丢弃后，外部对它的引用会指向不存在的位置且**没有任何环节会报错**。"
+          "本仓既有惯例是把缺号写进 `>` 前缀的缺席登记表并给出理由（实测 51 的 OBS-09 / OBS-10 即如此）。"
+          "处置二选一：补条目，或按该惯例登记缺席理由")
+
+# 30-B 审查侧未复核项台账：**规则**（artifacts §3.1）要求 `60:OBS-nn` 含缘由 + 责任人 + 计划复核时点，
+# 这里断言 60 里真有这些条目与字段（此前 60 的未复核项无编号、无责任人、无期限，跨版本无从查证）。
+_t60 = (read(DOCS / "60-review.md") or "").split("\n")
+_i60 = _row_indices(_t60)
+check("T30 60-review 存在 60:OBS-nn 未复核项台账", bool(_i60),
+      "`docs/60-review.md` 里一条 OBS 台账都没有 —— 该文件此前把未复核项写成「如实声明」的散文："
+      "无编号、无责任人、无期限（实测 §H.6 与 §F.5 各 5 项），**跨版本是否仍挂着无从查证**；"
+      "而测试侧的同类项（51 / 52）有台账有期限，两侧待遇不对称。按 `docs/artifacts.md` §3.1 必须逐条登记")
+_led_lack = []
+for _i in _i60:
+    _blk = "\n".join(_obs_entry_lines(_t60, _i))
+    _num = re.search(r"(?:60:)?(OBS-\d+)", _blk).group(1)
+    _lack = [f for f in ("缘由", "责任人", "计划复核") if f not in _blk]
+    if _lack:
+        _led_lack.append(f"{_num} 缺 {'/'.join(_lack)}")
+check("T30 60:OBS-nn 台账含缘由 / 责任人 / 计划复核时点", not _led_lack,
+      f"{'；'.join(_led_lack)} —— 三字段是「谁来在什么时候把它处置掉」的唯一载体。"
+      "只写「未独立复核」而不写缘由与期限，等于把它变成一条**永不处置**的记录："
+      "本仓库实测有测试侧观察项跨 4 个版本仍挂着，正是因为没有责任人与时点")
+
+# 30-C 冻结时间：**规则**（artifacts §4「禁止标称钟点」）已写，这里断言 8 份契约产物的冻结时间行里
+# 不再出现**无来源标注**的整点钟点（标称钟点晚于实际落盘，属逻辑上不可能的值）。
+_NOMINAL = re.compile(r"T?(\d{2}):00:00")
+_FREEZE_SRC = ("实测", "勘误", "未采集", "标称")
+
+
+def _groups_around(text, pos):
+    """pos 处所在的**全部**括号组（由内向外；全角 / 半角都认，按嵌套深度配对）。
+
+    早先按「最近的前括号 + 最近的先后括号」取组，会把 pos **之前就已闭合**的组算进来：
+    实测 `原记 X（v1 首冻）/ Y（v2）均系标称` 里，Y 被判进早已闭合的 `（v1 首冻）`，
+    于是明明写在勘误段里的取值被报成「未注明来源」。按深度配对是这里唯一可靠的口径。
+    """
+    out = []
+    for m in re.finditer(r"[（(]", text):
+        op, ch = m.start(), m.group(0)
+        close = "）" if ch == "（" else ")"
+        depth = 0
+        for k in range(op, len(text)):
+            if text[k] == ch:
+                depth += 1
+            elif text[k] == close:
+                depth -= 1
+                if depth == 0:
+                    if op < pos < k:
+                        out.append(text[op:k + 1])
+                    break
+    return out
+
+
+def _clause(text, pos):
+    """pos 处的句子（以 `。` / `；` / 表格竖线为界）。"""
+    a = max(text.rfind(ch, 0, pos) for ch in ("。", "；", "|"))
+    b = [text.find(ch, pos) for ch in ("。", "；", "|") if text.find(ch, pos) != -1]
+    return text[a + 1:min(b) if b else len(text)]
+
+
+def _freeze_row(doc, text):
+    if doc.endswith(".html"):
+        m = re.search(r"<tr>(?:(?!</tr>).)*冻结时间.*?</tr>", text, re.S)
+    else:
+        m = re.search(r"^\|\s*冻结时间\s*\|.*$", text, re.M)
+    return m.group(0) if m else ""
+
+
+_fz_none, _fz_bad = [], []
+for _d in _CONTRACT_DOCS:
+    _row = _freeze_row(_d, read(DOCS / _d) or "")
+    if not _row:
+        _fz_none.append(_d)
+        continue
+    for _m in _NOMINAL.finditer(_row):
+        _gs = _groups_around(_row, _m.start())
+        _ok = any(any(s in g for s in _FREEZE_SRC) for g in _gs) or any(
+            s in _clause(_row, _m.start()) for s in _FREEZE_SRC)
+        if not _ok:
+            _fz_bad.append(f"{_d} 的 {_m.group(0)}（所在括号组与所在句子均未写来源）")
+check("T30 八份契约产物的冻结时间行存在", not _fz_none,
+      f"缺：{'、'.join(_fz_none)} —— 冻结时间是判定「落盘证据是否成立」与「上游依赖是否满足」的唯一依据"
+      "（`docs/artifacts.md` §4）；没有这一行的产物无法被任何下游核对")
+check("T30 冻结时间的整点钟点均注明来源", not _fz_bad,
+      f"{'；'.join(_fz_bad)} —— 整点钟点（`T\\d\\d:00:00` / `\\d\\d:00:00`）几乎必然是**标称钟点**而非实测值："
+      "本仓库实测原值 `20:00` / `22:00` **晚于**该产物末次落盘时刻 `19:15:27`，"
+      "即「文件在 19:15 落盘，正文却写着 22:00 修订」——逻辑上不可能，而此前无任何断言看得见。"
+      "判据（`docs/artifacts.md` §4）：整点钟点必须在其**所在括号组**内写明来源（实测 / 勘误 / 未采集 / 标称）；"
+      "未采集时刻的按日粒度写，**不得另推一个钟点顶替**")
+
+# 30-D 上游依赖 ⊆ 读取清单：**规则**（artifacts §5）要求「声明的是已消费的版本」，这里断言
+# 「声明的产物 ∈ 该产物写入者的读取清单」——本仓库实测 30 声明消费 00-brief / 60-review，而两者
+# 都不在 §1「读取者」/ §2「只读」列里：声明是真事实，漏的是登记表。
+_up_none, _up_bad = [], []
+for _d in _CONTRACT_DOCS:
+    _key = Path(_d).stem
+    _row = ""
+    _txt = read(DOCS / _d) or ""
+    if _d.endswith(".html"):
+        _m = re.search(r"<tr>(?:(?!</tr>).)*上游依赖.*?</tr>", _txt, re.S)
+    else:
+        _m = re.search(r"^\|\s*上游依赖\s*\|(.*)$", _txt, re.M)
+    if _m:
+        _row = _m.group(0)
+    if not _row.strip():
+        _up_none.append(_d)
+        continue
+    _own = WRITERS.get(_key)
+    for _dep in READERS:
+        if _dep == _key:
+            continue
+        if _dep in _row and _own and _own not in READERS[_dep]:
+            _up_bad.append(f"{_d} 声明消费 {_dep}，但 {_dep} 的读取者不含 {_own}")
+check("T30 八份契约产物的上游依赖行存在", not _up_none,
+      f"缺：{'、'.join(_up_none)} —— 「上游依赖」行是失效传播矩阵的唯一入口（`docs/artifacts.md` §5），"
+      "没有它就无法判断下游是否需要重跑")
+check("T30 上游依赖行声明的产物 ∈ 该写入者的读取清单", not _up_bad,
+      f"{'；'.join(_up_bad)} —— 判据（`docs/artifacts.md` §5）：上游依赖行是**可机检的声明**，"
+      "声明的产物必须在该产物写入者的读取清单（§1「读取者」列 / §2「只读」列）内。"
+      "**对账方向固定为「声明 → 清单」**：声明属实就补清单，声明不实就订正该行。"
+      "本条堵的是「产物自己声明依赖了某上游，而登记表里根本没有这个读取者」——"
+      "两份文件各自都没错，单文件校验全绿，只有把两者放在一起才看得出来")
+
+# 30-E README 目标目录树：**规则**（README 安装章节）声明了交付物清单，这里断言树里真的有它们
+# —— 实测该树长期缺 `CLAUDE.md`（每次会话自动加载的工作规范）与 `.claude/settings.json`，
+# 照树复制的项目会静默失去权限规则与精简版规范。
+_rm_txt = read(ROOT / "README.md") or ""
+_m_tree = re.search(r"目标目录树.*?```(.*?)```", _rm_txt, re.S)
+_tree = _m_tree.group(1) if _m_tree else ""
+_TREE_NEED = ["CLAUDE.md", "README.md", "tools/", "check-config.py", "docs/", ".claude/",
+              "settings.json", "agents/", "commands/"]
+_tree_lack = [t for t in _TREE_NEED if t not in _tree]
+check("T30 README 目标目录树含全部交付物", bool(_tree) and not _tree_lack,
+      (f"树中缺：{'、'.join(_tree_lack)}" if _tree else "README 里找不到「目标目录树」代码块") + " —— "
+      "该树是「分发到新项目」的唯一清单，缺项会被照抄，且**新项目不会报任何错**："
+      "少了 `CLAUDE.md` 就少了每次会话自动加载的规范，少了 `.claude/settings.json` 就少了权限闭环")
+_copy_line = next((l for l in _rm_txt.split("\n") if "复制到项目根" in l), "")
+check("T30 README 复制指令含被树补上的交付物", all(t in _copy_line for t in ("CLAUDE.md", "tools/", ".claude/")),
+      f"复制指令未提到：{'、'.join(t for t in ('CLAUDE.md', 'tools/', '.claude/') if t not in _copy_line)} —— "
+      "树补齐了但指令没跟上，读者仍会漏复制（本次实测：指令行只列了 tools/ 与 docs/，未含 `CLAUDE.md`）")
+
+# 30-F 脚手架命令：**规范**（CLAUDE.md「四、必须确认的场景」：架构选型 / 新增分层 / 修改目录结构）
+# 要求先征得同意，而 `dotnet new` / `dotnet sln` / `npm create` 正是这一类操作。实测这三条长期躺在
+# **allow**（无条件免确认）里——规范与配置直接冲突，且 allow 组此前从未被任何断言覆盖。
+# 断言做成**双向锁**：只断言其中一侧，放宽 allow 的改动仍可静默通过。
+_SCAFFOLD_CMDS = ["Bash(dotnet new *)", "Bash(dotnet sln *)", "Bash(npm create *)"]
+_sc_in_allow = [c for c in _SCAFFOLD_CMDS if c in _allow]
+check("T30 allow 不含脚手架命令（架构选型类必须走确认）", not _sc_in_allow,
+      f"{'、'.join(_sc_in_allow)} 仍在 allow —— 它们创建解决方案 / 项目 / 分层目录，属 CLAUDE.md"
+      "「四、必须确认的场景」中的「架构选型 / 新增分层 / 修改目录结构」，**必须先征得同意**；"
+      "放进 allow 就是把最需要确认的一类操作变成无条件放行")
+_sc_missing_ask = [c for c in _SCAFFOLD_CMDS if c not in _ask]
+check("T30 ask 含脚手架命令", not _sc_missing_ask,
+      f"ask 缺 {'、'.join(_sc_missing_ask)} —— 从 allow 移出后必须落到 ask，"
+      "否则它们会退回「默认首次询问」：看似等效，实则不受本表约束、也不会被任何断言看见")
+
+# 30-G 编号前缀闭集：**规则**（artifacts §3「登记表是闭集，且由护栏机检」）已写，这里真的扫。
+# 实测教训：同一类「待确认 / 假设 / 冲突上报」事实在产物里被自造出 QX / AS / QA / CAR 四个前缀，
+# 跨文件检索无法收敛，而任何单文件校验都看不出来。
+_art_txt = read(DOCS / "artifacts.md") or ""
+_sec3 = (_art_txt.split("## 3. ID 体系") + [""])[1].split("### 3.1")[0]
+_registered = set()
+for _m in re.finditer(r"^\|[^|\n]*\|", _sec3, re.M):
+    _registered |= set(re.findall(r"[A-Z]{1,4}", _m.group(0)))
+check("T30 编号前缀登记表可解析", bool(_registered),
+      "`docs/artifacts.md` §3 的 ID 前缀登记表解析不出任何前缀 —— 登记表格式变了而断言没跟上，"
+      "此时闭集断言会变成「恒真」（空集包含一切），静默失效")
+_ID_PAT = re.compile(r"(?<![A-Za-z0-9_§\-])([A-Z]{1,4})-(\d{1,3})(?![0-9])")
+# 豁免：非产物编号的通用写法（豁免必须登记在案，且护栏会断言锚句仍然存在——它是登记披露通道，
+# 不是静默放宽的通道）。
+_ID_EXEMPT = {"UTF-8": "字符编码名（规范 / 说明书通用写法），非产物编号",
+              "SHA-256": "摘要算法名（规范通用写法），非产物编号"}
+_ID_FACE = ([ROOT / "CLAUDE.md", ROOT / "README.md", ROOT / ".claude" / "README.md"]
+            + sorted(DOCS.glob("*.md")) + sorted(AGENTS.glob("*.md"))
+            + sorted(COMMANDS.glob("*.md")) + sorted((ROOT / "global").glob("*.md")))
+_undeclared = {}
+for _p in _ID_FACE:
+    for _m in _ID_PAT.finditer(read(_p) or ""):
+        if _m.group(1) in _registered or _m.group(0) in _ID_EXEMPT:
+            continue
+        _undeclared.setdefault(_m.group(0), set()).add(str(_p.relative_to(ROOT)).replace("\\", "/"))
+check("T30 编号前缀均在 artifacts §3 登记", not _undeclared,
+      "；".join(f"{k}（{sorted(v)[0]} 等）" for k, v in sorted(_undeclared.items()))
+      + " —— 就地自造前缀即为违规：同一类事实一旦被命名成多个前缀，跨文件检索无法收敛，"
+        "而任何单文件校验都看不出来（实测：同一类「待确认」事实散成 QX / AS / QA / CAR 四个前缀）。"
+        "新增前缀必须先登记再使用；历史正文里的既有前缀按 13.4 不回改，只补登记")
+_stale_ex = [k for k in _ID_EXEMPT
+             if not any(k in (read(_p) or "") for _p in _ID_FACE)]
+check("T30 编号前缀豁免仍被使用", not _stale_ex,
+      f"{'、'.join(_stale_ex)} 已不在扫描面内出现 —— 豁免是**登记披露**通道："
+      "锚句消失后仍留着豁免，下次扫描面扩大时同一形态会被静默放过。要么删豁免，要么说明它还在哪")
+
+# 30-H 活文档与代码不得出现「文件名:行号」型定位引用（**规则**见 13.4，此处断言扫描面与产物）。
+# 实测事故：代码注释以架构文档的某个行号为锚点，架构升版后该锚点漂移，全部引用静默失效。
+# 扫描面 = 13.4 声明的「活文档」闭集 + `src/` / `tests/` / `tools/` 的代码与注释；
+# **已签署产物（00–60）不在扫描面内**——它们的既有段落按 13.4 不回改，订正走各自产物的勘误块。
+_LIVE_DOCS = ["CLAUDE.md", "README.md", ".claude/README.md", ".claude/agents/", ".claude/commands/",
+              "docs/artifacts.md", "docs/development-spec.md", "docs/role-protocol.md",
+              "docs/state-machine.md", "docs/config-checklist.md", "docs/error-codes.md",
+              "global/CLAUDE.md", "src/", "tests/", "tools/"]
+_decl_134 = next((l for l in read(DOCS / "development-spec.md").split("\n") if "活文档」是闭集" in l), "")
+# 判定用**枚举成员**，不用子串命中：整行是巨行，删掉某一项后，该项仍可能被同行别处提到
+# （实测：删去「`tests/` 与 `tools/`」后，二者仍从同行后半句的 `tests/e2e/...` 与
+# 「含 `src/` / `tests/` / `tools/` 的代码文件」里被子串命中 → 断言看似全绿、实际什么都没验）。
+# 取值域 = 该行「：」之后到「的代码与注释」之前的**反引号 token 集合**。
+_134_seg = _decl_134.split("：", 1)[-1].split("的代码与注释")[0]
+_declared_134 = set(re.findall(r"`([^`]+)`", _134_seg))
+_missing_134 = [d for d in _LIVE_DOCS if not any(t.startswith(d) for t in _declared_134)]
+check("T30 13.4 活文档闭集已逐项声明", not _missing_134,
+      f"13.4 闭合集未逐项声明：{'、'.join(_missing_134)} —— "
+      "判定口径 = 该行列举段的**反引号 token 集合必须逐项覆盖**（子串命中不算：巨行里别处的提及"
+      "会让删除静默通过）。扫描面必须与规范声明逐项对应：范围一旦靠代码隐式决定，"
+      "「顺手少扫一份」不会有任何信号，而少扫的那一份里可能正躺着已漂移的行号锚点")
+
+# 边界声明：机检只认「文件名:行号」，而规则禁止的是一切「以行号定位」的引用（符号名:行号同型）。
+# 不写出边界，读者会把「护栏全 PASS」读成「没有行号引用」——实测 `tests/e2e/api/stats-lib.mjs`
+# 就以「集成夹具方法:行号范围」的形式留着一处，机检全程没看见。
+_LN_SCOPE_DECL = "「符号名:行号」等同型锚点不在机检范围"
+check("T30 13.4 已声明行号机检范围的边界", _LN_SCOPE_DECL in _decl_134,
+      "13.4 未声明行号机检的范围边界 —— 机检的形态是「文件名:行号」，「符号名:行号」等同型锚点同样违规、"
+      "但不在机检面内。边界不写出来，读者会把「护栏全 PASS」读成「没有行号引用」：实测确有这种残留"
+      "（取证见 13.4 本条与 `tests/e2e/api/stats-lib.mjs` 的勘误回执）")
+# 豁免字面量用拼接构造：**护栏源码自身也登记在扫描面上**，写全了会自己报自己（实测三条自伤告警）。
+# 豁免条目同样受「锚句仍然存在」断言的约束——它是登记披露通道，不是静默放宽的通道。
+# 注：两条均指 13.4 正文那句漂移示例（**行号是被叙述对象**，不是定位引用），两种形态各一条。
+_LN_EXEMPT = {"docs/development-spec.md": ["." + "md" + ":" + "544",
+                                          "30-architecture" + "." + "md" + ":544"]}
+_LN_SKIP_DIRS = {"bin", "obj", "node_modules", ".git", "dist", "coverage"}
+# 临时验证目录的前缀**闭集**（`docs/role-protocol.md` §6 逐字声明，由下面的断言双向锁定）。
+# 实测教训：该排除曾只认 `.tmp-`，而本仓库实际用的是 `_tmp-`（`tests/e2e/_tmp-verify-20260918-citefix/`）
+# ——排除规则**命中 0 个文件**、形同不存在，取证目录里的故意坏样本（`*-bad.ts`）整轮留在扫描面上。
+_TMP_PREFIXES = (".tmp-", "_tmp-")
+_LN_EXT = tuple("." + _e for _e in _LN_REF_EXT)
+_ln_files = []
+for _d in _LIVE_DOCS:
+    _p = ROOT / _d
+    if _d.endswith("/"):
+        _ln_files += [q for q in sorted(_p.rglob("*"))
+                      if q.is_file() and q.suffix in _LN_EXT
+                      and not _LN_SKIP_DIRS & set(q.parts)
+                      # 临时验证目录（唯一前缀 + 登记绝对路径）不进扫描面：它们是被登记的取证来源，
+                      # 内容可能是改动前的快照，随取证批次改名，不属于「活文档」。
+                      and not any(str(x).startswith(_TMP_PREFIXES) for x in q.parts)]
+    else:
+        _ln_files.append(_p)
+_ln_bad = []
+for _p in _ln_files:
+    _rel = str(_p.relative_to(ROOT)).replace("\\", "/")
+    for _i, _l in enumerate((read(_p) or "").split("\n"), 1):
+        for _m in _LN_REF.finditer(_l):
+            if _m.group(0) in _LN_EXEMPT.get(_rel, []):
+                continue
+            _ln_bad.append(f"{_rel}:{_i} → {_m.group(0)}")
+check("T30 活文档与代码无「文件名:行号」型定位引用", not _ln_bad,
+      f"{'；'.join(_ln_bad[:8])}{' 等' if len(_ln_bad) > 8 else ''} —— 行号必然漂移："
+      "实测：代码注释以架构文档的某个行号为锚点，架构升版后该锚点漂移，"
+      "**全部引用静默失效且无人会回头核对**（完整实测段见 `docs/development-spec.md` 13.4）。"
+      "改用稳定 ID（FR / AC / MOD / API / D / RSK / CHG / TC / BUG / REV / OBS / QX）。"
+      "行号只允许作为**被叙述对象**出现（描述漂移事实本身的句子），且必须同时给出稳定 ID")
+_stale_ln = [f"{k} 的豁免锚句 {lit!r}" for k, lits in _LN_EXEMPT.items() for lit in lits
+             if lit not in (read(ROOT / k) or "")]
+check("T30 行号豁免锚句仍然存在", not _stale_ln,
+      f"{'、'.join(_stale_ln)} 已不存在 —— 豁免是登记披露通道：锚句消失后它就成了「扫描面上有一处"
+      "永不检查的区域」，且不留任何痕迹。要么删豁免，要么说明该形态现在何处合法")
+
+# 30-H 的扫描面排除规则与 `role-protocol` §6 的声明**双向锁**（与 allow/ask 双向锁同型）：
+# 规则文本与护栏清单必须同时改，单边改即 FAIL。反查项挂在本条上：扫描面内不得出现
+# 「形如临时目录、前缀却未声明」的目录（新增前缀必须先改 §6 与 `_TMP_PREFIXES` 两处）。
+# 反查项的负向验证**覆盖不到**（MUTATIONS 只做文本替换，造不出目录）→ 手工 probe：
+#   mkdir -p tests/e2e/tmp-probe-x && python tools/check-config.py   # 期望本条 FAIL
+#   rmdir tests/e2e/tmp-probe-x                                     # 复原 → 复绿
+# 实测 2026-09-18：加目录 → 366 项中 1 项 FAIL（本条，指名 tests/e2e/tmp-probe-x）；删后全 PASS。
+_LN_TMP_SHAPE = re.compile(r"^[._]?tmp[._-]")
+_TMP_DECL = "**前缀闭集：`.tmp-` / `_tmp-`**"
+_rp_txt = read(DOCS / "role-protocol.md") or ""
+_decl_tmp = tuple(re.findall(r"`([._][A-Za-z0-9_-]*tmp[A-Za-z0-9_-]*)`", _TMP_DECL))
+_undecl_tmp = []
+for _d in _LIVE_DOCS:
+    if not _d.endswith("/"):
+        continue
+    for _q in sorted((ROOT / _d).rglob("*")):
+        if _q.is_dir() and not _LN_SKIP_DIRS & set(_q.parts):
+            _nm = _q.name
+            if _LN_TMP_SHAPE.match(_nm) and not _nm.startswith(_TMP_PREFIXES):
+                _undecl_tmp.append("/".join(_q.relative_to(ROOT).parts))
+# 三合取项**分别**具名：曾共用一个「§6 未逐字声明…」的开头，§6 明明写对时也会把维护者引去改
+# 一处正确的规范文本（实测：造未声明前缀目录时 fail 首句误指 §6 声明缺失）。
+_tmp_why = []
+if _TMP_DECL not in _rp_txt:
+    _tmp_why.append("§6 未逐字声明该锚句")
+if _decl_tmp != tuple(_TMP_PREFIXES):
+    _tmp_why.append(f"§6 声明集合 {list(_decl_tmp)} ≠ 护栏闭集 {list(_TMP_PREFIXES)}")
+if _undecl_tmp:
+    _tmp_why.append("扫描面内存在未声明前缀的临时目录：" + "、".join(_undecl_tmp))
+check("T30 临时目录前缀闭集与 §6 声明一致（双向锁）",
+      _TMP_DECL in _rp_txt and _decl_tmp == tuple(_TMP_PREFIXES) and not _undecl_tmp,
+      f"触发项 = {'；'.join(_tmp_why) or '无'} —— 该前缀是「取证目录不进静态扫描面」的唯一判据："
+      "实测排除规则曾只认一个前缀，"
+      "而本仓库实际用的是另一个（`tests/e2e/_tmp-verify-*`），规则命中 0 个文件、形同不存在，"
+      "取证目录里的故意坏样本整轮留在扫描面上；新增前缀须同时改 §6 与护栏 `_TMP_PREFIXES`")
+
 
 # ---- 自测：把「负向验证」从人工清单变成可执行命令 ----
 # 用法：python3 tools/check-config.py --self-test
@@ -1079,7 +1553,7 @@ MUTATIONS = [
      "T28 架构侧 429 → code=1001 定义仍在"),
     ("docs/error-codes.md", "`0–500` 段与 HTTP 状态码对齐", "`4xx/5xx` 段与 HTTP 状态码对齐",
      "T28 错误码段标签与 6.4 一致（0–500 段）"),
-    ("docs/error-codes.md", "## 登记流程", "见 `docs/development-spec.md:131` 的说明。\n\n## 登记流程",
+    ("docs/error-codes.md", "## 登记流程", "见 " + "`docs/development-spec.md" + ":131` 的说明。\n\n## 登记流程",
      "T28 error-codes.md 内无行号引用"),
     # 写入权的第二个落点：artifacts §2（由上面那条突变覆盖）与 engineer.md 的「写入范围」必须同时成立
     (".claude/agents/engineer.md", "、`docs/error-codes.md`（**仅追加「新增业务错误码」的登记行**",
@@ -1191,6 +1665,122 @@ MUTATIONS = [
      "（接口契约与错误语义，用于接口级与异常路径用例设计；另读 `docs/40-changelog.md`）",
      "T27 并行提案前提: test-designer 输入不含 40-changelog"),
     ("docs/config-checklist.md", "未绑定 0 条", "未绑定 3 条", "T27 §E.1 现状与绑定结论仍在"),
+# T11 行 3.5 的位置与前提（第六次修订补齐：此前 T11 的 9 条断言零突变覆盖，
+# 表注却声称「行 3.5 的位置与前提由 T11 守护」——断言有辨别力，只是从未被负向验证过）。
+# 位置类突变用「在表末追加一行同号行」实现：row_pos 取**最后一次**出现的行号，追加即等于把该行下移。
+    ('docs/state-machine.md', '\n## 修复循环（a → b → c）', '\n| **3.5** | 无未闭环致命 / 严重；覆盖不达标；无其他阻断项（D2）；且 F6 = 已转达 | **有条件发布** | x |\n\n## 修复循环（a → b → c）',
+     'T11 行3.5 位于行4之前'),
+    ('docs/state-machine.md', '\n## 修复循环（a → b → c）', '\n| 3 | 无未闭环致命 / 严重；无其他阻断项（D2）；存在一般缺陷且 F3 = 已转达 | **有条件发布** | x |\n\n## 修复循环（a → b → c）',
+     'T11 行3.5 位于行3之后'),
+    ('docs/state-machine.md', '**无未闭环致命 / 严重**；**覆盖不达标**', '**覆盖不达标**',
+     'T11 行3.5 含无未闭环致命/严重前提'),
+    ('docs/state-machine.md', '且 **F6 = 已转达**', '且 **F6 = 未转达**',
+     'T11 行3.5 含 F6=已转达'),
+    ('docs/state-machine.md', '（**覆盖缺口编号 / 接受人 / 理由 / 补丁计划**', '（**含残留缺陷 / 覆盖缺口编号 / 接受人 / 理由 / 补丁计划**',
+     'T11 行3.5 复用既有结论枚举'),
+    # T29 状态机表注 / 历史节分离与行 5 的 D2 披露义务（第五次修订）
+    ("docs/state-machine.md", "**表注（修订本表前必读）", "**修订说明（历史记录）",
+     "T29 状态机表注位于判定顺序与修复循环之间"),
+    ("docs/state-machine.md", "**行 3.5 必须位于行 4 之前**", "**行 3.5 可以位于行 4 之后**",
+     "T29 表注含三条行序约束"),
+    ("docs/state-machine.md", "行 5 是本表唯一的「D2 刻意例外」", "行 5 与其他判定行一样含 D2 前提",
+     "T29 行 5 的 D2 刻意例外已声明"),
+    ("docs/state-machine.md", "一并被接受，但必须逐条登记披露", "一并放行，无需登记",
+     "T29 行 5 落盘含 D2 披露义务"),
+    ("docs/state-machine.md", "本表历次修订的**历史因果**",
+     "本表历次修订的**历史因果**（行 0.5 一旦下移将永远不可达）",
+     "T29 表注与历史节分离（现行约束未混回历史节）"),
+    ("docs/state-machine.md", "由 **T29** 守护", "由 **T30** 守护",
+     "T29 表注声明守护归属（T11 / T24 / T29）"),
+    ("docs/state-machine.md", "契约冲突 / 未消解的待确认清单项", "契约冲突",
+     "T29 行 5 登记的 D2 四类与 D2 闭集同向"),
+    # T30 产物侧合规：22 条断言的负向验证（M3 —— 每条新断言都必须有一个能被它抓住的变异）。
+    # 变异一律落在**产物**上（而不是规则文本上）：本块的断言对象就是产物，若变异改的是规范措辞，
+    # 那证明的是「规范还在」，恰好放过本块要堵的那一类（规则写在纸上、事实挂在文件里）。
+    # 30-A 阻断列：表头缺列 / 取值越界各一例（两种失败模式必须分别可捕获，只测一种会漏掉另一种）
+    ("docs/51-defects.md", "| 编号 | 内容 | 判定依据 | 关联 TC | 阻断 / 非阻断 |",
+     "| 编号 | 内容 | 判定依据 | 关联 TC | 影响 |",
+     "T30 51-defects.md 的 OBS 条目均含「阻断 / 非阻断」列"),
+    ("docs/51-defects.md", "| 非阻断 |", "| 不阻断 |",
+     "T30 51-defects.md 的 OBS 阻断取值合法且无漏标"),
+    ("docs/60-review.md", "| 编号 | 缘由 | 责任人 | 计划复核时点 | 阻断 / 非阻断 |",
+     "| 编号 | 缘由 | 责任人 | 计划复核时点 | 影响 |",
+     "T30 60-review.md 的 OBS 条目均含「阻断 / 非阻断」列"),
+    ("docs/60-review.md", "| 非阻断 |", "| 不阻断 |",
+     "T30 60-review.md 的 OBS 阻断取值合法且无漏标"),
+    # 52 的两条在 test-executor 补齐该列之后才能构造（补列前该表头里没有「阻断」二字，
+    # 变异无法落在「列存在但取值越界」这一侧——顺序上必须先有产物，才能有对产物的变异）
+    ("docs/52-qa-report.md", "| 编号 | 内容 | 关联 TC | 阻断 / 非阻断 |",
+     "| 编号 | 内容 | 关联 TC | 影响 |",
+     "T30 52-qa-report.md 的 OBS 条目均含「阻断 / 非阻断」列"),
+    ("docs/52-qa-report.md", "| 非阻断 |", "| 不阻断 |",
+     "T30 52-qa-report.md 的 OBS 阻断取值合法且无漏标"),
+    # 30-B 审查侧台账：整张表消失 / 单条缺字段
+    ("docs/60-review.md", "| 60:OBS-", "| 60X:OBS-",
+     "T30 60-review 存在 60:OBS-nn 未复核项台账"),
+    ("docs/60-review.md", "| 60:OBS-01 | 缘由：", "| 60:OBS-01 | 起因：",
+     "T30 60:OBS-nn 台账含缘由 / 责任人 / 计划复核时点"),
+    # 30-C 冻结时间：行缺失 / 行在但钟点无来源（后者才是本仓库真实发生过的形态——
+    # 原值 `20:00` 晚于落盘时刻 `19:15:27`，行本身一直在，此前没有任何断言看得见）
+    ("docs/60-review.md", "| 冻结时间 | 2026-09-17 |", "| 冻结时刻 | 2026-09-17 |",
+     "T30 八份契约产物的冻结时间行存在"),
+    ("docs/60-review.md", "| 冻结时间 | 2026-09-17 |",
+     "| 冻结时间 | 2026-09-17T10:00:00+08:00 |",
+     "T30 冻结时间的整点钟点均注明来源"),
+    # 30-D 上游依赖：行缺失 / 声明了清单外的读取关系
+    ("docs/60-review.md", "| 上游依赖 |", "| 上游输入 |",
+     "T30 八份契约产物的上游依赖行存在"),
+    ("docs/10-prd.md", "| 上游依赖 | `docs/00-brief.md` **v2**",
+     "| 上游依赖 | `docs/60-review.md`、`docs/00-brief.md` **v2**",
+     "T30 上游依赖行声明的产物 ∈ 该写入者的读取清单"),
+    # 30-E README 目标树 / 复制指令
+    ("README.md", "│   └── check-config.py", "│   └── guard.py",
+     "T30 README 目标目录树含全部交付物"),
+    ("README.md", "把 `CLAUDE.md`、`README.md`、`tools/`、`docs/` 复制到项目根",
+     "把 `README.md`、`tools/`、`docs/` 复制到项目根",
+     "T30 README 复制指令含被树补上的交付物"),
+    # 30-F 脚手架命令的**双向锁**：只测一侧的话，放宽 allow 的改动仍可静默通过
+    (".claude/settings.json", '"Bash(npm ci)",', '"Bash(npm ci)", "Bash(dotnet new *)",',
+     "T30 allow 不含脚手架命令（架构选型类必须走确认）"),
+    (".claude/settings.json", '"Bash(npm create *)"', '"Bash(npm create-x *)"',
+     "T30 ask 含脚手架命令"),
+    # 30-G 编号前缀闭集：登记表解析不出（空集包含一切 → 断言恒真）/ 自造前缀 / 过期豁免
+    # 破坏点必须**打断子串**：原写法在标题尾部追加「（登记表）」，而解析用的是
+    # `split("## 3. ID 体系")` —— 子串仍在，解析照旧成功、变异空转（实测未被捕获）。
+    ("docs/artifacts.md", "## 3. ID 体系", "## 3. ID体系",
+     "T30 编号前缀登记表可解析"),
+    ("docs/config-checklist.md", "## A. 产物登记表回溯",
+     "QZ-01：见下。\n\n## A. 产物登记表回溯",
+     "T30 编号前缀均在 artifacts §3 登记"),
+    # 过期豁免用「塞一条从未出现的豁免」构造：让锚句从扫描面消失需要同时改动 2–3 份文件，
+    # 单条突变做不到（这一条同时也是对豁免机制本身的负向验证）
+    ("tools/check-config.py", '"SHA-256": "摘要算法名（规范通用写法），非产物编号"',
+     '"SHA-256": "摘要算法名（规范通用写法），非产物编号",\n'
+     '              "ZZZ-99": "自测夹具：一条从未在扫描面出现过的豁免"',
+     "T30 编号前缀豁免仍被使用"),
+    # 30-H 行号引用：闭集声明缺项 / 扫描面上出现行号引用 / 豁免锚句消失
+    ("docs/development-spec.md", "，以及 `src/`、`tests/` 与 `tools/` 的代码与注释。",
+     "，以及 `src/` 的代码与注释。", "T30 13.4 活文档闭集已逐项声明"),
+    ("docs/config-checklist.md", "## E. 已知优化（未启用，改动前先读这里）",
+     "见 " + "`docs/development-spec.md" + ":120` 的说明。\n\n## E. 已知优化（未启用，改动前先读这里）",
+     "T30 活文档与代码无「文件名:行号」型定位引用"),
+    ("docs/development-spec.md", "." + "md" + ":" + "544", "." + "md" + " 544",
+     "T30 行号豁免锚句仍然存在"),
+    # 30-H 扩面（2026-09-18）：断言必须真能看见代码文件的「文件:行号」形态——原模式只认
+    # `#LNN` / `.md:NN` 两式，实测漏掉 6 处（全在 `tests/e2e/api/*.mjs` 与 `qa.spec.ts`）。
+    ("tests/e2e/api/stats-suite.mjs", " * TC-78 / TC-79 / TC-79b 概率统计执行（test-executor，覆盖补做）。",
+     " * TC-78 / TC-79 / TC-79b 概率统计执行（test-executor，覆盖补做；锚点 `DrawService"
+     + ".cs:312`）。",   # 拼接构造：变异串本身落在扫描面上，写全了会自己报自己
+     "T30 活文档与代码无「文件名:行号」型定位引用"),
+    ("docs/role-protocol.md", "**前缀闭集：`.tmp-` / `_tmp-`**", "**前缀闭集：`.tmp-` 与 `_tmp-`**",
+     "T30 临时目录前缀闭集与 §6 声明一致（双向锁）"),
+    ("docs/development-spec.md", "「符号名:行号」等同型锚点不在机检范围", "「符号名:行号」等同型锚点不在机检口径内",
+     "T30 13.4 已声明行号机检范围的边界"),
+    # 30-A 的第二个盲区（2026-09-18）：编号**缺号** —— 上面两条只遍历「已存在的行」，
+    # 静默丢号时全绿。51 的 OBS-09 恰有 `>` 前缀的缺席登记（「与 51 的 OBS-08 为同一事实」），
+    # 把该登记行的编号改掉即等于「缺号未登记」→ 期望被新断言捕获。
+    ("docs/51-defects.md", "| OBS-09 | **无此条** |", "| OBS-12 | **无此条** |",
+     "T30 51-defects.md 的 OBS 编号无未登记缺号"),
 ]
 
 
@@ -1205,25 +1795,56 @@ def run_self_test() -> int:
             bad.append(f"{rel}: 文件不存在")
             print(f"  ✗ [{rel}] 文件不存在")
             continue
-        original = path.read_text(encoding="utf-8")
+        # 字节级读写：read_text/write_text 会做换行翻译（Windows 上 CRLF→LF→CRLF；Linux 上 CRLF→LF 且**不还原**），
+        # 突变还原会把仓库的换行风格改掉 —— 自测本身成了工作区污染源
+        original = path.read_bytes()
+        # ① 换行风格无关：本仓工作区 CRLF、git blob LF（core.autocrlf=true），锚点里写裸 LF
+        #    会在工作区**永不命中**、变异静默失效（实测 1 条长期如此，自测一跑就现形）。
+        #    故按**目标文件自身的**风格归一锚点与替换文本，而不是要求写变异的人记住 CRLF。
+        _style = b"\r\n" if b"\r\n" in original else b"\n"
+        _nl = lambda b: b.replace(b"\r\n", b"\n").replace(b"\n", _style)
+        ob, nb = _nl(old.encode("utf-8")), _nl(new.encode("utf-8"))
+        # ② 突变**只能改断言逻辑区**：`MUTATIONS` 表与断言逻辑同处一个文件，replace 全部落点会
+        #    把变异**自己的字面量**也改掉 → 护栏源码语法崩溃 → 子进程无 JSON → 被判「未捕获」
+        #    （实测 1 条）。故替换只在 `MUTATIONS = [` **之前**生效，表自身逐字节不动。
+        # 只有**护栏源码自己**含变异表；其它目标文件整份都是断言逻辑，不切分。
+        _cut = original.find(b"\nMUTATIONS = [")
+        if _cut < 0:
+            _cut = len(original)
+        _head, _tail = original[:_cut], original[_cut:]
         # 「先断言变更确实发生」：不先断言，replace 未匹配会静默不动，把「没验证」当成「验证通过」
-        if old not in original:
-            bad.append(f"{rel}: 突变目标不存在（{old!r}）")
-            print(f"  ✗ [{rel}] 突变目标不存在: {old!r}")
+        if ob not in _head:
+            _why = ("（锚点在表内、不在断言逻辑区——变异不能改自己）" if ob in original
+                    else "（该锚点在磁盘上不存在）")
+            bad.append(f"{rel}: 突变目标不在断言逻辑区 {_why}（{old!r}）")
+            print(f"  ✗ [{rel}] 突变目标不在断言逻辑区 {_why}: {old!r}")
             continue
         try:
             # 替换**全部**落点：只改第一处的话，锚句仍在同一文件的其他位置，突变根本没破坏事实
             # （实测教训：两条锚句各在同一文件出现 2 次，用 count=1 突变时空转，差点被当成"护栏瞎了"）
-            hits = original.count(old)
-            mutated = original.replace(old, new)
-            path.write_text(mutated, encoding="utf-8")
-            if path.read_text(encoding="utf-8") == original:
+            hits = _head.count(ob)
+            _mh = _head.replace(ob, nb)
+            if _mh == _head:
+                bad.append(f"{rel}: 变更未生效")
+                print(f"  ✗ [{rel}] 变更未生效")
+                continue
+            mutated = _mh + _tail
+            path.write_bytes(mutated)
+            if path.read_bytes() == original:
                 bad.append(f"{rel}: 变更未生效")
                 print(f"  ✗ [{rel}] 变更未生效")
                 continue
             proc = subprocess.run([sys.executable, me, "--json"],
                                   capture_output=True, text=True, encoding="utf-8")
-            got = json.loads(proc.stdout or "{}").get("failures", [])
+            # 子进程没吐出 JSON = 护栏自身跑不起来（例如语法崩溃）。这**不是**「未被捕获」：
+            # 混为一谈会把「机制坏了」读成「断言很强」——实测正是如此被误判过一次。
+            try:
+                got = json.loads(proc.stdout or "{}").get("failures", [])
+            except json.JSONDecodeError:
+                bad.append(f"{rel}: 护栏子进程未产出 JSON（rc={proc.returncode}）"
+                           f"：{proc.stderr.strip()[:180]}")
+                print(f"  ✗ [{rel}] 子进程未产出 JSON（rc={proc.returncode}）")
+                continue
             if any(expect in g for g in got):
                 print(f"  ✓ [{rel}] 已捕获（突变 {hits} 处）→ {expect}")
             else:
@@ -1233,7 +1854,7 @@ def run_self_test() -> int:
             bad.append(f"{rel}: 自测异常 {exc!r}")
             print(f"  ✗ [{rel}] 异常: {exc!r}")
         finally:
-            path.write_text(original, encoding="utf-8")  # 必须还原
+            path.write_bytes(original)  # 必须还原（字节级：还原 = 与突变前逐字节相同）
     proc = subprocess.run([sys.executable, me, "--json"],
                           capture_output=True, text=True, encoding="utf-8")
     if proc.returncode != 0:
@@ -1257,6 +1878,22 @@ if "--json" in sys.argv:
 if "--self-test" in sys.argv:
     sys.exit(run_self_test())
 
+def _git(args):
+    """只用于「校验基线」自证：读取当前 HEAD 与工作区状态。不读历史提交、不做任何写入。"""
+    try:
+        r = subprocess.run(["git"] + args, cwd=str(ROOT), capture_output=True,
+                           text=True, encoding="utf-8", errors="replace")
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+# 校验基线（M2）：护栏的结论只在**某一份代码 + 某一份工作区**上成立。实测教训：在没有基线的结论上
+# 复述「N 项断言全 PASS」，读者无法判断它说的是哪一版护栏、工作区是否已改（12+ 个已修改未提交的
+# 文件就是「规范已改、证据没落盘」的形态）。基线只自报、不参与判定；--json 模式不打印（自测逐条调用）。
+_head = _git(["rev-parse", "--short", "HEAD"])
+_dirty = [x for x in _git(["status", "--porcelain"]).splitlines() if x.strip()]
+print(f"校验基线：HEAD {_head or ch} / 工作区 {'干净' if not _dirty else f'脏 {len(_dirty)} 个文件'}")
 print(f"共 {len(checks)} 项检查")
 if failures:
     print(f"FAIL: {len(failures)} 项未通过")

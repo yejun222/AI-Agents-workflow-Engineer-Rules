@@ -4,17 +4,18 @@
 | --- | --- |
 | 产物 | 技术方案（architecture） |
 | 版本 | **v4**（v1 → v2：A1 裁决落地、A2–A6 确认、错误码登记同步；v2 → v3：Q1 存储口径对齐、REV-02 会话恢复契约、Q2 认证幂等补齐（D-15）、REV-01 判定登记；**v3 → v4：D-08 重试耗尽终态 `500` → `1001` 改判（用户裁决 CHG-16 契约冲突）**） |
-| 冻结时间 | 2026-09-17T00:00:00+08:00（v1 首冻）/ 2026-09-17T12:00:00+08:00（v2 修订）/ 2026-09-17T20:00:00+08:00（v3 修订）/ **2026-09-17T22:00:00+08:00（v4 修订）** |
+| 冻结时间 | **2026-09-17**（v1 首冻 / v2 修订 / v3 修订 / v4 修订；**日粒度：v1–v4 的实际落盘时刻均未采集**——本产物全部历史只有一次提交，末次落盘不晚于 `23c7bd5`（2026-09-17 19:15:27））（**2026-09-18 勘误**（口径见 `docs/artifacts.md` §4「冻结时间的判据」，实然陈述随事实同步见 `docs/development-spec.md` 13.4）：原值 v1 `00:00:00` / v2 `12:00:00` / v3 `20:00:00` / v4 `22:00:00` 均为**标称钟点**、非实测；其中 v3 `20:00` 与 v4 `22:00` **晚于**末次落盘 `19:15:27`，属越界且**逻辑上不可能**——该产物在 19:15:27 已包含写着「v4 修订于 22:00」的正文。故按 §4 **不推定任何钟点**，整行改为日粒度并如实标注。**该改法同时消解**本行原先登记的「顺序冲突」：51 / 52 声明的上游 `30 v4` 与本产物**同日落盘**，按 §4「同一日内不主张先后」不再构成先后矛盾；且日粒度下依赖仍由提交证据支持——`23c7bd5`（30 v4，19:15:27）早于 `fb29802`（51 / 52 末次落盘，19:15:50）） |
 | 上游依赖 | `docs/00-brief.md` **v2**（含 CR-01 密码强度收紧裁决）；`docs/10-prd.md` **v2**；`docs/20-prototype.html` **v3**（锚点集合与触发描述未变）；`docs/development-spec.md`（**§3.3 会话口径，2026-09-17 修订**，与本文 §2.8 一致）；`docs/60-review.md` **v1**（§8 Q1–Q3 裁决与 REV-01 / REV-02 / REV-06 来源） |
 | 写入者 | software-architect |
 | 状态 | **v4 定稿**（v3 → v4：仅 D-08 重试耗尽终态 `500` → `1001` 定点改判）；A1–A7 全部闭环（A7 = 2026-09-17 用户 Q1 裁决，见文末「假设与裁决清单」）；REV-01「可在 20 锚点内完成」的判定与升级条件见 §2.6 补充约定 |
+| 引用勘误（2026-09-18） | 只读复核（Grep / Read，落盘态实测）发现三类引用 / 实然陈述勘误，按 `docs/development-spec.md` 13.4 与 `docs/artifacts.md` §4 订正；均属**引用勘误类**（不改任何契约面：接口结构 / 字段 / 错误码 / 取值规则均不变）→ **不升版**（版本仍 v4、冻结时间仍 2026-09-17、不新增失效标记）。**① 裸行号锚点改稳定 ID（8 处）**：文首「v4 变更说明」表及其失效传播表内 `:544`（×5）/ `:910`（×3）为 v3 版行锚点，现行 v4 落盘态**已全部漂移失效**（实测：`:544` 现值 = D-07 备选段与 D-08 标题之间的空行；`:910` 现值 = API-05 前端契约行与 API-06 标题之间的空行；目标内容现以 `D-08`（§3「异常与重试」）/ `API-07`（§5.2「错误语义」）定位——行号在此仅作「锚点已漂移」事实的**被叙述对象**，不再充当定位手段）。检索口径：Grep「`:[0-9]+`」命中 8（改后 0 残留）；全文 `:[0-9]{2,4}` 形态其余命中均为 `24:00` / `00:00` 时刻值（非引用）。**② 分页「±1 转换」描述与实现不符（4 处订正）**：实测（Read `src/frontend/src/composables/usePagination.ts` 与 `src/frontend/src/views/records/WinningRecordsView.vue`；Grep `getPaginationRowModel` 于 `src/frontend/src` → 0 命中）为：`usePagination.ts` 纯 1 起状态机、直通后端；`WinningRecordsView.vue` 仅 `getCoreRowModel()` 渲染、未接入分页状态机——**±1 转换点实际不存在**。§2.3（MOD-11）/ §5.1（分页行）/ API-08（前端契约）/ 附录 A 第 6 条已按实然形态订正；将来若接入 TanStack 分页，转换须收敛在一处（该约束保留）。**③ D-06 生产基形态（5 处订正）**：原文「只含 `Enabled = false`」及「不含该节」/「仅此文件出现」类**存在性断言**与决策表取值形态分叉，按 `development-spec.md` 6.6 第 1 条（同一事实单点定义；实测**该节存在、仅取值不同**）统一改为**取值形态**：生产基线 = false / 空数组 / 空对象，非基线取值仅限 Development 配置与环境变量注入。实测：`appsettings.json` / `appsettings.Testing.json` / `appsettings.Development.json` 三文件均含 `Draw:Deterministic` 与 `Prize:WeightOverrides` 节（Grep「`Deterministic` / `WeightOverrides`」于 `src/backend/src/LuckyDraw.Api` → 6 命中 = 3 文件 × 2 键），基线文件取值为 `false` / `[]` / `{}`。**④ 上游依赖行核对（声明属实、不改）**：「`docs/00-brief.md` v2（含 CR-01）」与「`docs/60-review.md` v1（§8 Q1–Q3、REV-01 / 02 / 06 来源）」两项声明经核对**属实**，保持原版本号（v1 为**历史输入**：本产物 v3 依 2026-09-17 三项用户裁决修订，落点 §2.6 / §2.8 / D-15 / 附录 A 第 7 条；60 其后自身重跑至 v6，不改变本产物输入事实）。**证据强度**：60 v1 原文已丢失（60 v6 §E 声明），逐字原文不可核验，以本产物 v3 变更说明 + 落点正文 + 60 v6 的 REV-01 / 02 / 06 闭环表互证（**旁证**级）。（`docs/artifacts.md` §1 / §2 清单未含该两份文件，登记缺口另行处置。） |
 
 **v4 变更说明（2026-09-17）** —— 本次为**定点修订**（v3 → v4），**只由用户对 CHG-16 契约冲突（抽奖事务重试耗尽的终态错误码）的裁决驱动**，不重开方案论证：
 
 | # | 修订点（驱动） | 落点 |
 | --- | --- | --- |
-| 1 | **D-08 重试耗尽终态改判为 `1001`（用户裁决：保持代码现状 `1001`，修订架构）**：`:544` 原写「死锁 1213 → 整个事务重试 1 次，仍失败 → **500** + CRITICAL 告警」，与 ① `docs/error-codes.md`「使用边界」（`1001` = 业务层主动降级提示；`500` = 全局 ExceptionFilter 兜底、**业务代码禁止手动使用**）② `:910` 对 `1001` 的指派（旧文未覆盖该场景，见本表 #2）③ 实现 `DrawService` 返回 `1001` 冲突（CHG-16 记录的四方冲突）。**改判理由**：原 `500` 描述的是**缺陷状态本身**——修复前瞬时错误未做分类、直接冒泡到全局 ExceptionFilter 兜底，用户实测看到的正是 500（`docs/52-qa-report.md` §1.6.6、`tests/e2e/logs/tc56b-*`）；修复后按设计落 `1001`「系统繁忙，请稍后重试」（HTTP 200）。**「整个事务重试 1 次」与「CRITICAL 告警」维持原文不变**（重试次数不在本次改判范围；代码侧对齐为 2 次尝试由 engineer 按本行落地） | D-08「异常与重试」正文（`:544`）及紧随的改判说明 |
-| 2 | **API-07 错误语义同步显式化（`:910`）**：`1001` 的语义范围由「限流/依赖不可用」显式扩为**含 D-08 瞬时错误整事务重试耗尽的终态**（仍 `1001`、仍 HTTP 200，属归属显式化、非新决策；判据：`:910` 是 API-07 错误语义的汇总行，engineer / test-designer 直接据其实现与断言，旧文被 CHG-16 认定漏列「瞬时错误重试耗尽」） | API-07 错误语义（§5.2） |
+| 1 | **D-08 重试耗尽终态改判为 `1001`（用户裁决：保持代码现状 `1001`，修订架构）**：`D-08`（§3「异常与重试」）原写「死锁 1213 → 整个事务重试 1 次，仍失败 → **500** + CRITICAL 告警」，与 ① `docs/error-codes.md`「使用边界」（`1001` = 业务层主动降级提示；`500` = 全局 ExceptionFilter 兜底、**业务代码禁止手动使用**）② `API-07`（§5.2）错误语义对 `1001` 的指派（旧文未覆盖该场景，见本表 #2）③ 实现 `DrawService` 返回 `1001` 冲突（CHG-16 记录的四方冲突）。**改判理由**：原 `500` 描述的是**缺陷状态本身**——修复前瞬时错误未做分类、直接冒泡到全局 ExceptionFilter 兜底，用户实测看到的正是 500（`docs/52-qa-report.md` §1.6.6、`tests/e2e/logs/tc56b-*`）；修复后按设计落 `1001`「系统繁忙，请稍后重试」（HTTP 200）。**「整个事务重试 1 次」与「CRITICAL 告警」维持原文不变**（重试次数不在本次改判范围；代码侧对齐为 2 次尝试由 engineer 按本行落地） | D-08「异常与重试」正文及紧随的改判说明 |
+| 2 | **API-07 错误语义同步显式化（§5.2）**：`1001` 的语义范围由「限流/依赖不可用」显式扩为**含 D-08 瞬时错误整事务重试耗尽的终态**（仍 `1001`、仍 HTTP 200，属归属显式化、非新决策；判据：API-07 错误语义行（§5.2）是汇总行，engineer / test-designer 直接据其实现与断言，旧文被 CHG-16 认定漏列「瞬时错误重试耗尽」） | API-07 错误语义（§5.2） |
 
 **未变更声明（v3 → v4）**：除上述两处外，本文其余内容（§1–§8、附录 A/B、假设与裁决清单 A1–A7）均未变更：模块（MOD-01…MOD-11）、接口清单（API-01…API-08 仍为 **v1**）、数据设计（六表 + Redis 键）、其余决策（D-01…D-15，除 D-08 上述措辞外）、性能与成本预算（§8）不变。**无破坏性接口变更**：本次只细化「重试耗尽」终态的错误码归属（`1001` 与 `500` 原本均在 API-07 错误语义集合内），不改接口结构、字段、版本，不触发 API 版本升级。
 
@@ -22,12 +23,12 @@
 
 | 下游 | 本次需复核 / 重跑的内容 |
 | --- | --- |
-| `docs/40-changelog.md` | engineer：CHG-16「未裁决项 (1)」按本裁决闭环（终态 = `1001`）；正文对 `:544` 的逐字引用（「仍失败 → 500 + CRITICAL 告警」）同步为 `1001`；重试次数（未裁决项 (2)）按「架构侧不变、代码侧 2 次尝试对齐」落地并回写 |
+| `docs/40-changelog.md` | engineer：CHG-16「未裁决项 (1)」按本裁决闭环（终态 = `1001`）；正文对 `D-08`（§3「异常与重试」）的逐字引用（「仍失败 → 500 + CRITICAL 告警」）同步为 `1001`；重试次数（未裁决项 (2)）按「架构侧不变、代码侧 2 次尝试对齐」落地并回写 |
 | `docs/50-testcases.md` | test-designer：错误语义索引（「500 TC-45、TC-69」）复核——瞬时错误重试耗尽的终态按 `1001`（HTTP 200）断言；TC-45（系统异常）不涉重试耗尽、语义不变 |
-| `docs/51-defects.md` | test-executor：BUG-05 属修复前缺陷记录（实测 500 与「设计为 `1001`」表述与本次裁决一致，无需改判）；其正文对 `:544` 的逐字引用（含 500）随上游 v4 复核；随后续修复复验推进闭环 |
+| `docs/51-defects.md` | test-executor：BUG-05 属修复前缺陷记录（实测 500 与「设计为 `1001`」表述与本次裁决一致，无需改判）；其正文对 `D-08`（§3「异常与重试」）的逐字引用（含 500）随上游 v4 复核；随后续修复复验推进闭环 |
 | `docs/52-qa-report.md` | test-executor：按 §5 加失效标记（上游 30 升 v4）；BUG-05 复验（重试耗尽 → `1001` + CRITICAL 告警）纳入回归 |
 | `docs/60-review.md` | code-reviewer：复核 CHG-16 实现与本行三要素一致（终态 `1001` / 重试 1 次 / CRITICAL 告警） |
-| `tests/unit/**` + `tests/integration/**` | engineer：重试耗尽用例期望（终态 `1001`、整事务尝试次数与 `:544`「重试 1 次」= 2 次尝试对齐）与「高并发不出现 500」断言随实现更新 |
+| `tests/unit/**` + `tests/integration/**` | engineer：重试耗尽用例期望（终态 `1001`、整事务尝试次数与 `D-08`「重试 1 次」= 2 次尝试对齐）与「高并发不出现 500」断言随实现更新 |
 | `tests/e2e/**` | test-executor：TC-56b 复验——锁竞争（重试耗尽场景）下终态为 `1001`「系统繁忙，请稍后重试」（HTTP 200），而非 500 |
 
 ---
@@ -154,7 +155,7 @@ ASP.NET Core API（.NET 10，四层：Api → Application → Infrastructure →
 | MOD-08 | 前端基础设施 | 路由与守卫（`public: true` / 默认需登录、回跳 `redirect`、**受保护路由的会话静默恢复**）、`utils/request`（401 无感刷新去重）、会话态**仅存内存**（§2.8）、错误边界（`app.config.errorHandler` + `onErrorCaptured`）、主题令牌（`@theme inline`）、文案集中（`utils/messages.ts`）、时间格式化（`Intl`，Asia/Shanghai） | FR-10、FR-02（含 FR-02-1 会话恢复）、4.5、规范 3.3–3.7 | `router/`、`utils/`、`stores/auth.ts`、`assets/main.css` |
 | MOD-09 | 认证页面 | 注册 / 登录表单（Zod + vee-validate）、submit / invalid / loginfail / guard 四态 | FR-01、FR-02 | `views/auth/RegisterView.vue`、`views/auth/LoginView.vue` |
 | MOD-10 | 抽奖页与转盘交互 | 奖池拉取三态（loading / error / empty）、转盘扇区渲染、quota 同步、drawing / noquota / drawfail 态、按后端条目标识计算落点并播动画、结果 Dialog | FR-03、FR-04、FR-05、FR-06、FR-07 | `views/draw/DrawView.vue`、`components/business/{DrawWheel,DrawResultDialog,PrizeLegend,QuotaBadge}.vue`、`composables/useDrawFlow.ts` |
-| MOD-11 | 中奖记录页 | TanStack Table（`ColumnDef<WinningRecord>`）+ 服务端分页（页码 ±1 收敛在一处）、四态 | FR-09 | `views/records/WinningRecordsView.vue`、`composables/usePagination.ts` |
+| MOD-11 | 中奖记录页 | TanStack Table（`ColumnDef<WinningRecord>`，仅 `getCoreRowModel()` 渲染）+ 服务端分页（`composables/usePagination.ts` 纯 1 起状态机、直通后端，不接 TanStack pagination）、四态 | FR-09 | `views/records/WinningRecordsView.vue`、`composables/usePagination.ts` |
 
 ### 2.4 模块依赖关系
 
@@ -183,8 +184,8 @@ src/backend/                                   # .NET 10 四层 + 解决方案 L
 │   │   ├── Controllers/{AuthController,PrizesController,DrawController,RecordsController}.cs
 │   │   ├── Filters/{ResultFilter,ExceptionFilter}.cs
 │   │   ├── Program.cs                         # DI 装配 / 中间件顺序 / 启动校验
-│   │   ├── appsettings.json                   # 生产基线：不含任何测试开关
-│   │   ├── appsettings.Development.json       # 开发/测试确定性配置（仅此文件出现）
+│   │   ├── appsettings.json                   # 生产基线：确定性配置仅含基线取值（false / [] / {}，D-06）
+│   │   ├── appsettings.Development.json       # 开发/测试：非基线确定性配置允许出现（环境变量亦可注入，D-06）
 │   │   └── public partial class Program { }   # 集成测试 WebApplicationFactory 入口
 │   ├── LuckyDraw.Application/
 │   │   ├── Services/{AuthService,PrizePoolService,DrawService,WinningRecordService}.cs
@@ -522,7 +523,7 @@ WHERE UserId = @uid AND DrawDate = @today AND UsedCount < @dailyLimit   -- 影�
 | `Draw:Deterministic:ForcedResults[]` | `{ userName, prizeItemCode }` 映射：指定用户名命中指定条目（用于 AC-08 / AC-09 / AC-13 构造中奖与未中奖链路） | **空数组** |
 | `Prize:WeightOverrides{}` | `{ code: weight }` 权重覆盖（用于 AC-14 / AC-16 的统计场景） | **空对象** |
 
-校验规则：若 `Deterministic:Enabled = true` 或任一覆盖项非空，而宿主环境**既不是 Development 也不是 Testing** → 抛 `InvalidOperationException`，**应用拒绝启动**，并写 CRITICAL 日志。同时 `appsettings.json`（生产基线）只含 `Draw:Deterministic:Enabled = false`，确定性配置只允许出现在 `appsettings.Development.json` 与环境变量注入中（PRD R5 = 部署验收项，见附录 B）。
+校验规则：若 `Deterministic:Enabled = true` 或任一覆盖项非空，而宿主环境**既不是 Development 也不是 Testing** → 抛 `InvalidOperationException`，**应用拒绝启动**，并写 CRITICAL 日志。同时确定性配置**以取值为契约**（与上表一致，不对「某节是否存在」作断言）：生产基线 = `Enabled = false` / `ForcedResults = []` / `Prize:WeightOverrides = {}`；**非基线取值**只允许出现在 `appsettings.Development.json` 与环境变量注入中（PRD R5 = 部署验收项，见附录 B）。
 
 运行时生效点：`Deterministic:Enabled` 为真时，`DrawService` 在加权随机前先查映射（用户名不区分大小写）；命中则直接以该条目为结果（仍走完整的次数扣减 / 库存条件扣减 / 记录 / 审计事务路径——**只替换随机判定这一步**，其余规则与生产一致）。映射中的 `prizeItemCode` 若查无此条目 → 记 warning 并回退正常加权随机（测试配置错误不产生 500）。
 
@@ -823,7 +824,7 @@ Redis：幂等结果缓存 / refresh 会话 / 登录失败计数（§4.6）
 | 业务异常 | `code ≥ 1000`，**HTTP 200**；前端按 `code` 判定，不按 HTTP 状态码（规范 6.4 / 3.4） |
 | 错误码分工 | `400` 模型绑定/DataAnnotations；`401` 仅「access token 缺失/失效」（触发无感刷新）；`403` 无权限；`409` 幂等冲突；`429` 限流（响应体 `code=1001`）；`500` 系统内部错误；登录失败等**不得用 401**（D-12） |
 | 认证 | `Authorization: Bearer {accessToken}`；公开接口显式 `[AllowAnonymous]`；受保护接口默认需要认证 |
-| 分页 | 请求 `pageIndex`（**从 1 起**）/ `pageSize`（默认 10、上限 100，超出按 100）；响应 `PageResult<T> = { items, totalCount, pageIndex, pageSize }`（规范 6.2/6.3）。⚠️ TanStack Table 的 `pageIndex` 从 0 起：±1 转换必须收敛在 `composables/usePagination.ts` 一处 |
+| 分页 | 请求 `pageIndex`（**从 1 起**）/ `pageSize`（默认 10、上限 100，超出按 100）；响应 `PageResult<T> = { items, totalCount, pageIndex, pageSize }`（规范 6.2/6.3）。⚠️ TanStack Table 的 `pageIndex` 从 0 起；本方案**不接入** TanStack pagination（`composables/usePagination.ts` 为纯 1 起状态机、直通后端，当前**无 ±1 转换点**）；若将来接入，±1 转换必须收敛在 `usePagination.ts` 一处（规范 6.2） |
 | 时间 | ISO 8601 字符串（UTC） |
 | 提交 | `application/json`；提交类接口带 `Idempotency-Key`（UUID v4）请求头（规范 6.5）—— 抽奖见 D-03，注册 / 登录见 D-15 |
 | 序列化 | camelCase（后端默认）；前端 `types/` 与 DTO 字段逐一对齐 |
@@ -947,7 +948,7 @@ Redis：幂等结果缓存 / refresh 会话 / 登录失败计数（§4.6）
 | 业务语义 | 恒定当前用户；不含未中奖记录（FR-09）；每页默认 10（Q7） |
 | 错误语义 | `401`；`1002`（pageSize/pageIndex 非法时按规范取整，不报错：pageSize > 100 → 按 100，pageIndex < 1 → 按 1）；`500` |
 | 版本与兼容 | v1；分页结构 `PageResult<T>` 全局统一，字段只增不改；新增列（如「奖品类型」）为兼容变更 |
-| 前端契约 | TanStack Table 服务端分页；页码 ±1 转换只在 `usePagination.ts`；四态见 §2.6 #17–20 |
+| 前端契约 | TanStack Table 服务端分页（**仅渲染**：`getCoreRowModel()`；分页状态由 `usePagination.ts` 独立承接——纯 1 起、直通后端，不接 TanStack pagination，故无 ±1 转换点）；若将来接入 TanStack 分页，±1 转换必须收敛在 `usePagination.ts` 一处；四态见 §2.6 #17–20 |
 
 ### 5.3 错误码登记表（**已于 2026-09-17 登记进 `docs/error-codes.md`**）
 
@@ -987,7 +988,7 @@ Redis：幂等结果缓存 / refresh 会话 / 登录失败计数（§4.6）
 | RSK-01 | 依赖 | EF Core 10 + MySQL provider 适配风险（Pomelo 无 EF Core 10 版；规范 2.2 明确 Microting 分支，且警告「编译通过不能作为选型依据」） | 立项第一步先做「生成迁移 + 真连库查询」实测（规范 2.2 硬要求）；若 Microting 10.0.11 不达标 → 按规范回迁条件评估（禁止跨大版本混用） | 迁移落库 + 一次真实查询；失败即上报，不静默换包 |
 | RSK-02 | 技术 | 并发超发 / 超扣次数（FR-08、AC-12、AC-13） | D-01 条件 UPDATE + 影响行数；D-02 唯一索引 + 条件扣次；D-08 固定锁序 + RC + 死锁重试；三方同事务回滚 | 集成测试：多任务并发同一奖品 / 同一用户；断言库存 ≥ 0、UsedCount ≤ 3、记录数一致 |
 | RSK-03 | 技术 | 幂等缓存（Redis）与 DB 底线不一致 | Redis 仅作重放加速，正确性全部由 `DrawRequest` 唯一索引兜底（D-03）；缓存写失败仅告警 | 集成测试：写入后 flush Redis，同 key 重试仍返回首次结果且不重复扣次 |
-| RSK-04 | 部署 | 测试确定性配置泄漏生产（PRD R5） | D-06 启动强校验：非 Development/Testing 且存在确定性配置 → 应用拒绝启动；生产基线 `appsettings.json` 不含该节 | 附录 B 部署验收项：以生产配置启动一次，确认启动失败/配置为空；CI 增加配置文件扫描（grep `Deterministic`） |
+| RSK-04 | 部署 | 测试确定性配置泄漏生产（PRD R5） | D-06 启动强校验：非 Development/Testing 且确定性配置取**非基线值** → 应用拒绝启动；生产基线取值 = false / 空数组 / 空对象（与 D-06 决策表一致） | 附录 B 部署验收项：以生产配置启动一次，确认非基线取值注入触发启动失败；CI 增加配置文件扫描（grep 非基线取值：`Enabled: true` / 非空 `ForcedResults` / 非空 `WeightOverrides`） |
 | RSK-05 | 技术 | 跨日重置依赖真实时间，测试难构造（PRD R3） | `TimeProvider` 注入 + 固定 UTC+8 偏移（D-05）；日切 = 换行，无定时任务 | 单测/集成：Fake 时钟推进到次日 00:00（AC-11） |
 | RSK-06 | 技术 | 前端落点与后端结果不一致（PRD R4） | D-14：落点由返回 `itemId` 反算角度，动画纯表现；`transitionend` 后才弹 Dialog | E2E：中奖链路断言 Dialog 奖品名与扇区高亮编号一致（AC-08/09） |
 | RSK-07 | 技术/工期 | 从零搭建（PRD R6）：本仓库无任何应用代码，前后端基础设施工程量高于常规迭代 | 范围锁死 MVP（Won't 清单）；复用规范既定约定（JWT、request 封装、错误码、分页）；目录骨架见 §2.5；建议实现顺序：后端骨架 + 认证 → 奖池/抽奖 → 记录 → 前端基础设施 → 页面 | code-reviewer 按 §2.5/§5 对照；集成测试覆盖 4 个控制器 |
@@ -1087,7 +1088,7 @@ Redis：幂等结果缓存 / refresh 会话 / 登录失败计数（§4.6）
 3. 错误边界：`app.config.errorHandler` + 路由级 `onErrorCaptured` 降级 UI（规范 3.7）；抽奖/记录错误**只用页面内 Alert**，不引入 Toast（避免双报，原型映射表已定）。
 4. 文案全部经 `utils/messages.ts`（键值集中，为 i18n 预留，PRD 4.5-1）；组件内禁止硬编码用户可见中文。
 5. 幂等键：`utils/idempotency.ts` 为唯一出口；失败重试沿用、成功后重建（§5.4）。
-6. 分页：`usePagination.ts` 收敛 TanStack `pageIndex`(0 起) ↔ 接口 `pageIndex`(1 起) 的 ±1（规范 6.2 警告）。
+6. 分页：`usePagination.ts` 为**纯 1 起状态机、直通后端**（`pageIndex` 即接口 `pageIndex`）；`WinningRecordsView.vue` 的 TanStack Table 仅用 `getCoreRowModel()` 渲染，**不接** `getPaginationRowModel()` / pagination state，故当前**不存在 ±1 转换点**。若将来接入 TanStack 分页，±1 转换必须仍收敛在 `usePagination.ts` 一处（规范 6.2 警告）。
 7. 抽奖页状态机（对齐 §2.6）：`poolLoading → ready | poolError | poolEmpty`；`ready → drawing（请求+动画）→ dialog(win|lose) → ready(刷新 quota)`；任一步失败 → `drawFail`（重试沿用同 key）；`quota = 0 → noquota`（按钮真实 disabled）；**`quota` 未知（`remaining` 初值 `null`，首载失败）→ 不进入 `noquota`、按钮保持可用、徽标占位「—」**，由抽奖响应 / 页面重进兜底修正（REV-01，见 §2.6 补充约定）。
 8. 可访问性：Dialog 焦点陷阱由 shadcn-vue 承担；次数变化 `aria-live="polite"`；装饰性 SVG `aria-hidden="true" focusable="false"`；动效统一 `motion-reduce:` 降级。
 9. 所有 views 路由懒加载；无 `v-html`；无新增独立 CSS；`components/ui/` 只读。
@@ -1097,7 +1098,7 @@ Redis：幂等结果缓存 / refresh 会话 / 登录失败计数（§4.6）
 
 | # | 验收项 | 判据 |
 | --- | --- | --- |
-| B1 | 确定性配置不可达（R5） | 以生产配置启动：`Draw:Deterministic:Enabled=false` 且覆盖项为空；若注入任意确定性配置 → 应用启动失败（D-06）。CI grep 扫描 `appsettings*.json` |
+| B1 | 确定性配置不可达（R5） | 以生产配置启动：`Draw:Deterministic:Enabled=false` 且覆盖项为空；若注入非基线确定性配置 → 应用启动失败（D-06）。CI grep 扫描 `appsettings*.json` |
 | B2 | 迁移先于应用启动 | 部署脚本顺序：`dotnet ef database update`（或 SQL 脚本）→ 启动 API（规范 5.4） |
 | B3 | 反代 IP 还原 | `UseForwardedHeaders` 排在 `UseRateLimiter` **之前**；清空可信代理用 `KnownNetworks.Clear()` / `KnownProxies.Clear()`（不是集合初始化器）（规范 8.6） |
 | B4 | CORS 白名单 | `Cors:AllowedOrigins` 显式域名，禁止 `AllowAnyOrigin`；安全响应头（nosniff / DENY / CSP） |
