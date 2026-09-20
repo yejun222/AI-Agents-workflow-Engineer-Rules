@@ -5,12 +5,13 @@
 | 项 | 内容 |
 | --- | --- |
 | 产物 | `docs/40-changelog.md`（engineer 交付的改动台账，含回滚建议） |
-| 版本 | **v2**（v1 → v2：本批新增 `CHG-19`「引用修复改动集（两角色同源 8 文件 18/18）＋ 同批护栏与规则文本加固」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见下方「本轮变更登记」行。v1 冻结取值 `2026-09-17` 早于 `CHG-14`…`CHG-18` 的落盘且头部未同步，本轮按 §4「末次实际落盘时刻」口径一并订正） |
-| 冻结时间 | **2026-09-18T17:54:00+08:00**（**实测**：`date` 输出 `2026-09-18 17:54:33 +0800`，向下取整到分钟 = 本批（v2）末次落盘时刻；**证据强度 = 旁证** —— 本批尚未提交，**无提交级落盘证据**（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**。v1 取值 `2026-09-17`（日粒度）见「版本」行说明） |
+| 版本 | **v3**（v2 → v3：本批新增 `CHG-20`「集成夹具 Redis 覆盖值修复（`51:OBS-12`）」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见「本轮变更登记（2026-09-20）」行；v1 → v2：本批新增 `CHG-19`「引用修复改动集（两角色同源 8 文件 18/18）＋ 同批护栏与规则文本加固」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见下方「本轮变更登记」行。v1 冻结取值 `2026-09-17` 早于 `CHG-14`…`CHG-18` 的落盘且头部未同步，本轮按 §4「末次实际落盘时刻」口径一并订正） |
+| 冻结时间 | **2026-09-20T11:22:00+08:00**（**实测**：本批（v3，`CHG-20`）末次落盘时刻取 `date` 实际输出 `2026-09-20T11:22:41+08:00` 向下取整到分钟；**证据强度 = 旁证** —— 本批尚未提交，无提交级落盘证据（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**）。**上一版取值**：`2026-09-18T17:54:00+08:00`（**实测**：`date` 输出 `2026-09-18 17:54:33 +0800`，向下取整到分钟 = 本批（v2）末次落盘时刻；**证据强度 = 旁证** —— 本批尚未提交，**无提交级落盘证据**（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**。v1 取值 `2026-09-17`（日粒度）见「版本」行说明） |
 | 上游依赖 | `docs/30-architecture.md` **v4**、`docs/10-prd.md` v2、`docs/20-prototype.html` v3（**2026-09-18 勘误**：原值 30 **v2** 与本文正文不符——CHG-13 以 30 **v3** 为契约基准，CHG-16 / CHG-17 / CHG-18 均对齐 30 **v4** 的 D-08；按 `docs/artifacts.md` §5，30 变更时本产物是受影响下游，但本文正文**已随每次变更逐条回写**（CHG-16…18 即其落地），故**无需补失效标记**，只需订正本行） |
 | 写入范围 | `src/**`、`tests/unit/**`、`tests/integration/**`、本文件 |
 | 说明 | 改动逐条 ID 稳定（CHG-01…），关联 FR / AC；「测试结果」栏只在**实际执行**后填写，未执行的一律标注原因 |
 | 本轮变更登记（2026-09-18） | **改了哪一类**：新增 `CHG-19`（引用修复改动集补登 ＋ 同批护栏与规则文本加固）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更**；**何时**：落盘日 `2026-09-18`（具体时刻见本文件「冻结时间」行的实测读数）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」（正文变更 → 升版；头部元信息块同步）+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v1 → v2**、冻结时间同步取本批末次落盘。**范围声明（本批覆盖提交面）**：`git diff --numstat -- src tests` 实测 8 文件 / 18 增 18 删（`src/**` + `tests/unit/**` 归 engineer；`tests/e2e/**` 归 test-executor —— 同轮两角色同源；逐处清单见 CHG-19 §1）＋ 护栏与规则文本三件（`tools/check-config.py`、`docs/role-protocol.md`、`.gitignore`，由主对话落盘；见 CHG-19 §1b）；工作区其余脏文件（`docs/*`、`.claude/*` 等属其他角色）**不在本 CHG 清单内**，提交时以 `git show --stat` 逐文件核对 |
+| 本轮变更登记（2026-09-20） | **改了哪一类**：新增 `CHG-20`（集成夹具 Redis 覆盖值修复，关联 `51:OBS-12`）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更**（非台账类回写）；**何时**：落盘日 `2026-09-20`（实测读数见「冻结时间」行）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v2 → v3**、冻结时间同步取本批末次落盘。**范围声明**：`git diff --stat -- tests/integration` 实测 2 文件 / 74 增 7 删；证据目录（绝对路径，留存不删）`D:\AI test\AI-Agents-workflow-Engineer-Rules\tests\integration\_tmp-obs12-fix-20260920-01`。 |
 
 ## 变更索引
 
@@ -35,6 +36,7 @@
 | CHG-17 | 用户裁决落地：重试预算 3 → 2 次尝试对齐架构 D-08（最坏等待 150s → **100s**）+ `CommandTimeout` 接线守护性断言（含 2 项负向验证） | BUG-05、D-08（架构 `:544`）、CHG-16、`docs/artifacts.md` §5 | 已落地（实跑 + 负向验证见本节；附 1 项交付残留：前端 15s 与后端最坏 100s 不匹配，裁决本轮不动） |
 | CHG-18 | REV-21 闭环：重试耗尽 CRITICAL 告警的计数口径修正（**尝试次数 → 重试次数**，对齐 D-08「重试 1 次」）+ 同源根因治理的守护性断言（含 2 项负向验证） | REV-21、D-08（架构 `:567`）、CHG-16、CHG-17、`docs/artifacts.md` §5 | 已落地（实跑 + 负向验证见本节；**上游契约变更 = 无**，仅日志文案，不改错误码 / HTTP 状态码） |
 | CHG-19 | 引用修复改动集（裸行号锚点 → 稳定 ID；含 `TC-39b` 幽灵编号判定）＋ 同批护栏 T30 扩面与临时目录前缀闭集双向锁、规则文本同步加固 | `60:OBS-32`、`60:OBS-05`、`docs/development-spec.md` 13.4、`D-08`、`TC-39`、`docs/artifacts.md` §5、`docs/role-protocol.md` §6 / §7.6 | 已落地（构建 0/0 + 单测 96/0/0 + 护栏 369 项全 PASS 实跑；**集成未通过：环境不具备**，见本节） |
+| CHG-20 | 集成夹具 Redis 覆盖值修复（连接与清理目标同源派生 + 守护断言） | `51:OBS-12`（阻断/执行侧）、`FR-02`、`D-03` | 已落地（判别轮 43/43 / 对照轮 43/43 / 单测 96/0/0 / 护栏 373 全 PASS） |
 
 ---
 
@@ -1009,6 +1011,103 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 
 ---
 
+## CHG-20 集成夹具的 Redis 覆盖值修复：连接与清理目标一律从 `LuckyDrawApiFactory.RedisConfiguration` 派生（`51:OBS-12` 闭环改动；含守护断言 + 实测负向验证）
+
+- **状态**：**已落地**（`tests/integration/**` 2 个文件 / 74 增 7 删；构建 0 警告 / 0 错误（依据：本批各 `dotnet test` 运行日志中 `warning` / `Warning` / `警告` 命中数均为 0）；集成**判别轮 43/43**、**对照轮 43/43**；单测 96/0/0；护栏 **373 项 全部 PASS**，校验基线见 §2）。
+- **来源与调度**：`docs/51-defects.md` §3 **`51:OBS-12`（阻断；归类 = `执行侧`）** —— 夹具声明支持 `LUCKDRAW_TEST_REDIS` 覆盖、实现却把实例与库号写死（「半截覆盖」）；test-executor 已独立复现并留存运行期证据。本条提供修复与可闭环证据；`51` 的台账状态回写归 test-executor（本角色不改该文件）。
+- **性质**：**执行侧（测试基建 / 夹具）修复** —— `src/` 产品代码**零改动**；无新第三方依赖、无表结构 / DTO / 接口契约变更、无目录结构变更、无新增或删除用例 —— 未触发「必须确认的场景」。
+- **上游契约变更**：**无**（`docs/10/20/30/50/51/52/60-*` 与 `docs/error-codes.md` 一律未触碰）。
+- **关联**：`51:OBS-12`（驱动项）、`FR-02`（登录与登出；会话刷新语义未变，本改动只修夹具的清理靶）、`D-03`（幂等数据库兜底）、`D-06`（配置契约）、`D-15`（认证幂等）、`REV-09`（口令 / 密钥出仓）、`AS-01`（开发态端口映射）、`CHG-19`（上一条；本批沿用其「证据路径逐个核验 + 引用用稳定 ID」体例）、`QX-02`（本批新增待确认项，见文末）。
+- **落盘证据强度（如实标注）**：本批**尚未提交**（本角色不执行 git 提交，提交由主对话统一执行）→ **无提交级落盘证据**；下列读数均为**实测**（命令 + 工作目录 + 实际结果），所引证据路径已逐个核验存在。
+
+### 1. 改动清单（`git diff --stat -- tests/integration` 实测：2 文件 / 74 增 7 删）
+
+| # | 文件 | 改动 |
+| --- | --- | --- |
+| 1 | `tests/integration/LuckyDraw.IntegrationTests/IntegrationFixture.cs` | ① **连接**：`ConnectionMultiplexer.Connect("localhost:6379,allowAdmin=true")` → 改为解析 `LuckyDrawApiFactory.RedisConfiguration` 得到 `ConfigurationOptions` 后连接；② **清理库号**：新增 `RedisDatabase` 属性 = 同源解析出的 `defaultDatabase`（未配置时 db0），替换两处字面量 `1`；③ **清理端点**：`GetServer("localhost:6379")` → 本连接自身的 `GetServers()`（不写死地址）；④ **新增守护** `EnsureRedisTargetMatchesApp()`（夹具 init 期即比对，见 §5）；⑤ 类与属性的 `<summary>` 改为实然陈述 |
+| 2 | `tests/integration/LuckyDraw.IntegrationTests/LuckyDrawApiFactory.cs` | **仅** `<summary>` 扩写：写明该属性是「被测应用与集成夹具的共同取值来源」、夹具侧 `allowAdmin` 只在其派生副本上打开。**属性值本身逐字未变**，应用侧配置**未**新增 `allowAdmin` |
+
+- **`51:OBS-12` 点名的两个坑，逐条处置**：① **`allowAdmin` 只加在夹具派生副本上** —— `options.AllowAdmin = true` 作用于夹具自行 `Parse` 出来的那份；注入应用的 `Redis__Configuration` 取自 `RedisConfiguration` 原值（无 `allowAdmin`），应用不需要 admin 权限；② **清理库号不再是字面量 `1`** —— `FlushDatabase(...)` 与 `Keys(database: ...)` 与 `GetDatabase(...)` 三处同取 `RedisDatabase`（= 配置的 `defaultDatabase`），与 `RedisConnectionProvider` 的 `GetDatabase()`（无参 → 配置库）**同源同值**。
+
+### 2. 判别轮 / 对照轮（原始输出关键行，工作目录 = 仓库根）
+
+| 轮次 | 实际命令 | 原始输出关键行 |
+| --- | --- | --- |
+| **判别轮（覆盖值 db2）** | `LUCKDRAW_TEST_REDIS="localhost:6379,defaultDatabase=2" LUCKDRAW_TEST_CONNECTION_STRING="Server=localhost;Port=3407;Database=luckydraw_test;User Id=root;Password=devonly;CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=True" dotnet test tests/integration/LuckyDraw.IntegrationTests --nologo` | `Passed!  - Failed:     0, Passed:    43, Skipped:     0, Total:    43, Duration: 13 s`（exit=0） |
+| **对照轮（不设覆盖值）** | 同上，去掉 `LUCKDRAW_TEST_REDIS` | `Passed!  - Failed:     0, Passed:    43, Skipped:     0, Total:    43, Duration: 13 s`（exit=0） |
+
+- **负向对照（同命令、修复前）**：`Failed: 1, Passed: 42, Total: 43`，失败例 = `AuthApiTests.Refresh_WithoutCookie_Reports1204`，失败原文 `Expected envelope!.Code to be 1204 because HTTP 200 / {"code":1203,...}, but found 1203 (difference of -1)` —— 本轮 §4 样本 A 已复现该读数，两次独立观测（test-executor 批 / 本批）一致。
+- **护栏读数**：`python tools/check-config.py` → `共 373 项检查 / 全部 PASS ✓`，**校验基线：HEAD 6a62868 / 工作区 脏 11 个文件**（本 CHG-20 落盘后的末次运行读数；落盘前同一命令为「脏 10 个文件」，两次均 373 项全 PASS）（role-protocol §7.6：该 PASS 只证明工作区状态）；`python tools/check-config.py --self-test` → `自测 PASS ✓（141/141 条突变均被捕获，还原后全 PASS）`（门禁非空转的实测；自测改写后已按 sha1 逐文件复核，3 个受检文件哈希前后一致）。
+- **单测**：`dotnet test tests/unit/LuckyDraw.UnitTests --nologo` → `Passed!  - Failed: 0, Passed: 96, Skipped: 0, Total: 96`（本批未触碰 `src/`，此轮为「不受影响」的对照读数）。
+
+### 3. 清理目标已修正的正向证据（redis-cli 探针实测，隔离 Redis `luckydraw-iso-redis`）
+
+约定：每轮开跑前在 db0 / db1 / db2 各放 1 个无 TTL 的 marker `OBS12FIX:marker:dbN`；跑完看谁被动。
+
+| 轮次 | db0 marker | db1 marker | db2 marker | 运行中/运行后应用键落点 | 判读 |
+| --- | --- | --- | --- | --- | --- |
+| 判别轮（覆盖 db2，修复后） | 存活 | **存活**（不再被错靶抹除） | **被抹** | db2 运行后 `DBSIZE = 0`（逐例清理到位） | 清理靶 = 应用实际库 db2；**别的库不再被动** |
+| 对照轮（无覆盖值，修复后） | 存活 | **被抹** | 存活 | 运行中 ~16s 探针 db1 出现 `draw:auth:refresh:459 / 463 / 458` | 清理靶 = 默认 db1（= 应用实际库）；应用确实写进配置库 |
+| 负向样本 A（回退修复 + 覆盖 db2） | 存活 | **被抹**（错靶） | **存活 + `DBSIZE = 72`**（`draw:auth:*` 41 / `draw:idempotency:*` 30 / marker 1） | 运行中 db2 键数 1 → 25 → 72（应用键全部落在 db2） | 复现缺陷本体：**清理错靶 + 应用库从未被清理** |
+
+- 判读依据（应用侧代码只读核实）：`RedisConnectionProvider` 用 `ConfigurationOptions.Parse(配置串)`，四个存储一律 `GetDatabase()`（无参）→ 应用所用库 = 配置里的 `defaultDatabase`。
+- **留下的 key 与最终状态**：本批共写入 3 个 marker（`OBS12FIX:marker:db0/1/2`，无 TTL），负向样本期间 db2 累计过 72 / 143 / 214 个应用残留键；登记与复位见 §8，**最终 = 三库全空**（与跑前一致）。
+
+### 4. 负向验证（`docs/development-spec.md` 7.5 第 6 条：三步观测逐条实测）
+
+回退/半截样本由补丁脚本 `tests/integration/_tmp-obs12-fix-20260920-01/10-apply-fix.py` 生成（逐段断言原文命中 1 次后才落盘；每种模式各留一份 `git diff` 快照）。
+
+| 样本 | 回退 / 构造方式 | 观察到的失败（实测原文） | 还原后 |
+| --- | --- | --- | --- |
+| **A 回退修复**（= 修复前代码） | `--mode revert`：连接与清理目标全部退回 `localhost:6379` + 字面量 db1 | `Failed!  - Failed: 1, Passed: 42, Skipped: 0, Total: 43`（exit=1）：`Expected envelope!.Code to be 1204 because HTTP 200 / {"code":1203,...}, but found 1203 (difference of -1)` | `--mode fix` → 判别轮 **43/43 复绿**（exit=0） |
+| **B 守护断言负向样本**（「只改连接、不改清理目标」） | `--mode halflink`：连接已按配置派生，清理库号写死 `1` | `Failed!  - Failed: 43, Passed: 0, Skipped: 0, Total: 43`（exit=1）：`System.InvalidOperationException : 夹具 Redis 清理目标与应用不一致：应用 = Unspecified/localhost:6379 / db2；夹具 = Unspecified/localhost:6379 / db1。`（夹具初始化即抛，**43 例全部未进入测试体**） | `--mode unhalf` → 复绿（同「regreen」轮） |
+| **C 守护断言的边界样本** | `--mode halfsilent`：库号已派生，但 `FlushDatabase` / `Keys` 仍写死 `1` | 守护**看不见**（参数值无法自省）→ 运行期出现与样本 A 同形的**静默**失败：`Failed: 1, Passed: 42`（1203 vs 1204） | `--mode unhalf` → 复绿 |
+
+- 结论：**修复的两个半边各自都是载荷** —— 只改连接（样本 B）会被守护断言在夹具初始化期拦下；只改连接且不设守护（样本 C）会退回静默错靶。样本 A/B/C 在还原后全部复绿（判别轮 43/43、对照轮 43/43，均为终态代码实测）。
+
+### 5. 新增断言 / 守护的辨别力依据
+
+- **`EnsureRedisTargetMatchesApp()`**（夹具 `InitializeAsync` 内）：一侧取宿主 DI 里**已绑定**的 `Redis:Configuration`（应用真正读到的那份），另一侧取夹具**实际生效**的目标（连接端点 = 本连接连到的端点；库号 = 清理命令实际使用的 `RedisDatabase`），逐项相等才放行，否则抛 `InvalidOperationException`。
+  - **它在什么状态下失败**：任何「夹具生效目标 ≠ 应用已绑定配置」的状态 —— 实测触发条件 = 清理库号写死（样本 B，失败读数见 §4）；同理可捕获「夹具连接写死地址而应用走覆盖值」「应用侧注入路径被改动 / 被 `appsettings` 顶掉」这两类。
+  - **它不覆盖**：「库号已派生、清理语句仍写死字面量」（样本 C 实测，参数值无法自省）→ 已在守护的文档注释中**显式声明该边界**，该形态由「单一调用点 + 唯一取值来源」约束。
+- **既有断言的变动：零** —— 本批未新增 / 未修改 / 未删除任何用例断言；失败例的期望值 `1204` 来自契约（`docs/error-codes.md` 已登记的会话过期码），**未放宽**。
+
+### 6. 影响面
+
+- **产品面：零** —— `src/` 未改动，接口 / DTO / 错误码 / HTTP 状态码 / 数据库 / 迁移 / 前端全部未触碰；集成 43 例的**判据一字未改**。
+- **测试面**：集成夹具的 Redis 目标语义由「写死 db1」变为「跟随 `defaultDatabase`」——
+  - 默认运行（不设覆盖值）**行为等价**（target 仍是 `localhost:6379` / db1）；
+  - 设 `LUCKDRAW_TEST_REDIS` 时行为**修正**：清理落在应用真正使用的库，且**不再误清其他库**（此前每例都会 `FlushDatabase(1)`，会抹掉同一实例上 db1 的他人数据 —— 这是本缺陷的破坏面）。
+  - `ResetIdempotencyCacheAsync()`（`ConcurrencyTests` 用于验证 `D-03` 数据库兜底）同轮修正：此前在覆盖值场景下删的是 db1 的幂等键。
+- **运行依赖**：夹具 init 期即建连（守护需要端点）→ 与「Redis 不可达则 43 例全部不可运行」的既有语义一致，只是失败时点提前到夹具初始化（原先在首例 `ResetAsync`）；见 §10 的实测。
+- **护栏面**：`tests/` 在 T30 行号引用扫描面内 —— 本批新增注释**未使用任何「文件:行号」型引用**（一律稳定 ID：`51:OBS-12` / `CHG-20`），护栏 373 项全 PASS 为证。
+
+### 7. 回滚建议
+
+- **逐文件反向应用 `git diff -- tests/integration`** 即可逐字复原（两文件均含完整改动；补丁脚本另留 `20-diff-after-fix.txt` 快照）。**不建议单独回滚**：回滚即恢复「覆盖值有效、清理无效」的错靶状态（样本 A 实测：`Failed: 1 / Passed: 42` + 误抹 db1）。
+- 本产物侧回退：删除本 CHG-20 节、`变更索引` 的 `CHG-20` 行、头部「本轮变更登记（2026-09-20）」行与 `QX-02` 行，并把「版本」回 `v2`、「冻结时间」回 `2026-09-18T17:54:00+08:00`。
+
+### 8. 环境与复位登记（`docs/role-protocol.md` §8 三段式）
+
+- **用到的环境**：隔离 MySQL `luckydraw-iso-mysql`（`localhost:3407`，库 `luckydraw_test`）、隔离 Redis `luckydraw-iso-redis`（`localhost:6379`）。**共享容器 `luckydraw-mysql` / `luckydraw-redis` 全程未触碰**（未对其发起任何 docker 命令）；隔离容器未停 / 未删 / 未重建。
+- **破坏性操作（实测记录）**：① 3 个 marker 的写入与删除；② 负向样本期间 db2 累计 214 键的应用残留 → **11:14 实测 `FLUSHDB`（db2）** 后为零（此后 regreen 轮从空库起跑）；③ `dotnet test` 对 `luckydraw_test` 库执行夹具既定的 DELETE / UPDATE。
+- **复位实测（§8 第 2 段）**：删 marker 后 `db0 = 0 / db1 = 0 / db2 = 0`、`INFO keyspace` 空 —— **与跑前（11:07 探针，三库全空）一致**；证据 `80-restore-and-final-state.txt`。
+- **复位之后仍有追加运行（先后顺序如实登记）**：§10 的死端口轮（11:20）跑在上述复位**之后**，因此复位文件不覆盖它；该轮结束后的终态探针（11:27 实测）为 `db0 = 0 / db1 = 0 / db2 = 0`、三库 key 列表为空、marker 全 0 → **终态 = 空，与跑前（11:07）一致**；证据 `82-post-deadport-final-probe.txt`。
+- **归属声明（§8 第 3 段）**：本批期间隔离 Redis 内的所有 key 均由本批产生（跑前为空，有探针为证）；`luckydraw-iso-*` 容器的其余流量非本批产生。
+
+### 9. 失效传播判定（按 `docs/artifacts.md` §5 矩阵）
+
+- **`src/ 变更` → `tests/**`**：本批 `src/` **未改** → 无该扇出；但为闭环 `51:OBS-12` 仍实跑了 `tests/integration/**`（判别轮 + 对照轮各 43/43）与 `tests/unit/**`（96/0/0）。
+- **`tests/integration/**` 变更 → `tests/e2e/**`**：矩阵未单列该项；`tests/e2e/**` 不消费本夹具（其为 Playwright 侧、经 `tests/e2e/lib/launch-api.mjs` 起实例）→ 判定**不触发复跑**；该目录的最终判定权归 test-executor。
+- **`40-changelog 变更` → `51-defects` / `52-qa-report` / `60-review`**：`51:OBS-12`（阻断）的**修复侧证据已具备**（本 CHG + 证据目录）→ 状态回写（`已闭环` 与否）与「下一轮集成回归」归 test-executor；本角色无这三份文件的写入权。
+
+### 10. 未实测 / 存疑（如实登记，不粉饰）
+
+- **原「未实测项」已转实测**：`51:OBS-12` 登记的「若 Redis 无监听则 43 例全部不可运行」在 test-executor 批为**旁证（代码路径推导）**；本批以**死端口**等价构造实测（`LUCKDRAW_TEST_REDIS="localhost:6399,defaultDatabase=2"`，等价于「无监听」，且**无需停容器**）：`Failed!  - Failed: 43, Passed: 0, Skipped: 0, Total: 43, Duration: 59 ms`（exit=1），首条异常为 `StackExchange.Redis.RedisConnectionException : It was not possible to connect to the redis server(s).` —— 夹具初始化期即失败，**无任何用例进入测试体**；该轮跑在 11:17 复位后的空实例上，其后的终态探针（11:27）实测 `db0 / db1 / db2` 的 `DBSIZE` 均为 0 → 未写入任何键。**如实标注**：测的是 6399 死端口而非「6379 被停」，二者对夹具路径等价，但「同端口被停」的具体形态仍**未实测**（隔离容器禁停，环境约束）。
+- **`QX-02`（新增待确认项）**：失败例名为 `Refresh_WithoutCookie_Reports1204`，但夹具 `Client` 由 `WebApplicationFactory` 默认参数创建（`HandleCookies` 默认 `true`）→ 请求**实际带着历史 refresh cookie**，判据走「会话不存在 → `1204`」而非「未携带 cookie → `1204`」。修复后该例在两种状态下都通过，故本批**未动它**（改夹具的 cookie 行为会波及 43 例的既有语义，超出 `51:OBS-12` 面）。
+- **旁证声明**：本批所有运行均为**本机隔离容器**环境（非生产 CI），证据强度 = 旁证（`dotnet test` 原始输出 + `redis-cli` 探针 + 复位实测）；`git diff` 快照为版本控制级，但本批**尚未提交**，故不构成仓库级证明。
+
+
 ## 待确认清单（默认假设）
 
 | 编号 | 假设 | 依据 |
@@ -1021,3 +1120,4 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 | AS-06 | 重试耗尽的终态错误码**为 `1001`「系统繁忙，请稍后重试」**（HTTP 200） | **已由用户裁决确认（CHG-17）**：保持代码现状 `1001`；架构 `:544` 的「500」表述由 software-architect 并行修订 `docs/30-architecture.md`（本角色未触碰该文件）。原冲突记录见 CHG-16「未裁决项 (1)」 |
 | AS-07 | 整事务重试预算**为 2 次尝试（重试 1 次），最坏用户等待 100s** | **已由用户裁决确认并落地（CHG-17）**：`MaxTransactionAttempts` 由 3 改为 2，对齐架构 `:544`「整个事务重试 1 次」；原冲突记录见 CHG-16「未裁决项 (2)」 |
 | QX-01 | 新增 CHG 条目是否应升版：本产物头部原为「版本 v1 / 冻结时间 `2026-09-17`」，而 `CHG-14`…`CHG-18` 落盘后头部未同步；本批（`CHG-19`）按 `docs/artifacts.md` §4「正文契约内容变更 → 升版」执行 **v1 → v2** 并同步冻结时间。**若需与历史批次口径一致（只登记、不升版）**，请裁决后回退（回退办法见 `CHG-19` §8 末条）。 | `docs/artifacts.md` §4「冻结后仍有落盘时的处置」；主对话调度指令（本批次） |
+| QX-02 | 集成失败例 `AuthApiTests.Refresh_WithoutCookie_Reports1204` 的**用例名与实际请求不符**：夹具 `Client` 由 `WebApplicationFactory` 默认参数创建（`HandleCookies` 默认 `true`）→ 该请求实际携带历史 refresh cookie，判据走「会话不存在 → `1204`」而非「未携带 cookie → `1204`」。**本批未改**（改夹具 cookie 行为会波及 43 例既有语义，超出 `51:OBS-12` 面）。**若要严格对齐用例名**，可选：① 该用例改用独立 client（`CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false })`）；② 或按契约订正用例名 / 判据。属**测试设计面**（契约归 `docs/50-testcases.md`），请裁决后另行调度 | 本批实测：修复前该例失败值 `1203` 只有在**请求带 cookie** 时才可能产生（控制器在 cookie 为空时直接抛 `1204`），故「带 cookie」为实测推论而非推测 |

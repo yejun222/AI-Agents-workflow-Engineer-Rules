@@ -1,10 +1,13 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using LuckyDraw.Infrastructure.Cache;
 using LuckyDraw.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace LuckyDraw.IntegrationTests;
@@ -18,16 +21,37 @@ public class IntegrationCollection : ICollectionFixture<IntegrationFixture>
 }
 
 /// <summary>
-/// 集成测试夹具：真实 MySQL（<see cref="LuckyDrawApiFactory.DatabaseName"/>）+ 真实 Redis db=1 +
+/// 集成测试夹具：真实 MySQL（<see cref="LuckyDrawApiFactory.DatabaseName"/>）+ 真实 Redis +
 /// 真实 HTTP 管道（<c>WebApplicationFactory</c>）。每例前重置数据，保证互不干扰。
+/// Redis 的**实例与库编号一律从 <see cref="LuckyDrawApiFactory.RedisConfiguration"/> 派生**
+/// （被测应用与夹具的唯一取值来源，支持 `LUCKDRAW_TEST_REDIS` 覆盖；`51:OBS-12`）。
 /// </summary>
 public class IntegrationFixture : IAsyncLifetime
 {
     /// <summary>统一 JSON 选项（后端 camelCase，大小写不敏感绑定）。</summary>
     public static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
+    /// <summary>
+    /// 夹具侧 Redis 配置：由 <see cref="LuckyDrawApiFactory.RedisConfiguration"/>（被测应用读到的
+    /// 同一份配置）解析而来，仅额外打开 `allowAdmin` —— `FlushDatabase` / `Keys` 是 admin 命令，
+    /// 而应用侧配置不需要 admin 权限，故该标志只留在夹具侧、不回写应用配置。
+    /// </summary>
+    private static readonly Lazy<ConfigurationOptions> RedisOptions = new(() =>
+    {
+        var options = ConfigurationOptions.Parse(LuckyDrawApiFactory.RedisConfiguration);
+        options.AllowAdmin = true;
+        return options;
+    });
+
+    /// <summary>夹具连接（连接目标 = 被测应用所用实例；admin 权限仅夹具侧持有）。</summary>
     private static readonly Lazy<ConnectionMultiplexer> Redis =
-        new(() => ConnectionMultiplexer.Connect("localhost:6379,allowAdmin=true"));
+        new(() => ConnectionMultiplexer.Connect(RedisOptions.Value));
+
+    /// <summary>
+    /// 清理目标库 = **被测应用实际使用的库**：与 `Redis__Configuration` 同源解析出的 `defaultDatabase`
+    /// （未指定时为 Redis 默认 db0）。不得写字面量库号 —— 覆盖值换库后清理即错靶（`51:OBS-12`）。
+    /// </summary>
+    private static int RedisDatabase => RedisOptions.Value.DefaultDatabase ?? 0;
 
     private readonly LuckyDrawApiFactory _factory = new();
 
@@ -38,6 +62,7 @@ public class IntegrationFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         Client = _factory.CreateClient();
+        EnsureRedisTargetMatchesApp();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -50,6 +75,36 @@ public class IntegrationFixture : IAsyncLifetime
         Client.Dispose();
         await _factory.DisposeAsync();
     }
+
+    /// <summary>
+    /// 守护「夹具清理目标 ≡ 被测应用实际使用的 Redis 实例与库」：一侧取宿主 DI 里**已绑定**的
+    /// `Redis:Configuration`（应用真正读到的那份），另一侧取夹具**实际生效**的目标
+    /// （连接端点 = 本连接连到的端点；库号 = 清理命令实际使用的 <see cref="RedisDatabase"/>），
+    /// 不一致即抛 —— 不留静默偏差（`51:OBS-12` 的语义目标）。
+    /// **边界（如实声明）**：本守护看不见「库号已派生、但清理语句仍写死字面量」这一形态
+    /// （参数值无法自省）—— 该形态由「单一调用点 + 唯一取值来源」约束，运行期样本见 `CHG-20`。
+    /// </summary>
+    private void EnsureRedisTargetMatchesApp()
+    {
+        var appOptions = ConfigurationOptions.Parse(
+            _factory.Services.GetRequiredService<IOptions<RedisOptions>>().Value.Configuration);
+        var appTarget = DescribeTarget(appOptions.EndPoints, appOptions.DefaultDatabase ?? 0);
+        var fixtureTarget = DescribeTarget(Redis.Value.GetEndPoints(), RedisDatabase);
+
+        if (!string.Equals(appTarget, fixtureTarget, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"夹具 Redis 清理目标与应用不一致：应用 = {appTarget}；夹具 = {fixtureTarget}。"
+                + "夹具必须从 LuckyDrawApiFactory.RedisConfiguration 派生（含 defaultDatabase），不得硬编码实例或库号。");
+        }
+    }
+
+    /// <summary>「实例集 + 库号」的稳定文本（端点排序后拼接）：用于比对与失败信息，避免集合顺序差异造成假阳性。</summary>
+    private static string DescribeTarget(IEnumerable<EndPoint> endpoints, int database) =>
+        string.Join(
+            ",",
+            endpoints.Select(endpoint => endpoint.ToString()).OrderBy(text => text, StringComparer.Ordinal))
+        + " / db" + database;
 
     /// <summary>清空业务数据、复位默认奖池（含权重 / 库存 / 启用状态）、清空测试 Redis db。</summary>
     public async Task ResetAsync()
@@ -83,16 +138,24 @@ public class IntegrationFixture : IAsyncLifetime
                 """);
         }
 
-        Redis.Value.GetServer("localhost:6379").FlushDatabase(1);
+        // 清理目标 ≡ 被测应用实际使用的实例与库：端点取本连接自身（由同一份配置派生，不写死地址），
+        // 库号取配置的 defaultDatabase（不写死 1）
+        foreach (var server in Redis.Value.GetServers())
+        {
+            server.FlushDatabase(RedisDatabase);
+        }
     }
 
     /// <summary>仅清空幂等结果缓存（模拟 Redis 降级），保留会话与失败计数：用于验证数据库唯一索引兜底（D-03）。</summary>
     public async Task ResetIdempotencyCacheAsync()
     {
-        var database = Redis.Value.GetDatabase(1);
-        foreach (var key in Redis.Value.GetServer("localhost:6379").Keys(database: 1, pattern: "draw:idempotency:*"))
+        var database = Redis.Value.GetDatabase(RedisDatabase);
+        foreach (var server in Redis.Value.GetServers())
         {
-            await database.KeyDeleteAsync(key);
+            foreach (var key in server.Keys(database: RedisDatabase, pattern: "draw:idempotency:*"))
+            {
+                await database.KeyDeleteAsync(key);
+            }
         }
     }
 

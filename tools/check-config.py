@@ -876,7 +876,9 @@ check("T25 免确认入口已登记在 .claude/README.md", not _doc_missing,
 # ---- 26. OBS 编号的跨命名空间裸引用（编号载体里的**事实**，此前只断言过规则文本存在）----
 # 失效机理：T15 断言了 artifacts.md **写着**「跨产物引用必须带文件名前缀」，但从未看过 51 / 52 / 60
 # 里**实际**有没有裸引用。实测：60-review.md 正文里有一处裸 `OBS-03`，而该文件**没有任何 OBS 定义序列**，
-# 51 与 52 又各有一个含义不同的 OBS-03 —— 规则写在纸上、事实挂在文件里，两边从不相遇。
+# 51 与 52 又各有一个 OBS-03（两侧内容相同、归属不同命名空间），而同号却含义**相反**的实例是 OBS-08
+# （51 = 工具行为且阻断 / 52 = 用例缺陷且非阻断）—— 规则写在纸上、事实挂在文件里，两边从不相遇。
+# 本注释所引实例由 T31 机检自证：`51:OBS-08` 与 `52:OBS-08` 的定义行首句必须不同。
 # 判定（扫描面与规则同源于 artifacts.md §3.1，防扫描面被悄悄缩小，同 T15 的手法）：
 #   三份编号载体的**非引用块正文**里，裸 `OBS-nn` 必须 ① 能在本文件定义表查到，或 ② 已在本文件编号勘误块
 #   中登记。两条都不满足 = 跨命名空间裸引用，没人处理过它。
@@ -908,7 +910,8 @@ for _d in _OBS_DOCS_EXPECT:
     _unreg = [o for o in _orphan if o not in _registered]
     check(f"T26 {_d} 的跨命名空间裸引用已登记", not _unreg,
           f"裸引用 {'、'.join(_unreg)} 既不在本文件定义表内，也未在本文件编号勘误块中登记 —— "
-          "该编号在别的命名空间真有同号条目时（实测 51 / 52 各有一个含义不同的 OBS-03 与 OBS-08），"
+          "该编号在别的命名空间真有同号条目时（实测 51 / 52 各有一个 OBS-03，另有同号却含义相反的 OBS-08："
+          "51 为工具行为且阻断、52 为用例缺陷且非阻断），"
           "读者与检索都无法判定它指哪一份，且**没有任何环节会报错**。"
           "处置二选一：补命名空间前缀，或按 51 / 52 先例在编号勘误块中登记（不改写历史正文）")
 
@@ -1556,6 +1559,188 @@ check("T30 临时目录前缀闭集与 §6 声明一致（双向锁）",
       "取证目录里的故意坏样本整轮留在扫描面上；新增前缀须同时改 §6 与护栏 `_TMP_PREFIXES`")
 
 
+# ---- 31. 门禁输入的**可求性**（矩阵分区 / 支撑规范写入者 / 阻断面的对侧编号）----
+# 三项同源于一个母题：**门禁的输入面若不能从文档机械求得，就等于由维护者的记忆决定**。
+# 实测三例（2026-09-20 审计）：
+#   ① `docs/artifacts.md` §5 矩阵**手写枚举**测试分区 —— `30-architecture 变更` 行漏 `tests/integration/**`，
+#      且矩阵里根本没有 `tests/** 变更` 行（改夹具的批次「按矩阵无任何下游需复核」）；
+#   ② 4 份支撑规范不在 §2 写入范围表 —— `docs/state-machine.md` 是 D2 判别口径的唯一权威，却没人被授权改它；
+#   ③ 阻断型 OBS 跨 `51:` / `52:` / `60:` 三侧各发一号且互不标注 ——「共 N 条阻断」在任一侧都读不出真实阻断面。
+_art_txt = read(DOCS / "artifacts.md") or ""
+_h2 = _art_txt.find("## 2. 写入范围速查")
+_h3 = _art_txt.find("## 3. ID 体系")
+_h5 = _art_txt.find("## 5. 失效传播矩阵")
+_j5 = _art_txt.find("\n## ", _h5 + 1) if _h5 >= 0 else -1
+_sec2 = _art_txt[_h2:_h3] if 0 <= _h2 < _h3 else ""
+_sec5 = _art_txt[_h5:(_j5 if _j5 > 0 else len(_art_txt))] if _h5 >= 0 else ""
+_art_slices_ok = bool(_sec2) and bool(_sec5)
+
+# 31-A §5 矩阵的测试分区必须**整体派生**自 §2 的归属声明（双向锁）：分区名不是可挑选的清单。
+_part_decl = next((_l for _l in _sec2.splitlines() if "测试分区归属" in _l), "")
+_declared_parts = set(re.findall(r"tests/([a-z0-9-]+)/\*\*", _part_decl))
+_row_parts = {}
+for _l in _sec5.splitlines():
+    if _l.startswith("|"):
+        _p = set(re.findall(r"tests/([a-z0-9-]+)/\*\*", _l))
+        if _p:
+            _row_parts[_l.split("|")[1].strip()] = _p
+_rows_brief = "；".join("%s → %s" % (k[:24], sorted(v)) for k, v in sorted(_row_parts.items()))
+_bad_parts = [_k for _k, _v in _row_parts.items() if _v != _declared_parts]
+check("T31 矩阵测试分区与 §2 归属声明一致（双向锁）",
+      _art_slices_ok and bool(_declared_parts) and bool(_row_parts) and not _bad_parts,
+      "§2 声明 = %s / 矩阵各行 = %s / 标题切片有效 = %s —— "
+      "矩阵是「改了上游谁要复核」的唯一入口，而分区名是**手写枚举**：实测 `30-architecture 变更` 行"
+      "漏 `tests/integration/**`（而 `src/ 变更` 行列全了）—— **同一事实两行各写一份、只错一行**，"
+      "任何单文件校验都看不出来。分区集合以 §2 为唯一出处：矩阵行要么不涉及测试分区、要么三个全列"
+      % (sorted(_declared_parts), _rows_brief or "无", _art_slices_ok))
+check("T31 矩阵含 tests/** 变更行", any(_k.startswith("tests/") for _k in _row_parts),
+      "§5 矩阵的上游列里没有 `tests/** 变更` 行（实测上游列 = %s）—— 测试夹具 / 用例被改动时按矩阵"
+      "**没有任何下游需复核**，而 51 / 52 / 60 的集成证据全部建立在这份夹具上：实测一轮改夹具的批次，"
+      "复核与否只能靠角色自行判断，矩阵给不出依据" % (sorted(_row_parts) or "无"))
+
+# 31-B 支撑规范不是「没人管的文件」：§1 产物清单之外的写权归属同样必须**在 §2 登记**
+#（与 `docs/error-codes.md` 的阶段归属注同型 —— 那次的教训是「两份文件各自都没错、任何单文件校验都看不出来」）。
+_SPEC_DOCS = ("state-machine.md", "development-spec.md", "role-protocol.md", "config-checklist.md")
+_spec_missing = [_f for _f in _SPEC_DOCS if _f not in _sec2]
+check("T31 支撑规范的写入者已在 §2 登记", _art_slices_ok and not _spec_missing,
+      "§2 写入范围表未列：%s（标题切片有效 = %s）—— 该表的自述口径是「写入者只能写本行列出的文件」，"
+      "未列的文件**没有任何角色有权改**：其中 `docs/state-machine.md` 是 D2 判别口径与 D3 定级的唯一权威、"
+      "`docs/role-protocol.md` 约束各角色的提交与证据行为（护栏 T24 / T26 / T30 逐字绑定它们）。"
+      "实测（审计当时）：一轮要改 D2 口径的批次，三个角色谁改谁越界，只能整体驻留在主对话手里；"
+      "`role-protocol.md` / `config-checklist.md` 在 `docs/` 下**零引用**"
+      % ("、".join(_spec_missing) or "无", _art_slices_ok))
+
+# 31-C 阻断面的**对侧编号**：每条阻断事实只在一个命名空间里定义，跨侧标注是「并集可机械求得」的唯一前提。
+# 形态（§3.1 明文，护栏按同形机检）：`对侧同一事实：↔ <侧>:OBS-nn` 或 `…：↔ 另一侧无对应`。
+# 边界声明：本项只机检**形态与互指一致性**，不校验 `另一侧无对应` 的真实性 —— 语义同一性无法机械判定；
+# 「同号条目是否同一事实」这一判断由 31-G 在一对已实测编号上钉死，作为该形态可用的证据。
+_CROSS_FORM = "对侧同一事实：↔"
+_CROSS_NONE = "另一侧无对应"
+_SIDE_DOC = {"51": "51-defects.md", "52": "52-qa-report.md", "60": "60-review.md"}
+_OBS_TXT = {_s: (read(DOCS / _d) or "").splitlines() for _s, _d in _SIDE_DOC.items()}
+
+
+def _obs_row_map(side):
+    """本侧 OBS 行：编号 → (整行文本, 是否阻断)。取值口径与 30-A 逐字一致（漏标按阻断推定）。"""
+    out = {}
+    for _i in _row_indices(_OBS_TXT[side]):
+        _r = _OBS_TXT[side][_i]
+        _num = re.search(r"(?:60:)?(OBS-\d+)", _r).group(1)
+        if _r.startswith("|"):
+            _h = _table_header(_OBS_TXT[side], _i)
+            _hc = _cells(_OBS_TXT[side][_h]) if _h is not None else []
+            _k = next((n for n, c in enumerate(_hc) if "阻断" in c), None)
+            _rc = _cells(_r)
+            _v = _rc[_k] if _k is not None and _k < len(_rc) else ""
+        else:
+            _m = re.search(r"(非阻断|阻断)", "\n".join(_obs_entry_lines(_OBS_TXT[side], _i)))
+            _v = _m.group(1) if _m else ""
+        out[_num] = (_r, _v != "非阻断")
+    return out
+
+
+def _cross_targets(line):
+    """本行的对侧标注：`对侧同一事实：↔` 之后到句末 / 单元格边界内的 `侧:OBS-nn` 列表；
+    同段内出现「另一侧无对应」则视为声明无对侧条目。"""
+    out, none_side = [], False
+    for _m in re.finditer(re.escape(_CROSS_FORM), line):
+        _seg = re.split(r"[。；;|\n]", line[_m.end():])[0]
+        if _CROSS_NONE in _seg:
+            none_side = True
+            continue
+        out.extend(re.findall(r"(51|52|60):OBS-(\d{1,2})", _seg))
+    return out, none_side
+
+
+_obs_maps = {_s: _obs_row_map(_s) for _s in _SIDE_DOC}
+_cross_lack, _cross_bad = [], []
+for _s, _rows in _obs_maps.items():
+    for _num, (_line, _blk) in sorted(_rows.items()):
+        if not _blk:
+            continue
+        _tgt, _none = _cross_targets(_line)
+        if not _tgt and not _none:
+            _cross_lack.append("%s:%s" % (_s, _num))
+            continue
+        for _ts, _tn in _tgt:
+            _key = "OBS-" + _tn
+            if _key not in _obs_maps[_ts]:
+                _cross_bad.append("%s:%s → %s:%s（该侧无此条目）" % (_s, _num, _ts, _key))
+                continue
+            _back, _ = _cross_targets(_obs_maps[_ts][_key][0])
+            if _back and (_s, _num[4:]) not in _back:
+                _cross_bad.append("%s:%s → %s:%s，而后者指向别处" % (_s, _num, _ts, _key))
+check("T31 阻断型 OBS 行标注了对侧编号（或「无对应」）",
+      _CROSS_FORM in _art_txt and _CROSS_NONE in _art_txt and not _cross_lack,
+      "缺标注：%s / 形态声明缺失 = %s —— 阻断事实横跨 `51:` / `52:` / `60:` 三个命名空间，"
+      "而每条事实只在一个命名空间里定义：不标对侧编号，**并集在任何一层都不可机械求得**"
+      "（实测 21 条 OBS 行零跨命名空间引用：51 与 52 的阻断事实是同一批 6 条 —— 5 对同号 + 1 对**错位**，"
+      "同一 Playwright `outputDir` 事实在 51 是 `51:OBS-08`、在 52 是 `52:OBS-09` —— 另有 `60:OBS-32` 在两测试侧"
+      "零出现，事实级并集 7 条而 52 报 6 条）。形态（§3.1）：`对侧同一事实：↔ <侧>:OBS-nn` 或 `…：↔ 另一侧无对应`"
+      % ("、".join(_cross_lack) or "无", not (_CROSS_FORM in _art_txt and _CROSS_NONE in _art_txt)))
+check("T31 对侧标注互指一致", not _cross_bad,
+      "%s —— 单侧标注等于没标：并集仍要人去比对另一侧是否认账。指向不存在的编号 → 引用静默失效；"
+      "对侧指向别处 → 两侧对「同一事实」的认定相反且都不报错。"
+      "（对侧无标注不算矛盾：非阻断行不承担标注义务 —— 本项只查矛盾，不查沉默）"
+      % ("；".join(_cross_bad) or "无"))
+
+# 31-D 阻断型 OBS 的**命名空间集合**由 D2 第 2 项单点定义，其余处的枚举必须与它相等。
+# 实测根因：同一事实在 4 处各写一份、**四处都只列两侧**（`52:OBS-nn` / `60:OBS-nn`），而护栏 30-A 一直按
+# 51 / 52 / 60 三份文件机检阻断列 —— 机制比它声称的规则**宽**，边界未披露，51 侧标注对判定的权重恒为 0。
+_D2_LINE = next((_l for _l in _sm.splitlines()
+                 if re.match(r"2\.\s", _l) and "OBS-nn" in _l and "阻断" in _l), "")
+_D2_NS = set(re.findall(r"(5[12]|60):OBS-nn", _D2_LINE))
+_NS_ENUM = {}
+for _f, _t in (("docs/state-machine.md", _sm), ("docs/artifacts.md", _art_txt)):
+    for _l in _t.splitlines():
+        _ns = set(re.findall(r"(5[12]|60):OBS-nn", _l))
+        if len(_ns) >= 2:
+            _NS_ENUM["%s ｜%s｜" % (_f, _l.strip()[:38])] = _ns
+_ns_bad = ["%s = %s" % (_k, sorted(_v)) for _k, _v in _NS_ENUM.items() if _v != _D2_NS]
+check("T31 阻断型 OBS 的命名空间枚举与 D2 第 2 项一致（双向锁）",
+      _D2_NS == {"51", "52", "60"} and bool(_NS_ENUM) and not _ns_bad,
+      "D2 第 2 项枚举 = %s；不一致处 = %s（枚举处数 = %d）——「阻断型 OBS 有哪几侧」是 D2 的判定入口，"
+      "同一事实此前在 4 处各写一份、**四处都只列两侧**，而护栏 30-A 一直按三份文件机检阻断列："
+      "机制比规则宽，51 侧的阻断标注对任何判定行的权重恒为 0。枚举集合一律引用 D2 第 2 项，不各自重述"
+      % (sorted(_D2_NS), "；".join(_ns_bad) or "无", len(_NS_ENUM)))
+
+# 31-E 同号异义的**实例自证**：T26 的注释以 `OBS-08` 为「同号含义不同」的实例，读者照它理解判定口径 ——
+# 注释里的实例是断言文本的一部分，必须与事实同步。实测教训（2026-09-20 审计）：原文把 `OBS-03` 举成该实例，
+# 而 51 / 52 的 OBS-03 首句**逐字相同**（两侧同指「同键异体 409 分支不可达」同一事实）；真正同号而相反的是
+# `OBS-08`（51 = 工具行为且阻断 / 52 = 用例缺陷且非阻断）。
+
+
+def _obs_head(doc, num):
+    """OBS 定义行的**首句**：描述列到第一个 `：` / `。` / `；` / `（` 为止，去 markdown 强调符号 ——
+    条目主张的标题式摘要。两侧描述同一事实时逐字相同，不同事实时不同。"""
+    for _l in (read(DOCS / doc) or "").splitlines():
+        if re.match(r"^\|\s*" + num + r"\s*\|", _l):
+            _c = _cells(_l)
+            if len(_c) > 1:
+                return re.sub(r"[*`]", "", re.split(r"[：:。；;（(]", _c[1])[0]).strip()
+    return ""
+
+
+_h51_o8 = _obs_head("51-defects.md", "OBS-08")
+_h52_o8 = _obs_head("52-qa-report.md", "OBS-08")
+check("T31 同号异义实例（OBS-08）自证：两侧首句必须不同",
+      bool(_h51_o8) and bool(_h52_o8) and _h51_o8 != _h52_o8,
+      "51:OBS-08 首句 = %r、52:OBS-08 首句 = %r —— 该编号是 `docs/artifacts.md` §3.1 与 T26 注释共用的"
+      "「同号但含义不同」实例：它一旦不再成立，口径说明就成了**假实例**（读者按它理解跨命名空间裸引用的"
+      "危害，却找不到危害）。失效形态：两侧首句被改成同一句、或任一侧为空；辨别力见变异表末两条"
+      % (_h51_o8, _h52_o8))
+
+# 31-F 旧口径不得回写：把 `OBS-03` 说成「含义不同」是**已查实的失真陈述**（实测两侧首句逐字相同）。
+# 与 T30 的旧口径反向断言同型：被订正的事实陈述留一句在注释里，读者就会照旧理解（它当时正被当作实测结论
+# 引用）。判定面 = 断言逻辑区（含注释与断言消息）—— 变异表的字面量不在其中（框架的 `_cut` 区域限制）。
+_STALE_OBS_CLAIM = "含义不同的 " + "OBS-03"      # 拼接构造：本行自身也落在扫描面上，写全了会自己报自己
+check("T31 注释里不得再出现「OBS-03 含义不同」的失真陈述",
+      _STALE_OBS_CLAIM not in _self_asserts,
+      "断言逻辑区仍含 %r —— 该陈述已被实测推翻（51 / 52 的 OBS-03 首句逐字相同），留在注释里会让读者按"
+      "「OBS-03 是同号异义」理解判定口径，而真正该引的实例是 OBS-08（51 阻断 / 52 非阻断）"
+      % _STALE_OBS_CLAIM)
+
+
 # ---- 自测：把「负向验证」从人工清单变成可执行命令 ----
 # 用法：python3 tools/check-config.py --self-test
 # 背景：config-checklist 要求「新增断言后逐条负向验证（故意破坏 → 必须 FAIL → 还原 → 必须 PASS）」，
@@ -1877,6 +2062,28 @@ MUTATIONS = [
     # 把该登记行的编号改掉即等于「缺号未登记」→ 期望被新断言捕获。
     ("docs/51-defects.md", "| OBS-09 | **无此条** |", "| OBS-12 | **无此条** |",
      "T30 51-defects.md 的 OBS 编号无未登记缺号"),
+    # ---- T31（门禁输入的可求性）：矩阵分区 / 支撑规范写入者 / 阻断面的对侧编号 ----
+    # 前两条复现审计发现的原始缺陷（矩阵漏 `tests/integration/**`、无 `tests/**` 变更行）；
+    # 第 3 条抽掉 §2 的一个支撑规范名；第 4 / 5 条分别破坏「箭头形态」与「互指」（annotation 由
+    # test-executor 落盘，锚点即其必须写出的固定前缀）；第 6 条把命名空间枚举退回两侧；
+    # 第 7 条把 OBS-08 的两侧首句改成同一句（假实例）；第 8 条回写已被推翻的旧口径。
+    ("docs/artifacts.md", "tests/unit/** + tests/integration/**（engineer 复核）", "tests/unit/**（engineer 复核）",
+     "T31 矩阵测试分区与 §2 归属声明一致（双向锁）"),
+    ("docs/artifacts.md", "| tests/** 变更", "| 测试资产变更", "T31 矩阵含 tests/** 变更行"),
+    ("docs/artifacts.md", "config-checklist.md", "config_checklist.md", "T31 支撑规范的写入者已在 §2 登记"),
+    ("docs/artifacts.md", "另一侧无对应", "无对侧条目", "T31 阻断型 OBS 行标注了对侧编号（或「无对应」）"),
+    ("docs/51-defects.md", "对侧同一事实：↔ 52:OBS-03", "对侧：↔ 52:OBS-03",
+     "T31 阻断型 OBS 行标注了对侧编号（或「无对应」）"),
+    ("docs/52-qa-report.md", "对侧同一事实：↔ 51:OBS-03", "对侧同一事实：↔ 51:OBS-05",
+     "T31 对侧标注互指一致"),
+    ("docs/state-machine.md", "`51:OBS-nn` / `52:OBS-nn` / `60:OBS-nn`", "`52:OBS-nn` / `60:OBS-nn`",
+     "T31 阻断型 OBS 的命名空间枚举与 D2 第 2 项一致（双向锁）"),
+    ("docs/52-qa-report.md", "**TC-60 用例缺陷（已修正，非产品缺陷）**",
+     "**Playwright 的 `outputDir` 每次运行前会被自动清空**",
+     "T31 同号异义实例（OBS-08）自证：两侧首句必须不同"),
+    ("tools/check-config.py", "# 51 与 52 又各有一个 OBS-03（两侧内容相同、归属不同命名空间），而同号却含义**相反**的实例是 OBS-08",
+     "# 51 与 52 又各有一个含义不同的 OBS-03",
+     "T31 注释里不得再出现「OBS-03 含义不同」的失真陈述"),
 ]
 
 

@@ -23,7 +23,11 @@ public class LuckyDrawApiFactory : WebApplicationFactory<Program>
         ?? "Server=localhost;Port=3307;Database=" + DatabaseName +
         ";User Id=root;Password=devonly;CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=True";
 
-    /// <summary>测试用 Redis（独立 db=1，避免与开发数据互相干扰；可用 `LUCKDRAW_TEST_REDIS` 覆盖）。</summary>
+    /// <summary>
+    /// 测试用 Redis（默认独立 db=1，避免与开发数据互相干扰；可用 `LUCKDRAW_TEST_REDIS` 覆盖）。
+    /// **本属性是被测应用与集成夹具的共同取值来源**：夹具的连接与清理目标（实例 + `defaultDatabase`）
+    /// 均由它派生，覆盖值换库时夹具同步换靶；夹具侧另需的 `allowAdmin` 在其派生副本上单独打开。
+    /// </summary>
     public static string RedisConfiguration =>
         Environment.GetEnvironmentVariable("LUCKDRAW_TEST_REDIS") ?? "localhost:6379,defaultDatabase=1";
 
