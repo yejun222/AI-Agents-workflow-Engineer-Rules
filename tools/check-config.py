@@ -1398,19 +1398,48 @@ check("T30 13.4 活文档闭集已逐项声明", not _missing_134,
       "会让删除静默通过）。扫描面必须与规范声明逐项对应：范围一旦靠代码隐式决定，"
       "「顺手少扫一份」不会有任何信号，而少扫的那一份里可能正躺着已漂移的行号锚点")
 
-# 边界声明：机检只认「文件名:行号」，而规则禁止的是一切「以行号定位」的引用（符号名:行号同型）。
-# 不写出边界，读者会把「护栏全 PASS」读成「没有行号引用」——实测 `tests/e2e/api/stats-lib.mjs`
-# 就以「集成夹具方法:行号范围」的形式留着一处，机检全程没看见。
-_LN_SCOPE_DECL = "「符号名:行号」等同型锚点不在机检范围"
-check("T30 13.4 已声明行号机检范围的边界", _LN_SCOPE_DECL in _decl_134,
-      "13.4 未声明行号机检的范围边界 —— 机检的形态是「文件名:行号」，「符号名:行号」等同型锚点同样违规、"
-      "但不在机检面内。边界不写出来，读者会把「护栏全 PASS」读成「没有行号引用」：实测确有这种残留"
-      "（取证见 13.4 本条与 `tests/e2e/api/stats-lib.mjs` 的勘误回执）")
+# 30-H 的机检形态是**封闭三型**（②③ 为本轮扩面，2026-09-20）：
+#   ① 文件名:行号；② 类型名.方法名:行号（无扩展名的点号链 —— engineer 在 `CHG-19` §7 登记的
+#   护栏盲区，本批实清 2 处，而护栏全程没看见）；③ 同行已有文件引用时、**反引号包裹的裸行号
+#   续写**（同一处定位引用的另一半：只删文件那半即逃过 ①。本批实清 2 处，其中
+#   `.claude/commands/feature.md` 用三个裸号指向 60-review 的三处声明、**三处全部漂移**
+#   —— 活文档 + 活的调度入口，正是 13.4 本条警告的「引用静默失效且无人会回头核对」）。
+# 判定用**可判别形态**，不用启发式：
+#   · 裸行号只在**同行另有一个文件/代码文件 token** 时才算「续写」：端口 `:5180`、JS 串
+#     `':1102'`、对象键 `PASS: 0` 都不带文件引用 → 不同型、不判定（全量实测 6 处全为此类）；
+#   · 点号链要求**至少一段大写开头**（登记规范里类型/方法是 PascalCase；小写点号链是数据键
+#     `count: 3`）；**单段符号名**（`DrawService:149`）与 JS 对象键在文本上不可分辨 → 不判定。
+#   后两条**必须写进 13.4 的残余边界声明**（由下面的断言反向锁死）：机检面比规则窄就得把边界
+#   写出来，否则读者把「全 PASS」读成「没有行号引用」——上一轮 `stats-lib.mjs` 就是这么漏的。
+_LN_FORMS = ("文件名:行号", "类型名.方法名:行号", "反引号包裹的裸行号续写")
+_LN_SCOPE_OUT = ("单段符号名", "跨行续写")
+# 扩面后这句**变成假话**（② 已把「符号名:行号」纳入机检）：它必须从 13.4 消失，此处反向断言，
+# 否则声明会以「不在机检范围」的口径把已纳入的形态说成「规则允许」。
+_LN_STALE_CLAIM = "「符号名:行号」等同型锚点不在机检范围"
+_LN_REF_SYM = re.compile(r"(?<![A-Za-z0-9_./:§-])"
+                         r"([A-Za-z_][A-Za-z0-9_]*[.][A-Za-z_][A-Za-z0-9_]*"
+                         r"(?:[.][A-Za-z_][A-Za-z0-9_]*)*)[\s]*:[\s]*[0-9]+")
+_LN_FILE_TOK = re.compile(r"[A-Za-z0-9_./-]+[.](?:" + "|".join(_LN_REF_EXT) + r")(?![A-Za-z0-9_])")
+# 反引号用 chr(96) 拼接：**护栏源码自身登记在扫描面上**，写字面量会自己报自己（同 `_LN_EXEMPT` 手法）
+_LN_REF_CONT = re.compile(chr(96) + r":[0-9]+(?:-[0-9]+)?" + chr(96))
+_missing_form = [f for f in _LN_FORMS if f not in _decl_134]
+check("T30 13.4 已声明三类行号机检形态", not _missing_form,
+      f"13.4 未声明机检形态：{'、'.join(_missing_form)} —— 机检形态是**封闭集合**，每纳入一型都必须"
+      "写进 13.4 的边界声明句：声明与机制同为「规则文本」，只改一侧会让读者按旧边界理解扫描结果"
+      "（多扫了不说、少扫了不说，两种都会误导）")
+_scope_gap = [f for f in _LN_SCOPE_OUT if f not in _decl_134]
+check("T30 13.4 已声明行号机检范围的边界", not _scope_gap and _LN_STALE_CLAIM not in _decl_134,
+      (f"13.4 未声明残余边界：{'、'.join(_scope_gap)} —— " if _scope_gap else
+       f"13.4 仍称「{_LN_STALE_CLAIM}」，而该型已被机检覆盖（{_LN_FORMS[1]}）—— ") +
+      "边界与机制必须一致：机检面比规则窄就要写出边界；把已被机检的形态说成「不在机检范围」"
+      "同样误导（读者会以为这类残留属「规则允许」而非「机制看不见」）")
 # 豁免字面量用拼接构造：**护栏源码自身也登记在扫描面上**，写全了会自己报自己（实测三条自伤告警）。
 # 豁免条目同样受「锚句仍然存在」断言的约束——它是登记披露通道，不是静默放宽的通道。
-# 注：两条均指 13.4 正文那句漂移示例（**行号是被叙述对象**，不是定位引用），两种形态各一条。
+# 注：前两条指 13.4 正文那句漂移示例的两种写法（**行号是被叙述对象**，不是定位引用）；
+# 第三条指同句里漂移**之后**的裸行号 —— 它是形式 ③ 的判定对象，同样是叙述、不是定位引用。
 _LN_EXEMPT = {"docs/development-spec.md": ["." + "md" + ":" + "544",
-                                          "30-architecture" + "." + "md" + ":544"]}
+                                           "30-architecture" + "." + "md" + ":544",
+                                           chr(96) + ":567" + chr(96)]}
 _LN_SKIP_DIRS = {"bin", "obj", "node_modules", ".git", "dist", "coverage"}
 # 临时验证目录的前缀**闭集**（`docs/role-protocol.md` §6 逐字声明，由下面的断言双向锁定）。
 # 实测教训：该排除曾只认 `.tmp-`，而本仓库实际用的是 `_tmp-`（`tests/e2e/_tmp-verify-20260918-citefix/`）
@@ -1430,19 +1459,60 @@ for _d in _LIVE_DOCS:
     else:
         _ln_files.append(_p)
 _ln_bad = []
+_ln_sym_bad = []
+_ln_cont_bad = []
 for _p in _ln_files:
     _rel = str(_p.relative_to(ROOT)).replace("\\", "/")
+    _ex = _LN_EXEMPT.get(_rel, [])
     for _i, _l in enumerate((read(_p) or "").split("\n"), 1):
         for _m in _LN_REF.finditer(_l):
-            if _m.group(0) in _LN_EXEMPT.get(_rel, []):
+            if _m.group(0) in _ex:
                 continue
             _ln_bad.append(f"{_rel}:{_i} → {_m.group(0)}")
+        for _m in _LN_REF_SYM.finditer(_l):
+            # 被 ① 覆盖的 `文件.ext:行号` 不重复计数；小写点号链是数据键、不是符号名
+            if _m.group(0) in _ex or _LN_REF.fullmatch(_m.group(0)):
+                continue
+            if not any(_s[:1].isupper() for _s in _m.group(1).split(".")):
+                continue
+            _ln_sym_bad.append(f"{_rel}:{_i} → {_m.group(0)}")
+        # 裸行号续写：**仅在同行确有文件引用时判定**（无文件引用的裸号是端口/字面量，不同型）
+        if _LN_FILE_TOK.search(_l):
+            for _m in _LN_REF_CONT.finditer(_l):
+                if _m.group(0) in _ex:
+                    continue
+                _ln_cont_bad.append(f"{_rel}:{_i} → {_m.group(0)}")
 check("T30 活文档与代码无「文件名:行号」型定位引用", not _ln_bad,
       f"{'；'.join(_ln_bad[:8])}{' 等' if len(_ln_bad) > 8 else ''} —— 行号必然漂移："
       "实测：代码注释以架构文档的某个行号为锚点，架构升版后该锚点漂移，"
       "**全部引用静默失效且无人会回头核对**（完整实测段见 `docs/development-spec.md` 13.4）。"
       "改用稳定 ID（FR / AC / MOD / API / D / RSK / CHG / TC / BUG / REV / OBS / QX）。"
       "行号只允许作为**被叙述对象**出现（描述漂移事实本身的句子），且必须同时给出稳定 ID")
+check("T30 活文档与代码无「类型名.方法名:行号」型定位引用", not _ln_sym_bad,
+      f"{'；'.join(_ln_sym_bad[:8])}{' 等' if len(_ln_sym_bad) > 8 else ''} —— 带点的符号名同样以"
+      "行号定位（`类型.方法:行号` 不含扩展名，前一条断言看不见它：engineer 登记的护栏剩余盲区，"
+      "本批实清 2 处）。改用稳定 ID；确需叙述漂移事实时须同时给出稳定 ID，并登记进 `_LN_EXEMPT`"
+      "（豁免是披露通道，不是静默放宽的通道）")
+check("T30 活文档与代码无「反引号包裹的裸行号续写」型锚点", not _ln_cont_bad,
+      f"{'；'.join(_ln_cont_bad[:8])}{' 等' if len(_ln_cont_bad) > 8 else ''} —— 同行已给出文件引用、"
+      "行号以反引号裸号续写是**同一处定位引用的另一半**：只删文件那半即静默逃过前一条断言。"
+      "实测 `.claude/commands/feature.md` 以三个裸号指向 60-review 的三处声明，**三处全部漂移**"
+      "（活文档 + 活的调度入口）。判定前提：同行存在文件引用（无文件引用的裸号是端口/字面量）")
+# 声明闭集 ↔ 实际断言**双向计数锁**：`_LN_FORMS` 必须与「以形态命名的断言」逐项对应。
+# 单向检查（只查「声明里的都在」）会漏掉「新增一型却没写进声明」——机制比它声称的规则宽，
+# 读者按声明理解扫描结果就会误判；反向（声明里有、断言没有）则是**宣称在检其实没检**，
+# 与本轮根因同形。纯文本锁，故负向验证只需改一处断言名 / 改一处声明（见本批末两条变异）。
+_self_src = Path(__file__).resolve().read_text(encoding="utf-8", newline="")
+# 只取**断言逻辑区**（`MUTATIONS` 定义行之前）：表里的变异串同样形如断言调用（本批新增的
+# 两条正是），那是夹具不是断言 —— 与框架 `_cut` 的区域限制同一口径（实测首版全文扫=5≠3）。
+_self_asserts = re.split(r"(?m)^MUTATIONS = \[", _self_src, maxsplit=1)[0]
+_ln_form_checks = re.findall(r'check\("(T30 活文档与代码无「[^」]+」[^"]*)"', _self_asserts)
+_unmapped = [f for f in _LN_FORMS if not any(f in _nm for _nm in _ln_form_checks)]
+check("T30 每类机检形态各有一条同名断言", not _unmapped and len(_ln_form_checks) == len(_LN_FORMS),
+      (f"声明的形态没有对应断言：{'、'.join(_unmapped)} —— " if _unmapped else
+       f"形态断言数 {len(_ln_form_checks)} ≠ 声明数 {len(_LN_FORMS)}（{_ln_form_checks}）—— ") +
+      "`_LN_FORMS` 是**闭集声明**，它与「以形态命名的断言」必须逐项对应：一侧多了，"
+      "读者会按旧声明理解扫描面（多扫/少扫都不会有信号）；一侧少了，就是「宣称在检、其实没检」")
 _stale_ln = [f"{k} 的豁免锚句 {lit!r}" for k, lits in _LN_EXEMPT.items() for lit in lits
              if lit not in (read(ROOT / k) or "")]
 check("T30 行号豁免锚句仍然存在", not _stale_ln,
@@ -1774,8 +1844,34 @@ MUTATIONS = [
      "T30 活文档与代码无「文件名:行号」型定位引用"),
     ("docs/role-protocol.md", "**前缀闭集：`.tmp-` / `_tmp-`**", "**前缀闭集：`.tmp-` 与 `_tmp-`**",
      "T30 临时目录前缀闭集与 §6 声明一致（双向锁）"),
-    ("docs/development-spec.md", "「符号名:行号」等同型锚点不在机检范围", "「符号名:行号」等同型锚点不在机检口径内",
-     "T30 13.4 已声明行号机检范围的边界"),
+    # 30-H 扩面第二轮（2026-09-20）：②③ 两型各一条负向验证 + 形态/边界声明的双向锁 + 新豁免。
+    # 拼接构造同前：变异串本身落在扫描面上（②③ 正是新纳入的形态），写全了会自己报自己；
+    # `MUTATIONS` 表在断言逻辑区之后，表内不被替换（框架的 `_cut` 区域限制）。
+    ("tools/check-config.py", "#   · 点号链要求**至少一段大写开头**",
+     "#   · 点号链要求**至少一段大写开头**（实测锚点 DrawService"
+     + ".ExecuteDrawAsync" + ":149 必须被拦）",
+     "T30 活文档与代码无「类型名.方法名:行号」型定位引用"),
+    ("tools/check-config.py", "#   · 裸行号只在**同行另有一个文件/代码文件 token** 时才算「续写」",
+     "#   · 裸行号只在**同行另有一个文件/代码文件 token** 时才算「续写」"
+     "（见 docs/development-spec.md 的 " + chr(96) + ":131" + chr(96) + " 行）",
+     "T30 活文档与代码无「反引号包裹的裸行号续写」型锚点"),
+    # 形态闭集与残余边界：删掉任一形态/边界的字样即 FAIL（声明与机制同为规则文本，单边改必被拦）
+    ("docs/development-spec.md", "`类型名.方法名:行号`", "`类型.方法:行号`",
+     "T30 13.4 已声明三类行号机检形态"),
+    ("docs/development-spec.md",
+     "单段符号名（`DrawService:149`）与 JS 对象键（`PASS: 0`）在文本上不可分辨、跨行续写",
+     "残余形态在文本上不可分辨", "T30 13.4 已声明行号机检范围的边界"),
+    # 反向锁：把已被机检的形态重新写回「不在机检范围」的旧口径，必须被拦
+    ("docs/development-spec.md", "**机检形态为封闭三型**",
+     _LN_STALE_CLAIM + "（**机检形态为封闭三型**", "T30 13.4 已声明行号机检范围的边界"),
+    # 新登记的豁免同样受「锚句仍然存在」约束（第三条 = 13.4 那句里的漂移后裸号）
+    ("docs/development-spec.md", chr(96) + ":567" + chr(96), chr(96) + ":568" + chr(96),
+     "T30 行号豁免锚句仍然存在"),    ("tools/check-config.py", 'check("T30 活文档与代码无「文件名:行号」型定位引用"',
+     'check("T30 活文档与代码无「文件:行号」型定位引用"',
+     "T30 每类机检形态各有一条同名断言"),
+    ("tools/check-config.py", '_LN_FORMS = ("文件名:行号", "类型名.方法名:行号", "反引号包裹的裸行号续写")',
+     '_LN_FORMS = ("文件名:行号", "类型名.方法名:行号")',
+     "T30 每类机检形态各有一条同名断言"),
     # 30-A 的第二个盲区（2026-09-18）：编号**缺号** —— 上面两条只遍历「已存在的行」，
     # 静默丢号时全绿。51 的 OBS-09 恰有 `>` 前缀的缺席登记（「与 51 的 OBS-08 为同一事实」），
     # 把该登记行的编号改掉即等于「缺号未登记」→ 期望被新断言捕获。
