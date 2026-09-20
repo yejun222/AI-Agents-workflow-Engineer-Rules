@@ -892,21 +892,39 @@ check("T26 OBS 引用扫描面已声明", all(d in _obs_decl for d in _OBS_DOCS_
       "下次「顺手少扫一份」不会有任何信号")
 _OBS_DEF = re.compile(r"^\|\s*(OBS-\d{1,2})\s*\|", re.M)   # 定义表行（`| OBS-08 | …`）
 _OBS_BARE = re.compile(r"(?<![0-9:])(OBS-\d{1,2})")        # 裸引用（`52:OBS-08` 不算裸）
+
+
+def _obs_registered(quoted):
+    """`>` 块中**被点名登记**的 OBS 编号集合 —— T26 与 T30 共用的唯一定义（勿另立平行规则）。
+
+    登记必须点名被登记的编号**本身**：① `>` 表格行的首格（`> | OBS-09 | **无此条** | …`），
+    或 ② `>` 行里的反引号**裸形**（`OBS-nn`）。带命名空间前缀的写法（`52:OBS-09`、
+    `对侧同一事实：↔ 52:OBS-09`）**一律不算**本文件的登记 —— 编号在 51 / 52 / 60 三份载体里
+    各自独立成序，而跨侧引用是本仓的**强制项**（`docs/artifacts.md` §3.1 事实级并集），
+    把对侧编号读成本侧登记，等于让对侧来给本侧缺口背书。
+
+    「该编号在任一 `>` 行里出现过」是**旧口径**，已被两次实测推翻（同一失效类的两个漏网实例）：
+      · T26：52 的「状态重述」块顺带罗列全部 11 个编号 → 某条定义行改名后 orphan 被判
+        「已登记」，断言全绿而事实上无人登记过它；
+      · T30：51 的跨侧同步行含 `52:OBS-09` → 缺号 9 的定义行与本侧登记行双双消失后断言仍绿
+        （2026-09-20 自测实测：该条突变由「被捕获」退化为假绿）。
+    """
+    reg = set()
+    for _l in quoted:
+        _rm = re.match(r"^>\s*\|\s*(OBS-\d{1,2})\s*\|", _l)
+        if _rm:
+            reg.add(_rm.group(1))
+        reg |= set(re.findall(r"`(OBS-\d{1,2})`", _l))
+    return reg
+
+
 for _d in _OBS_DOCS_EXPECT:
     _t = read(DOCS / _d) or ""
     _defs = {m.group(1) for m in _OBS_DEF.finditer(_t)}
     _body = [l for l in _t.splitlines() if not l.lstrip().startswith(">")]
     _quote = [l for l in _t.splitlines() if l.lstrip().startswith(">")]
     _orphan = sorted({m.group(1) for l in _body for m in _OBS_BARE.finditer(l)} - _defs)
-    # 登记必须**点名被登记的编号本身**：① `>` 表格行的首格，或 ② `>` 行里反引号裸形（`OBS-nn`）。
-    # 收紧前口径是「该编号在任一 `>` 行里出现过」——实测 52 的「状态重述」块顺带罗列了全部 11 个
-    # 编号，于是把某条定义行改名后 orphan 被判为「已登记」，断言全绿而事实上无人登记过它。
-    _registered = set()
-    for _l in _quote:
-        _rm = re.match(r"^>\s*\|\s*(OBS-\d{1,2})\s*\|", _l)
-        if _rm:
-            _registered.add(_rm.group(1))
-        _registered |= set(re.findall(r"`(OBS-\d{1,2})`", _l))
+    _registered = _obs_registered(_quote)
     _unreg = [o for o in _orphan if o not in _registered]
     check(f"T26 {_d} 的跨命名空间裸引用已登记", not _unreg,
           f"裸引用 {'、'.join(_unreg)} 既不在本文件定义表内，也未在本文件编号勘误块中登记 —— "
@@ -1100,7 +1118,13 @@ check("T29 行 5 登记的 D2 四类与 D2 闭集同向",
 _CONTRACT_DOCS = ["00-brief.md", "10-prd.md", "20-prototype.html", "30-architecture.md",
                   "50-testcases.md", "51-defects.md", "52-qa-report.md", "60-review.md"]
 _OBS_DOCS = ["51-defects.md", "52-qa-report.md", "60-review.md"]
-_BLOCKING_OK = ("阻断", "非阻断")
+# 取值**三态**（2026-09-20 用户裁决）：第三态 `已接受（用户决断）` = 影响结论成立但用户已逐项裁决接受；
+# 它与 `非阻断`（= 不影响任何结论成立）语义**相反**，必须分列 —— 缺此态时「用户已接受该缺口」在台账里
+# 无处表达，只能改判 `非阻断`（与判据冲突）或一直挂着把发布卡死（实测：D2 此前无任何接受路径）。
+_ACCEPTED_STATE = "已接受（用户决断）"
+_NONBLOCK_OK = ("非阻断", _ACCEPTED_STATE)
+_BLOCKING_OK = ("阻断", "非阻断", _ACCEPTED_STATE)
+_OBS_STATE_RE = re.compile("|".join(re.escape(_s) for _s in (_ACCEPTED_STATE, "非阻断", "阻断")))
 
 
 def _table_header(lines, i):
@@ -1140,10 +1164,10 @@ def _row_indices(lines, name="OBS"):
 
 
 # 30-A 阻断列：**规则**要求逐条标注（T26 已绑死），这里断言**产物**里真有那一列且取值可机械提取。
-# 取值闭集 = 阻断 / 非阻断；**漏标注按「阻断」推定**（state-machine D2），故空格子不是「没意见」而是违规。
+# 取值闭集 = 阻断 / 非阻断 / 已接受（用户决断）（三态，2026-09-20）；**漏标注按「阻断」推定**（state-machine D2），故空格子不是「没意见」而是违规。
 for _d in _OBS_DOCS:
     _lines = (read(DOCS / _d) or "").split("\n")
-    _no_col, _bad_val = [], []
+    _no_col, _bad_val, _acc_bad = [], [], []
     for _i in _row_indices(_lines):
         _num = re.search(r"(?:60:)?(OBS-\d+)", _lines[_i]).group(1)
         if _lines[_i].startswith("|"):
@@ -1157,37 +1181,61 @@ for _d in _OBS_DOCS:
             _v = _rc[_k] if _k < len(_rc) else ""
         else:
             _blk = "\n".join(_obs_entry_lines(_lines, _i))
-            _m = re.search(r"(非阻断|阻断)", _blk)
+            _m = _OBS_STATE_RE.search(_blk)
             _v = _m.group(1) if _m else ""
         if _v not in _BLOCKING_OK:
             _bad_val.append(f"{_num}={_v or '空'}")
+        elif _v == _ACCEPTED_STATE:
+            _row_txt = (_lines[_i] if _lines[_i].startswith("|")
+                        else "\n".join(_obs_entry_lines(_lines, _i)))
+            _lack = [k for k in ("接受人", "理由", "补丁计划") if k not in _row_txt]
+            if _lack:
+                _acc_bad.append(f"{_num} 缺 {'/'.join(_lack)}")
     check(f"T30 {_d} 的 OBS 条目均含「阻断 / 非阻断」列", not _no_col,
           f"未找到取值列的条目：{'、'.join(_no_col)} —— `docs/state-machine.md` D2 第 2 项以这两列为**发布门禁的输入**，"
           "而本文件的表里根本没有这一列（**规则写在纸上、事实挂在文件里**）。必须逐条给出结构化取值，"
           "不得用「不构成任何阻断」这类散文式否定代替")
+    check(f"T30 {_d} 的第三态行含三要素（接受人 / 理由 / 补丁计划）", not _acc_bad,
+          f"缺要素：{'；'.join(_acc_bad)} —— `已接受（用户决断）` 表达的是「**用户已接受该缺口**」："
+          "它与 `非阻断` 的区别正在于**有人在为这个缺口负责**。不写全接受人 / 理由 / 补丁计划，"
+          "这一态就退化成比 `非阻断` 更弱的「扫到地毯下」通道（本仓实测：只登记不给权重的项跨 4 个版本仍挂着）。"
+          "本项在台账出现第三态行后才非真空，其判别力由自测变异覆盖）")
     check(f"T30 {_d} 的 OBS 阻断取值合法且无漏标", not _bad_val,
-          f"非法或缺标：{'、'.join(_bad_val)} —— 取值只允许 `阻断` / `非阻断`；"
+          f"非法或缺标：{'、'.join(_bad_val)} —— 取值只允许 `阻断` / `非阻断` / `已接受（用户决断）`（三态）；"
           "**漏标注者按「阻断」推定**（D2）：沉默不得成为放行手段，空格子会被 D2 当作阻断项处理，"
           "而判定者看到的却是一张「什么都没说」的表 —— 两侧读法不同且都不会报错")
 
+
+# 30-B 三态闭集必须在**判据的四个载体**（T26 同款四处：规范两份 + 两个角色文件）里同步声明
+# —— 只在其中一处补第三态，另外几处仍按二态读，登记方会照各自读到的那份执行。
+_acc_missing = [f for f, t in _KOUJING.items() if _ACCEPTED_STATE not in t]
+check("T30 第三态在判据四处载体中均已声明", not _acc_missing,
+      f"缺 `已接受（用户决断）`：{'、'.join(_acc_missing)} —— 三态是判别口径的一部分，与 T26 绑定的四处"
+      "逐字一致同源：只在一处补第三态，另外几处仍按二态读（本仓实测同型失效：判别口径曾散落四处"
+      "而其中一处漏写默认档，四处措辞看起来都「差不多」）")
 
 # 30-A 的第二个盲区：上面两条遍历的是**已存在的条目行** —— 编号被静默丢弃时它们一律看不见。
 # 本仓既有惯例是把缺号写进 `>` 前缀的缺席登记表并给出理由（实测 51 的 OBS-09 / OBS-10：前者与
 # `51:OBS-08` 为同一事实、后者属代码审查发现不进测试台账；52 对同两条亦做了对照登记）。
 # 惯例只活在产物里、无断言时，下一次「顺手删掉一行」不会有任何信号 → 把惯例变成可执行判据：
 # 1..max 内每个编号必须**要么有定义行、要么在 `>` 块里登记缺席理由**（「自 01 起连续」是本仓口径）。
-# 登记通道沿用 T26 对 `>` 块的处理（该块即「编号勘误 / 缺席登记」块），不另立新通道。
+# 登记通道**复用** T26 对 `>` 块的处理（该块即「编号勘误 / 缺席登记」块），判据单点定义于
+# `_obs_registered`。两处各自实现过一次同一判据，于是同一失效类修了一处、漏了另一处（实测见 B1 注释）。
 for _d in _OBS_DOCS:
     _lines = (read(DOCS / _d) or "").splitlines()
     _nums = sorted(int(re.search(r"OBS-(\d+)", _lines[_i]).group(1)) for _i in _row_indices(_lines))
     _quoted = [l for l in _lines if l.lstrip().startswith(">")]
+    # 登记判据**单点定义**于 `_obs_registered`（与 T26 同源）。旧口径「该编号在任一 `>` 行里
+    # 出现过」**不分命名空间**：`52:OBS-09` 这类对侧引用照样命中，属假绿（实测见该函数 docstring）。
     _absent = [n for n in range(1, (max(_nums) if _nums else 0) + 1)
                if n not in _nums
-               and not any(re.search("OBS-" + str(n).zfill(2) + "(?![0-9])", l) for l in _quoted)]
+               and "OBS-" + str(n).zfill(2) not in _obs_registered(_quoted)]
     check(f"T30 {_d} 的 OBS 编号无未登记缺号", not _absent,
           f"缺号且未登记：{'、'.join('OBS-' + str(n).zfill(2) for n in _absent)} —— 编号是引用的锚点："
           "缺号被静默丢弃后，外部对它的引用会指向不存在的位置且**没有任何环节会报错**。"
           "本仓既有惯例是把缺号写进 `>` 前缀的缺席登记表并给出理由（实测 51 的 OBS-09 / OBS-10 即如此）。"
+          "**登记须点名本文件的编号**（`>` 表格行首格，或反引号裸形 `OBS-nn`）：`52:OBS-nn` 这类"
+          "**对侧**引用不算本文件的登记 —— 判据单点定义于 `_obs_registered`。"
           "处置二选一：补条目，或按该惯例登记缺席理由")
 
 # 30-B 审查侧未复核项台账：**规则**（artifacts §3.1）要求 `60:OBS-nn` 含缘由 + 责任人 + 计划复核时点，
@@ -1635,7 +1683,8 @@ def _obs_row_map(side):
         else:
             _m = re.search(r"(非阻断|阻断)", "\n".join(_obs_entry_lines(_OBS_TXT[side], _i)))
             _v = _m.group(1) if _m else ""
-        out[_num] = (_r, _v != "非阻断")
+        # 第三态不属阻断（D2 第 2 项排除）：它不是「没有意见」，而是「用户已接受该缺口」
+        out[_num] = (_r, _v not in _NONBLOCK_OK)
     return out
 
 
@@ -1674,9 +1723,11 @@ check("T31 阻断型 OBS 行标注了对侧编号（或「无对应」）",
       _CROSS_FORM in _art_txt and _CROSS_NONE in _art_txt and not _cross_lack,
       "缺标注：%s / 形态声明缺失 = %s —— 阻断事实横跨 `51:` / `52:` / `60:` 三个命名空间，"
       "而每条事实只在一个命名空间里定义：不标对侧编号，**并集在任何一层都不可机械求得**"
-      "（实测 21 条 OBS 行零跨命名空间引用：51 与 52 的阻断事实是同一批 6 条 —— 5 对同号 + 1 对**错位**，"
-      "同一 Playwright `outputDir` 事实在 51 是 `51:OBS-08`、在 52 是 `52:OBS-09` —— 另有 `60:OBS-32` 在两测试侧"
-      "零出现，事实级并集 7 条而 52 报 6 条）。形态（§3.1）：`对侧同一事实：↔ <侧>:OBS-nn` 或 `…：↔ 另一侧无对应`"
+      "（**2026-09-18 首次实测快照**：21 条 OBS 行零跨命名空间引用，51 与 52 的阻断事实为同一批 6 条 —— "
+      "5 对同号 + 1 对**错位**，同一 Playwright `outputDir` 事实在 51 是 `51:OBS-08`、在 52 是 `52:OBS-09`；"
+      "当时另有 `60:OBS-32` 在两测试侧零出现，事实级并集 7 条而 52 报 6 条。**阻断集合随修复推进而变**，"
+      "故上述条数只作当日快照、不随现状同步 —— 现值的唯一来源是台账末列本身）。"
+      "形态（§3.1）：`对侧同一事实：↔ <侧>:OBS-nn` 或 `…：↔ 另一侧无对应`"
       % ("、".join(_cross_lack) or "无", not (_CROSS_FORM in _art_txt and _CROSS_NONE in _art_txt)))
 check("T31 对侧标注互指一致", not _cross_bad,
       "%s —— 单侧标注等于没标：并集仍要人去比对另一侧是否认账。指向不存在的编号 → 引用静默失效；"
@@ -1977,9 +2028,9 @@ MUTATIONS = [
      "T30 60:OBS-nn 台账含缘由 / 责任人 / 计划复核时点"),
     # 30-C 冻结时间：行缺失 / 行在但钟点无来源（后者才是本仓库真实发生过的形态——
     # 原值 `20:00` 晚于落盘时刻 `19:15:27`，行本身一直在，此前没有任何断言看得见）
-    ("docs/60-review.md", "| 冻结时间 | 2026-09-17 |", "| 冻结时刻 | 2026-09-17 |",
+    ("docs/60-review.md", "| 冻结时间 |", "| 冻结时刻 | 2026-09-17 |",
      "T30 八份契约产物的冻结时间行存在"),
-    ("docs/60-review.md", "| 冻结时间 | 2026-09-17 |",
+    ("docs/60-review.md", "| 冻结时间 |",
      "| 冻结时间 | 2026-09-17T10:00:00+08:00 |",
      "T30 冻结时间的整点钟点均注明来源"),
     # 30-D 上游依赖：行缺失 / 声明了清单外的读取关系
@@ -2064,17 +2115,31 @@ MUTATIONS = [
      "T30 51-defects.md 的 OBS 编号无未登记缺号"),
     # ---- T31（门禁输入的可求性）：矩阵分区 / 支撑规范写入者 / 阻断面的对侧编号 ----
     # 前两条复现审计发现的原始缺陷（矩阵漏 `tests/integration/**`、无 `tests/**` 变更行）；
-    # 第 3 条抽掉 §2 的一个支撑规范名；第 4 / 5 条分别破坏「箭头形态」与「互指」（annotation 由
-    # test-executor 落盘，锚点即其必须写出的固定前缀）；第 6 条把命名空间枚举退回两侧；
+    # 第 3 条抽掉 §2 的一个支撑规范名；第 4 / 5 条分别破坏「缺标注」与「互指」——**自合成夹具**
+    # （2026-09-20 根治 `52:OBS-12`：原锚点打在 `51:OBS-03` / `52:OBS-03` 两行上，两行改判第三态后
+    # 退出 T31 扫描面，突变随之静默失效；凡「依赖某行当前是阻断」的锚点都会随合法改判反复失效，
+    # 故改为在 OBS 表表头后**插入自造的阻断行**，与现存行状态无关）；第 6 条把命名空间枚举退回两侧；
     # 第 7 条把 OBS-08 的两侧首句改成同一句（假实例）；第 8 条回写已被推翻的旧口径。
     ("docs/artifacts.md", "tests/unit/** + tests/integration/**（engineer 复核）", "tests/unit/**（engineer 复核）",
      "T31 矩阵测试分区与 §2 归属声明一致（双向锁）"),
     ("docs/artifacts.md", "| tests/** 变更", "| 测试资产变更", "T31 矩阵含 tests/** 变更行"),
     ("docs/artifacts.md", "config-checklist.md", "config_checklist.md", "T31 支撑规范的写入者已在 §2 登记"),
     ("docs/artifacts.md", "另一侧无对应", "无对侧条目", "T31 阻断型 OBS 行标注了对侧编号（或「无对应」）"),
-    ("docs/51-defects.md", "对侧同一事实：↔ 52:OBS-03", "对侧：↔ 52:OBS-03",
+    # 自合成夹具（51 侧）：锚点 = OBS 表表头（体例行，稳定），变异体在表头后插入一条**无对侧标注的
+    # 阻断行** → `_cross_lack` 必命中。不引用任何现存 OBS 行，故改判 / 闭环都不会令其失效。
+    ("docs/51-defects.md",
+     "| 编号 | 内容 | 判定依据 | 关联 TC | 阻断 / 非阻断 |",
+     "| 编号 | 内容 | 判定依据 | 关联 TC | 阻断 / 非阻断 |\n"
+     "| OBS-98 | **自测合成阻断行（负向验证夹具：无对侧标注）** | 自测夹具 | — | 阻断 |",
      "T31 阻断型 OBS 行标注了对侧编号（或「无对应」）"),
-    ("docs/52-qa-report.md", "对侧同一事实：↔ 51:OBS-03", "对侧同一事实：↔ 51:OBS-05",
+    # 自合成夹具（52 侧）：同样锚在表头，插入两条互为对侧标注的阻断行，覆盖 `_cross_bad` 的两个分支 ——
+    # 甲（98）指向 `51:OBS-97`，该侧无此条目；乙（97）指向 98，而 98 回指 `51:OBS-97`，故「后者指向别处」。
+    # 两只夹具只依赖彼此，不依赖任何现存行。
+    ("docs/52-qa-report.md",
+     "| 编号 | 内容 | 关联 TC | 阻断 / 非阻断 |",
+     "| 编号 | 内容 | 关联 TC | 阻断 / 非阻断 |\n"
+     "| OBS-98 | **自测合成阻断行（夹具甲：对侧编号不存在）** 对侧同一事实：↔ 51:OBS-97 | 自测夹具 | 阻断 |\n"
+     "| OBS-97 | **自测合成阻断行（夹具乙：对侧行指向别处）** 对侧同一事实：↔ 52:OBS-98 | 自测夹具 | 阻断 |",
      "T31 对侧标注互指一致"),
     ("docs/state-machine.md", "`51:OBS-nn` / `52:OBS-nn` / `60:OBS-nn`", "`52:OBS-nn` / `60:OBS-nn`",
      "T31 阻断型 OBS 的命名空间枚举与 D2 第 2 项一致（双向锁）"),
@@ -2084,6 +2149,11 @@ MUTATIONS = [
     ("tools/check-config.py", "# 51 与 52 又各有一个 OBS-03（两侧内容相同、归属不同命名空间），而同号却含义**相反**的实例是 OBS-08",
      "# 51 与 52 又各有一个含义不同的 OBS-03",
      "T31 注释里不得再出现「OBS-03 含义不同」的失真陈述"),
+    # 三态（2026-09-20 用户裁决）：判据的**四个载体**必须同步声明第三态 —— 只在其中一处补，
+    # 其余几处仍按二态读，登记方会照各自读到的那份执行（本仓同型实测：判别口径曾散落四处、
+    # 其中一处漏写默认档，四处措辞看起来都「差不多」）。
+    (".claude/agents/code-reviewer.md", "已接受（用户决断）", "已接受",
+     "T30 第三态在判据四处载体中均已声明"),
 ]
 
 

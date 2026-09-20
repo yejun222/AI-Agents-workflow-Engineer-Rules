@@ -5,13 +5,15 @@
 | 项 | 内容 |
 | --- | --- |
 | 产物 | `docs/40-changelog.md`（engineer 交付的改动台账，含回滚建议） |
-| 版本 | **v3**（v2 → v3：本批新增 `CHG-20`「集成夹具 Redis 覆盖值修复（`51:OBS-12`）」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见「本轮变更登记（2026-09-20）」行；v1 → v2：本批新增 `CHG-19`「引用修复改动集（两角色同源 8 文件 18/18）＋ 同批护栏与规则文本加固」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见下方「本轮变更登记」行。v1 冻结取值 `2026-09-17` 早于 `CHG-14`…`CHG-18` 的落盘且头部未同步，本轮按 §4「末次实际落盘时刻」口径一并订正） |
-| 冻结时间 | **2026-09-20T11:22:00+08:00**（**实测**：本批（v3，`CHG-20`）末次落盘时刻取 `date` 实际输出 `2026-09-20T11:22:41+08:00` 向下取整到分钟；**证据强度 = 旁证** —— 本批尚未提交，无提交级落盘证据（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**）。**上一版取值**：`2026-09-18T17:54:00+08:00`（**实测**：`date` 输出 `2026-09-18 17:54:33 +0800`，向下取整到分钟 = 本批（v2）末次落盘时刻；**证据强度 = 旁证** —— 本批尚未提交，**无提交级落盘证据**（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**。v1 取值 `2026-09-17`（日粒度）见「版本」行说明） |
+| 版本 | **v4**（v3 → v4：本批新增 `CHG-21`「应用日志落盘为文件（Serilog `File` sink）」（`51:OBS-05` / `52:OBS-05`）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见「本轮变更登记（2026-09-20 · CHG-21）」行；v2 → v3：本批新增 `CHG-20`「集成夹具 Redis 覆盖值修复（`51:OBS-12`）」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见「本轮变更登记（2026-09-20）」行；v1 → v2：本批新增 `CHG-19`「引用修复改动集（两角色同源 8 文件 18/18）＋ 同批护栏与规则文本加固」—— 按 `docs/artifacts.md` §4 属**正文契约内容变更** → 升版，依据与时段见下方「本轮变更登记」行。v1 冻结取值 `2026-09-17` 早于 `CHG-14`…`CHG-18` 的落盘且头部未同步，本轮按 §4「末次实际落盘时刻」口径一并订正） |
+| 冻结时间 | **2026-09-20T13:50:00+08:00**（**实测**：本批（v4，`CHG-21`）末次落盘时刻取本批末次落盘前 `date` 实际输出 `2026-09-20T13:50:10+08:00` 向下取整到分钟；**证据强度 = 旁证** —— 本批尚未提交，无提交级落盘证据（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**）。**上一版取值**：`2026-09-20T11:22:00+08:00`（**实测**：本批（v3，`CHG-20`）末次落盘时刻取 `date` 实际输出 `2026-09-20T11:22:41+08:00` 向下取整到分钟；**证据强度 = 旁证** —— 本批尚未提交，无提交级落盘证据（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**）。**上一版取值**：`2026-09-18T17:54:00+08:00`（**实测**：`date` 输出 `2026-09-18 17:54:33 +0800`，向下取整到分钟 = 本批（v2）末次落盘时刻；**证据强度 = 旁证** —— 本批尚未提交，**无提交级落盘证据**（`docs/artifacts.md` §4「落盘证据只认 git 提交时刻」），提交 hash **不推定**。v1 取值 `2026-09-17`（日粒度）见「版本」行说明） |
 | 上游依赖 | `docs/30-architecture.md` **v4**、`docs/10-prd.md` v2、`docs/20-prototype.html` v3（**2026-09-18 勘误**：原值 30 **v2** 与本文正文不符——CHG-13 以 30 **v3** 为契约基准，CHG-16 / CHG-17 / CHG-18 均对齐 30 **v4** 的 D-08；按 `docs/artifacts.md` §5，30 变更时本产物是受影响下游，但本文正文**已随每次变更逐条回写**（CHG-16…18 即其落地），故**无需补失效标记**，只需订正本行） |
 | 写入范围 | `src/**`、`tests/unit/**`、`tests/integration/**`、本文件 |
 | 说明 | 改动逐条 ID 稳定（CHG-01…），关联 FR / AC；「测试结果」栏只在**实际执行**后填写，未执行的一律标注原因 |
 | 本轮变更登记（2026-09-18） | **改了哪一类**：新增 `CHG-19`（引用修复改动集补登 ＋ 同批护栏与规则文本加固）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更**；**何时**：落盘日 `2026-09-18`（具体时刻见本文件「冻结时间」行的实测读数）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」（正文变更 → 升版；头部元信息块同步）+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v1 → v2**、冻结时间同步取本批末次落盘。**范围声明（本批覆盖提交面）**：`git diff --numstat -- src tests` 实测 8 文件 / 18 增 18 删（`src/**` + `tests/unit/**` 归 engineer；`tests/e2e/**` 归 test-executor —— 同轮两角色同源；逐处清单见 CHG-19 §1）＋ 护栏与规则文本三件（`tools/check-config.py`、`docs/role-protocol.md`、`.gitignore`，由主对话落盘；见 CHG-19 §1b）；工作区其余脏文件（`docs/*`、`.claude/*` 等属其他角色）**不在本 CHG 清单内**，提交时以 `git show --stat` 逐文件核对 |
 | 本轮变更登记（2026-09-20） | **改了哪一类**：新增 `CHG-20`（集成夹具 Redis 覆盖值修复，关联 `51:OBS-12`）—— 按 `docs/artifacts.md` §4 属**正文契约内容变更**（非台账类回写）；**何时**：落盘日 `2026-09-20`（实测读数见「冻结时间」行）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v2 → v3**、冻结时间同步取本批末次落盘。**范围声明**：`git diff --stat -- tests/integration` 实测 2 文件 / 74 增 7 删；证据目录（绝对路径，留存不删）`D:\AI test\AI-Agents-workflow-Engineer-Rules\tests\integration\_tmp-obs12-fix-20260920-01`。 |
+| 本轮变更登记（2026-09-20 · CHG-21） | **改了哪一类**：新增 `CHG-21`（应用日志落盘为文件：`Serilog:WriteTo` 追加 File sink ＋ 同批守护用例），关联 `51:OBS-05` / `52:OBS-05` —— 按 `docs/artifacts.md` §4 属**正文契约内容变更**（非台账类回写）；**何时**：落盘日 `2026-09-20`（实测读数见「冻结时间」行）；**依据哪条规则**：`docs/artifacts.md` §4「冻结后仍有落盘时的处置」+ `docs/role-protocol.md` §7.4（时间戳取 `date` 实测输出、禁标称钟点）；**处置**：**升版 v3 → v4**、冻结时间同步取本批末次落盘。**范围声明**：`git diff --stat -- src` 实测 **1 文件 / 9 增 0 删**（`src/backend/src/LuckyDraw.Api/appsettings.json`）＋ `tests/integration/**` **新增 1 文件**（`SerilogFileSinkTests.cs`，2 例）；证据目录（绝对路径，留存不删）`D:\AI test\AI-Agents-workflow-Engineer-Rules\tests\integration\_tmp-obs05-file-sink-20260920-01`。 |
+| 勘误登记（2026-09-20 · CHG-21） | **改了哪一类**：`CHG-21` 两处失真陈述的实现侧**追加式订正**（① §5 论证句「SQL 命令与**参数**都不进日志」→ `60:REV-22`；② 「默认 `:3307` 不可用」被表述为整轮验证受阻类陈述（状态行 / §9 / §10 / 变更索引）→ `60:REV-24`）——原句**逐字保留**，订正以各处「2026-09-20 勘误」块为准；**何时**：落盘日 `2026-09-20`；**依据哪条规则**：`docs/development-spec.md` 13.4（历史复述不回改、事实订正走勘误追加）＋ `docs/artifacts.md` §4（勘误类不改版本）；**处置**：**不升版**（维持 v4，「冻结时间」行取值不变）。**回退**：删除各处「2026-09-20 勘误」块与本行即可复原（原句逐字未动）。**边界**：本登记不主张 `60:REV-22` / `60:REV-24` 闭环（闭环判定归 code-reviewer）；本批尚未提交 → 无提交级落盘证据，提交 hash 不推定。 **负向验证（等价样本，`docs/development-spec.md` 7.5 第 6 条的等价位）**：本改为**文档勘误**，无既有可执行断言可「回退必红」→ 按第 6 条属「不具备可回退性」，给等价负向样本并逐条实测：① **证据路径存在性断言**（勘误所引 6 条路径）实测缺失 **0**；已知坏对照（追加 1 条不存在路径）→ 报 MISSING **1**（红）；② **CRLF / 编码完整性断言**：成文实测 `CR = LF = CRLF = 1245`、裸 LF **0**、UTF-8 可解码；已知坏对照（镜像副本注入 1 处裸 LF）→ `1244 / 1245 / 1244、裸 LF 1`（红）；③ **勘误在位断言**：6 处「2026-09-20 勘误」追加块 + 1 个「勘误登记」行实测 **6 / 1**；已知坏对照（镜像副本删 1 块）→ **5 / 1**（红）。镜像路径（留存不删）`C:/tmp/engineer-chg21-errata-20260920-01/`（`scratch-barelf.md` / `scratch-noerrata.md`）；镜像对照证据强度 = **旁证**（`docs/role-protocol.md` §7.5）。**护栏主检（本追加落盘后、本条落盘前实跑）**：`python tools/check-config.py` = `共 385 项检查 / 全部 PASS`（exit 0），校验基线 `HEAD 5491573 / 工作区 脏 26 个文件`；并发写者存在下为非排他读数，按 `60:OBS-34` 不构成仓库级放行依据。 |
 
 ## 变更索引
 
@@ -37,6 +39,7 @@
 | CHG-18 | REV-21 闭环：重试耗尽 CRITICAL 告警的计数口径修正（**尝试次数 → 重试次数**，对齐 D-08「重试 1 次」）+ 同源根因治理的守护性断言（含 2 项负向验证） | REV-21、D-08（架构 `:567`）、CHG-16、CHG-17、`docs/artifacts.md` §5 | 已落地（实跑 + 负向验证见本节；**上游契约变更 = 无**，仅日志文案，不改错误码 / HTTP 状态码） |
 | CHG-19 | 引用修复改动集（裸行号锚点 → 稳定 ID；含 `TC-39b` 幽灵编号判定）＋ 同批护栏 T30 扩面与临时目录前缀闭集双向锁、规则文本同步加固 | `60:OBS-32`、`60:OBS-05`、`docs/development-spec.md` 13.4、`D-08`、`TC-39`、`docs/artifacts.md` §5、`docs/role-protocol.md` §6 / §7.6 | 已落地（构建 0/0 + 单测 96/0/0 + 护栏 369 项全 PASS 实跑；**集成未通过：环境不具备**，见本节） |
 | CHG-20 | 集成夹具 Redis 覆盖值修复（连接与清理目标同源派生 + 守护断言） | `51:OBS-12`（阻断/执行侧）、`FR-02`、`D-03` | 已落地（判别轮 43/43 / 对照轮 43/43 / 单测 96/0/0 / 护栏 373 全 PASS） |
+| CHG-21 | 应用日志落盘为文件（`Serilog:WriteTo` 追加 File sink，与 Console 共用同一 `outputTemplate`）＋ 同批守护用例（配置读回 + 落盘效果） | `51:OBS-05`（阻断/执行侧）、`52:OBS-05`（阻断）、`TC-81`、`CHG-07` | 已落地（构建 4 项目 0 警告 / 0 错误；新增用例 2/2 PASS；**负向验证 2 样本实测**（A：回退 → 2/2 必红；B：格式分叉 → 1 红 1 绿）；程序集 45 = 43 失败（`:3307` 无监听）/ 2 通过；日志正文敏感串 7 模式 **0 命中**）（**2026-09-20 勘误**：上列「程序集 45 = 43 失败」为**默认连接串**（`:3307`）路径读数；经既定覆盖入口 `LUCKDRAW_TEST_CONNECTION_STRING`（指向隔离实例 `:3407`）实跑同一套件 = **45 / 0 / 0**（转述；详见 `CHG-21` §10 勘误与 `60:REV-24`）。） |
 
 ---
 
@@ -1108,6 +1111,124 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 - **旁证声明**：本批所有运行均为**本机隔离容器**环境（非生产 CI），证据强度 = 旁证（`dotnet test` 原始输出 + `redis-cli` 探针 + 复位实测）；`git diff` 快照为版本控制级，但本批**尚未提交**，故不构成仓库级证明。
 
 
+## CHG-21 应用日志落盘为文件（Serilog `File` sink，与 Console 共用同一 `outputTemplate`）—— `51:OBS-05` / `52:OBS-05` 闭环改动（含负向验证）
+
+- **状态**：**已落地**（`src/**` 1 文件 / 9 增 0 删；`tests/integration/**` 新增 1 文件；各项目 `dotnet build` **0 警告 / 0 错误**；新增用例 **2/2 PASS**；**负向验证已实测**（回退补丁 → 2/2 必红 → 还原 → 复绿，读数见 §3）；完整集成套件**已执行但 43 例全部失败**（`:3307` 无监听、夹具初始化即失败，与本改动无关，见 §10；本轮程序集读数 = `Failed: 43, Passed: 2, Total: 45`）—— 即新增 2 例在**混跑**下仍绿）。（**2026-09-20 勘误**：上列「完整集成套件已执行但 43 例全部失败」系**默认连接串**（目标 `:3307`）路径下的读数；同一套件经仓库既定覆盖入口 `LUCKDRAW_TEST_CONNECTION_STRING`（指向隔离实例 `:3407`、不碰共享容器）实跑 = **45 / 0 / 0、Duration 14 s**（转述自 `docs/60-review.md` `60:REV-24` / §J.2⑦；证据 `tests/integration/_tmp-rev-obs05-20260920-01/10-baseline-full-suite-3407.log`，本角色已核验该文件载有该摘要行）→ 真实边界 = 默认连接串所指向的共享实例不可用，**不是**整轮验证受阻 / 套件不可运行。详见 §10 勘误。）
+- **来源与调度**：`docs/51-defects.md` §3 **`51:OBS-05`（阻断；归类 = `执行侧`）** 与 `docs/52-qa-report.md` §3 **`52:OBS-05`（阻断；默认档）** 描述的**同一事实**（两行互相标注「对侧同一事实」）——应用日志仅 `WriteTo: Console`、未落盘为文件 → 日志正文无法离线检索，`TC-81`（日志不含明文密码 / token）只能改以 `AuditLog` / `DrawRequest.RequestHash` / `User.PasswordHash` 三面旁证代替。本条提供修复与可闭环证据；`51` / `52` 的台账状态回写归 test-executor（本角色不改这两份文件）。
+- **性质**：**配置侧修复** —— 只在 `Serilog:WriteTo` 数组追加一个 File sink 项。**无新第三方依赖**：`Serilog.Sinks.File 6.0.0` 已在 `Serilog.AspNetCore 9.0.0` 的传递依赖解析图内（实测 `LuckyDraw.Api.deps.json` 与 `LuckyDraw.IntegrationTests.deps.json` 均含该包，`bin` 内已有 `Serilog.Sinks.File.dll`）。无表结构 / DTO / 接口契约 / 目录结构变更，无新增或删除用例。
+- **上游契约变更**：**无**（`docs/10/20/30/50/51/52/60-*` 与 `docs/error-codes.md` 一律未触碰）。
+- **关联**：`51:OBS-05`、`52:OBS-05`（驱动项，同一事实）、`TC-81`（此前「可检索面受限」，落盘后其判据面首次可直接覆盖日志正文）、`docs/10-prd.md` §4.2「日志禁止输出密码 / token / 密钥」与 FR-01 第 3 条 / FR-05-R8（落盘后风险面扩大的判据）、`CHG-07`（Serilog 接入与 `appsettings.json` 的 `Serilog` 节来源）、`CHG-20`（上一条，沿用其体例）、`QX-03`（本批新增待确认项，见文末）。
+- **落盘证据强度（如实标注）**：本批**尚未提交**（本角色不执行 git 提交，提交由主对话统一执行）→ **无提交级落盘证据**；下列读数均为**实测**（命令 + 工作目录 + 实际结果），所引证据路径已逐个核验存在。
+
+### 1. 改动清单（`git diff --stat -- src` 实测：1 文件 / 9 增 0 删；另新增 1 个测试文件）
+
+| # | 文件 | 改动 |
+| --- | --- | --- |
+| 1 | `src/backend/src/LuckyDraw.Api/appsettings.json` | `Serilog:WriteTo` 数组**追加**一项 File sink：`path = logs/luckydraw-.log`（相对应用 CWD；`-` 后缀由按天滚动补 `yyyyMMdd`）、`rollingInterval = Day`、`retainedFileCountLimit = 7`（Serilog 默认 31）、`outputTemplate` 与 Console 项**逐字一致**。**未触碰** `MinimumLevel`（`Default: Information` / `Microsoft.AspNetCore: Warning` / `Microsoft.EntityFrameworkCore.Database.Command: Warning`）与其余全部既有配置项 —— 补丁脚本对「JSON 可解析 + 无关配置项取值未变」逐项断言（见 §3）。 |
+| 2 | `tests/integration/LuckyDraw.IntegrationTests/SerilogFileSinkTests.cs`（**新增**） | `51:OBS-05` / `52:OBS-05` 守护用例 2 条：① 读回宿主**实际生效**的 `Serilog:WriteTo`，断言 File sink 存在、三个参数取值、且 `outputTemplate` 与 Console **逐字一致**；② 经宿主 `ILoggerFactory` 写唯一标记，断言按天滚动的日志文件出现且**正文含该标记**。**不挂 `IntegrationFixture`**（不触碰业务表 / 缓存，理由与边界见 §4）。 |
+
+- **落盘路径（实测，相对 CWD 语义）**：`dotnet test` 的测试宿主进程 CWD = 测试程序集输出目录 → 日志实际落到 `D:\AI test\AI-Agents-workflow-Engineer-Rules\tests\integration\LuckyDraw.IntegrationTests\bin\Debug\net10.0\logs\luckydraw-20260920.log`。**同一语义下**，发布侧由 `tests/e2e/lib/launch-api.mjs` 把子进程 `cwd` 锁死为发布目录 → 日志落 `<发布目录>/logs/`（该路径在 `tests/e2e/deploy/` 忽略条目内）。
+- **`.gitignore`**：根锚定的 `/logs/` 条目由主对话落盘（本角色未触碰 `.gitignore`）。
+
+### 2. 正向实测：日志文件真的生成且正文可离线检索（原始读数）
+
+命令（输出证据留存于 `tests/integration/_tmp-obs05-file-sink-20260920-01/21-new-tests-run1.log` 与 `22-new-tests-run2-info-level.log`）：
+
+| 轮次 | 实际命令 | 原始输出关键行 |
+| --- | --- | --- |
+| 判别轮 | `dotnet test tests/integration/LuckyDraw.IntegrationTests --nologo --filter "FullyQualifiedName~SerilogFileSinkTests"` | `Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 420 ms`（exit=0） |
+| 信息级加测 | 同上命令 + 环境变量 `Serilog__MinimumLevel__Default=Information`（**只覆盖该次运行期级别，未改任何配置文件**） | `Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 417 ms`（exit=0） |
+
+日志文件正文（**UTF-8 解码**，**终态** 982 B / 12 行、无 BOM；本批共 5 轮运行写入）：
+
+```text
+[13:41:37 ERR] An error occurred using the connection to database '' on server 'localhost'.
+[13:44:01 WRN] OBS05LOGMARK-7952694997da46eb83522432348b45a8 日志落盘检索标记
+[13:44:25 INF] Application started. Press Ctrl+C to shut down.
+[13:44:25 INF] Hosting environment: Testing
+[13:44:25 INF] Content root path: D:\AI test\AI-Agents-workflow-Engineer-Rules\src\backend\src\LuckyDraw.Api
+[13:44:25 WRN] OBS05LOGMARK-64f9be1dd67746e3a68141c0ca0948cc 日志落盘检索标记
+[13:44:25 INF] Application is shutting down...
+[13:45:57 WRN] OBS05LOGMARK-611bb4cd227e4b7d8e7cb6f4d65658ff 日志落盘检索标记
+[13:46:15 WRN] [FILE] OBS05LOGMARK-5b90fc39f6184c9199459b9dad17210f 日志落盘检索标记
+[13:46:26 WRN] OBS05LOGMARK-d0ee685cbb87433ab3075107d704fcb2 日志落盘检索标记
+[13:46:39 WRN] OBS05LOGMARK-95921b82ecc04295ad317bf605a2f42d 日志落盘检索标记
+[13:46:48 ERR] An error occurred using the connection to database '' on server 'localhost'.
+```
+
+- **归属（逐行）**：第 1 行（`ERR`，13:41:37）与第 12 行（`ERR`，13:46:48）来自**挂夹具的集成套件宿主**（两轮均因 `:3307` 无监听在夹具初始化即失败）；其余 10 行由本组用例各轮运行写入；第 9 行带 `[FILE]` 前缀，即 §3 负向样本 B 期间所写（同一文件、同一 sink，模板临时改为两套格式）。**行首格式 = `outputTemplate` 逐字落地**（`[HH:mm:ss LEVEL] `），即 Console 与 File 共用同一套格式。
+- **编码（实测，非推断）**：文件以 **UTF-8 无 BOM** 落盘 —— 标记内含中文「日志落盘检索标记」，按 UTF-8 解码后与写入值逐字一致；用例的检索同样按 UTF-8 解码，编码不符即变红。控制台侧是宿主 GBK，二者字节不同属**预期**（`Serilog.Sinks.File` 默认 UTF-8），不是缺陷。
+
+### 3. 负向验证（`docs/development-spec.md` 7.5 第 6 条：三步观测，全部实测）
+
+| 样本 | 回退 / 构造方式 | 观察到的失败（实测原文） | 还原后 |
+| --- | --- | --- | --- |
+| **A 回退修复**（= 修复前配置） | `10-apply-appsettings-patch.py --mode revert`：删除 File sink 项；实测 sha256 逐字节回到修复前 `d3becf3d…`（1037 B / CRLF 51） | `Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2`（exit=1）：① `FileSink_IsConfiguredAndMatchesConsoleTemplate` → `Expected file not to be <null> because 51:OBS-05 / 52:OBS-05：应用日志必须落盘为文件（Serilog File sink），否则日志正文无法离线检索，只能退回以表数据交叉验证`；② `FileSink_WritesLogFileContainingBody` → `Expected content not to be <null> because 应用日志必须按 Day 滚动落到 D:\…\bin\Debug\net10.0\logs\luckydraw-20260920.log（相对应用 CWD）且正文含本次写入的标记；当前目录内容：luckydraw-20260920.log（534 B）`（5 s 轮询窗口耗尽）。**同轮实测日志文件未增长**：回退前后均 534 B / 7 行，且无 13:44 之后时间戳的行 | `--mode apply`（sha256 逐字节回到 `050a3db9…`）→ **2/2 复绿**：`Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2, Duration: 391 ms` |
+| **B「半截」样本**（File sink 在，但其 `outputTemplate` 与 Console **不一致**） | `60-negative-sample-b-template.py --mode variant`：只把 File 的模板改成带 `[FILE]` 前缀（sha256 `e19379a1…`） | `Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2`（exit=1）：用例① `Expected file["Args:outputTemplate"] to be the same string because File 与 Console 必须共用同一套 outputTemplate（逐字一致），否则同一段日志有两种格式、检索方式分叉, but they differ at index 34`；**用例② 仍绿** → 该轮实测落盘行带 `[FILE]` 前缀（见 §2 正文第 9 行），证明「配置对但格式分叉」这一形态只有用例① 能拦 | `--mode restore`（sha256 回到 `050a3db9…`）→ **2/2 复绿**：`Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2, Duration: 396 ms` |
+
+- 结论：两步都是载荷 —— **删掉 sink**（样本 A）两条断言同时红；**只改格式**（样本 B）只有「逐字一致」这一条红。样本 A/B 还原后均逐字节回到修复态并复绿（两轮终态实测）。
+- 补丁脚本每轮都先断言「源片段命中 1 次」才落盘，并按 `json.loads` 解析 + 逐项校验 `MinimumLevel` 与无关配置项取值未变（见 §1 的「未触碰」声明）。
+
+### 4. 新增断言的辨别力依据（含「顺序依赖 / 同进程日志文件争用」的实测结论）
+
+- **用例①（配置读回）**：从宿主 `IConfiguration` 读**实际生效**的 `Serilog:WriteTo`，而非源码常量 → 不是同义反复。**在什么状态下失败**：File sink 项被删 / 被改名（**样本 A 实测 → 红**）、三个参数取值被改动、File 与 Console 的模板不一致（**样本 B 实测 → 红**且定位到 `differ at index 34`）。**不覆盖**：路径不可写、sink 程序集缺失等「配置对但落盘失败」的形态 → 由用例② 承担。
+- **用例②（落盘效果）**：标记是**每轮新生成的 GUID**（不复用固定串 → 不会被历史行误命中；样本 A 实测：文件里仍有 534 B 历史正文，但检索新标记得到 `null` → 红）。**在什么状态下失败**：sink 未接线（样本 A）、承载 sink 的程序集缺失、路径不可写、滚动文件名算法不符、文件编码不是 UTF-8（标记含中文，按 UTF-8 解码检索）。**不覆盖**：正文的业务内容合规性（那属 `TC-81` / `docs/10-prd.md` §4.2 的判据面，本组只证明「正文可离线检索」这一前提）。
+- **顺序依赖：无（实测）**：① 本组**不挂 `IntegrationFixture`** → 不触碰业务表 / Redis / 限流窗口，自带隔离前提（`docs/development-spec.md` 7.6）；② 断言只认**自己写的 GUID** 与**自己读到的配置**，不看历史行、不看他例结果；③ 实测混跑：程序集全量运行（`Failed: 43, Passed: 2, Total: 45`）时本组 2/2 仍绿。
+- **同进程多宿主写同一日志文件（实测结论）**：`dotnet test` 下 CWD = 测试程序集输出目录 → **所有宿主**（本组独立宿主 + 挂夹具的宿主）解析出**同一个** `logs/luckydraw-YYYYMMDD.log`。实测：① 该文件 534 B → 982 B **单调增长**，13:41 的历史行在后续 4 轮运行后仍在（**追加写、无截断**）；② 两个宿主的行**混排同一文件**（13:46:39 本组标记 / 13:46:48 夹具宿主 ERR），本组只检索自己的 GUID → **不会把对方正文当成自己的判据**（无交叉污染）；③ 本组读文件一律用 `FileShare.ReadWrite`（sink 运行期持有该文件）。**边界（如实声明）**：未构造「两个宿主的 sink 严格同刻存活」的强并发样本 —— 本程序集已由 `AssemblyInfo.cs` 的 `DisableTestParallelization` 关闭并行，实测混跑中两次写入均成功、无丢失。
+- **对既有用例的影响**：本组只**追加**行、不改既有行，且不触碰业务表 / 缓存 → 既有 43 例的判据一字未改；程序集用例总数 43 → 45（实测读数见 §2）。
+
+### 5. 落盘日志正文的敏感串检索（风险面实测）
+
+背景：日志从「只在控制台（随进程消失）」变为「持久化到文件（跨进程可读）」→ **风险面扩大**，故对**实际生成的日志文件正文**做一次检索（判据 = `docs/10-prd.md` §4.2「日志禁止输出密码 / token / 密钥」、FR-01 第 3 条、FR-05-R8）。
+
+| 项 | 读数 |
+| --- | --- |
+| 目标文件 | `D:\AI test\AI-Agents-workflow-Engineer-Rules\tests\integration\LuckyDraw.IntegrationTests\bin\Debug\net10.0\logs\luckydraw-20260920.log` |
+| 规模（终态；`date` 实测时刻 `2026-09-20T13:47:47+08:00`） | **982 B / 12 行**，UTF-8 无 BOM |
+| 模式（7 个，大小写不敏感，UTF-8 解码后子串匹配） | `password` / `passwd` / `Bearer` / `token` / `refresh_token` / `SigningKey` / 32 个 `'0'` 的回退签名密钥形态 |
+| 命中 | **合计 0**（`password` 0 / `passwd` 0 / `bearer` 0 / `token` 0 / `refresh_token` 0 / `signingkey` 0 / 32×`0` 0） |
+| 证据 | `40-sensitive-scan.py` + 输出 `42-final-scan.txt`（命中数非 0 时脚本以 exit=1 结束） |
+
+- **与既有防线的关系（非重复建设）**：`appsettings.json` 的 `Serilog:MinimumLevel:Override` 把 `Microsoft.EntityFrameworkCore.Database.Command` 压在 Warning（SQL 命令与**参数**都不进日志）、把 `Microsoft.AspNetCore` 压在 Warning；新增的 File sink **共用同一份 level 配置与同一套 `outputTemplate`** → 不新增泄露面。（**2026-09-20 勘误**：本行论证句「SQL 命令与**参数**都不进日志」与实测不符 —— 落盘正文实测**会**含 EF 错误级内容：SQL 命令文本（如 `INSERT INTO WinningRecord ...` 等语句全文）与业务键值（`Duplicate entry` 业务键、唯一索引名 `DrawRequest.UX_DrawRequest_User_Key`）入盘，被抑制的只是**参数值**（EF 掩码为 `?`）。本行结论「不新增泄露面」**本身仍成立**，但举证句应改为「凭证类模式全量检索 0 命中 ＋ SQL 文本 / 业务键值会入盘」——原句逐字保留、以本勘误为准；登记与实测见 `docs/60-review.md` `60:REV-22`（§J.2①）与证据目录 `tests/integration/_tmp-rev-obs05-20260920-01/`（本角色已核验其内 `11-log-delta-after-baseline-run.log` 载有上述语句文本与业务键值）。）
+- **覆盖边界（如实声明）**：本轮正文**不含认证 / 抽奖流量**（`:3307` 无监听 → 业务用例未执行）→ 该 0 命中**不能**外推到业务路径。落盘的价值在于：`TC-81` 的判据面**首次**可以直接覆盖日志正文本体（此前只能靠 `AuditLog` / `DrawRequest.RequestHash` / `User.PasswordHash` 三面旁证），业务流量下的实际复核归 test-executor。（**2026-09-20 勘误**：业务流量下的日志正文**已产生且已检索** —— code-reviewer 经既定覆盖入口 `LUCKDRAW_TEST_CONNECTION_STRING`（指向隔离实例 `:3407`）实跑同一套件（含认证 / 抽奖等业务路径），并对业务流量窗口的落盘增量（`tests/integration/_tmp-rev-obs05-20260920-01/11-log-delta-after-baseline-run.log`；本角色实测 200 169 B / 1360 行，与 `docs/60-review.md` §J.2① 登记一致）按 13 类凭据模式检索 = **0 命中**（该实跑读数与检索结论为**转述**自 §J.2① / §J.2⑦）。注意：该 0 命中**不等于**「SQL 文本与业务键值不入盘」——见本节前一条勘误。`TC-81` 在 e2e 面的复核归属不变（归 test-executor）。）
+
+### 6. 影响面
+
+- **运行期**：每条达阈值日志多一次文件追加写（File sink 默认逐条 flush），并生成 `logs/` 目录与按天滚动文件（保留 7 份）。**Console 输出、`MinimumLevel`、接口 / DTO / 错误码 / HTTP 状态码 / 数据库 / 迁移 / 前端全部未变**。
+- **部署面（CWD 语义的落点）**：`dotnet test` → 测试输出目录（实测路径见 §1，`git check-ignore` 命中 `.gitignore` 的 `bin/` 条、`git status` 不出现该文件 → **不入库**）；发布侧由 `tests/e2e/lib/launch-api.mjs` 把 `cwd` 锁死为发布目录 → `<发布目录>/logs/`（`tests/e2e/deploy/` 忽略条目内）；仓库根启动 → `<仓库根>/logs/`（忽略条目由主对话落盘，本角色未触碰 `.gitignore`）。
+- **盘占用**：`retainedFileCountLimit = 7` 给出保留份数上界，**单文件体积未做大流量实测**（见 §10）。
+- **证据面（本次修复的目的）**：日志正文**从此可离线检索**（grep / 采样 / 事后核验）→ `51:OBS-05` / `52:OBS-05` 的「证据可检索性」缺口消除；台账状态回写归 test-executor。
+
+### 7. 回滚建议
+
+- **逐字复原**：`git diff -- src` 反向应用即可（可逆性已实测：`--mode revert` → sha256 回到 `d3becf3d…`；`--mode apply` → 回到 `050a3db9…`）。**回滚后果**：`51:OBS-05` / `52:OBS-05` 复现（日志不落盘、正文不可离线检索），`SerilogFileSinkTests` 2 例必红（样本 A 实测）→ **不建议单独回滚**。
+- **只撤销新增用例**：删除 `tests/integration/LuckyDraw.IntegrationTests/SerilogFileSinkTests.cs`（`src/` 侧 File sink 不受影响，仍会落盘）。
+- **本产物侧回退**：删除 §CHG-21 节、`变更索引` 的 `CHG-21` 行、头部「本轮变更登记（2026-09-20 · CHG-21）」行与 `QX-03` 行，并把「版本」回 **v3**、「冻结时间」回 `2026-09-20T11:22:00+08:00`。
+
+### 8. 环境与复位登记（`docs/role-protocol.md` §8 三段式）
+
+- **用到的环境**：本机 `dotnet` 工具链 + 集成测试宿主（`WebApplicationFactory<Program>`）。**未启动 / 未复位任何容器**：`:3307`（同时承载 `luckydraw_dev` 与 `luckydraw_test`，本次实测**无监听**）、`:3407`（隔离 MySQL，实测 OPEN）、`:6379`（共享 Redis，实测 OPEN）—— 全程只做**只读 TCP 连通性探测**，未对其发起任何 docker 命令 / 写入 / `FLUSHDB`；`:5180` / `:5198` 实测无监听，未触碰。
+- **破坏性操作**：**无业务数据破坏**（本组不挂夹具 → 无 `DELETE` / `UPDATE`、不写 Redis 键）。三项已登记的非破坏性写入：① 新增日志文件 `logs/luckydraw-20260920.log`（测试输出目录内）；② 新增证据目录 `tests/integration/_tmp-obs05-file-sink-20260920-01/`（脚本 + 原始输出）；③ 各项目 `bin/` / `obj/` 常规构建产物。**三者均按纪律保留不删。**
+- **归属声明（批次边界）**：该日志文件的 13:41:37 与 13:46:48 两行来自两轮**完整集成套件**运行（43 例因 `:3307` 无监听在夹具初始化失败）；其余 10 行由本批 `SerilogFileSinkTests` 各轮运行写入。**批次时间窗 = 13:41:37 ～ 13:46:48**；其后追加的行非本批流量。
+
+### 9. 失效传播判定（按 `docs/artifacts.md` §5 矩阵）
+
+- **`src/ 变更` → `tests/unit/**` / `tests/integration/**` / `tests/e2e/**`（矩阵三行全列）**：
+  - `tests/unit/**`：**未复跑**，理由 = 变更**不触及该断言面**（检索证据：`grep -rn "Serilog" tests/unit --include=*.cs` → **0 命中**；单测不读取 `Serilog` 节）。
+  - `tests/integration/**`：**已复跑**（本批新增用例 2/2 绿；全量 45 例中 43 例因 `:3307` 无监听未通过，原因与本改动无关，见 §10）。（**2026-09-20 勘误**：「43 例未通过」仅限默认连接串（`:3307`）路径；经既定覆盖入口（指向隔离实例 `:3407`）实跑同一套件 = **45 / 0 / 0**（转述；详见 §10 勘误与 `60:REV-24`）。）
+  - `tests/e2e/**`：**未复跑**，理由 = **本角色无该分区写入权**；判定为**需复核**而非「不涉及」——① `tests/e2e/api/api-suite.mjs`（`TC-81` 实现）内含**会被本次改动推翻的实然陈述**「应用控制台日志（Serilog Console 输出，未落盘文件）无法离线检索，见 52 观察项」；② 日志落点新增 `<发布目录>/logs/`（`tests/e2e/deploy/` 忽略条目内，不影响仓库）；③ 既有「控制台捕获按 GBK 解码」的辅助函数（`tests/e2e/api/tc56c-redis-degradation.mjs`）仍只作用于控制台捕获，**文件侧是 UTF-8**，两者不可混用。处置权归 test-executor。
+- **`tests/**` 变更 → `51` / `52` / `60`**：`tests/integration/**` 新增 1 文件 → 台账回写归 test-executor（本角色无这三份文件的写入权）；本批未改夹具、未改既有用例 → **不使既有测试侧证据失效**。
+- **`40-changelog 变更` → `51` / `52` / `60`**：本 CHG-21 提供 `51:OBS-05` / `52:OBS-05` 的修复侧证据（含负向验证）→ 状态回写与下一轮回归归 test-executor。
+
+### 10. 未实测 / 存疑（如实登记，不粉饰）
+
+- **⚠ 业务流量下的日志正文（最大缺口）**：`:3307` 无监听 → 完整集成套件 **43 例全部未执行**（夹具初始化即失败：`MySqlConnector.MySqlException : Unable to connect to any of the specified MySQL hosts.`，读数 `Failed: 43, Passed: 0`）→ **认证 / 抽奖 / 幂等路径的日志正文本轮未产生、未检索**（§5 的 0 命中不得外推）。**未执行原因 = 环境不可用**；**未自行处置**（调度纪律禁止启动 / 复位共享容器）→ 建议由主对话按 `docs/role-protocol.md` §8 决定：或恢复 `:3307`，或以 `:3407` 覆盖变量重跑（该路径属共享环境，须先公示影响面）。（**2026-09-20 勘误**：本行的「**未执行原因 = 环境不可用**」把边界写成整轮受阻，与实情不符 —— 实际不可用的只是**默认连接串所指向的共享实例 `:3307`**，而非套件 / 环境整体：仓库既有既定覆盖入口 `LUCKDRAW_TEST_CONNECTION_STRING`（`LuckyDrawApiFactory` 文档注释内声明；指向隔离实例 `:3407`、不碰共享容器）**可运行该套件** —— code-reviewer 即经该入口实跑同一套件（含本批新增 2 例）= **45 / 0 / 0、Duration 14 s**（转述自 `docs/60-review.md` `60:REV-24` / §J.2⑦）。故本行所称「业务流量下的日志正文」缺口**在原轮即可闭合**（该轮已产出并检索业务流量正文，见 §5 两条勘误）。原句逐字保留不改，以本勘误为准；另：原句括注「该路径属共享环境」亦与实情不符（该入口指向**隔离**实例）。`60:REV-24` 的闭环判定归 code-reviewer，本文件不主张。）
+- **两个宿主的 sink 严格同刻存活**：未构造（§4「边界」已声明）；实测混跑下两次写入均成功、无丢失。
+- **滚动轮转与体积**：`retainedFileCountLimit = 7` 的实际裁剪行为未观测（需跨日 / 大流量才会触发）；未做盘占用实测。
+- **`docs/30-architecture.md` 的实然陈述核对（只读，顺带确认）**：**未发现**会被本次改动推翻的陈述 —— 检索证据：`grep -c "WriteTo" docs/30-architecture.md` → **0**；`grep -n "控制台" docs/30-architecture.md` → **0 命中**；`grep -c "Serilog" docs/30-architecture.md` → **1**（仅「版本约束」行的技术栈枚举）。**故无契约冲突上报**，该文件未被触碰。
+- **`appsettings.Development.json` / `appsettings.Testing.json` 是否覆盖 `WriteTo`（只读，顺带确认）**：**均未覆盖** —— 两文件只含 `Serilog:MinimumLevel`（含 `Override`）节，无 `WriteTo`；`serilog` 数组按索引合并 → **集成宿主确实走 File sink**（本批全部落盘实测即为该结论的直接证据）。
+- **旁证声明**：本批所有运行均为**本机**环境（非生产 CI）；`dotnet test` 原始输出与日志文件正文为实测读数，`git diff` 快照为版本控制级，但本批**尚未提交** → 不构成仓库级证明。
+
 ## 待确认清单（默认假设）
 
 | 编号 | 假设 | 依据 |
@@ -1121,3 +1242,4 @@ WRN 说「第 1 次」（预告即将进行的那 1 次重试，语义正确）�
 | AS-07 | 整事务重试预算**为 2 次尝试（重试 1 次），最坏用户等待 100s** | **已由用户裁决确认并落地（CHG-17）**：`MaxTransactionAttempts` 由 3 改为 2，对齐架构 `:544`「整个事务重试 1 次」；原冲突记录见 CHG-16「未裁决项 (2)」 |
 | QX-01 | 新增 CHG 条目是否应升版：本产物头部原为「版本 v1 / 冻结时间 `2026-09-17`」，而 `CHG-14`…`CHG-18` 落盘后头部未同步；本批（`CHG-19`）按 `docs/artifacts.md` §4「正文契约内容变更 → 升版」执行 **v1 → v2** 并同步冻结时间。**若需与历史批次口径一致（只登记、不升版）**，请裁决后回退（回退办法见 `CHG-19` §8 末条）。 | `docs/artifacts.md` §4「冻结后仍有落盘时的处置」；主对话调度指令（本批次） |
 | QX-02 | 集成失败例 `AuthApiTests.Refresh_WithoutCookie_Reports1204` 的**用例名与实际请求不符**：夹具 `Client` 由 `WebApplicationFactory` 默认参数创建（`HandleCookies` 默认 `true`）→ 该请求实际携带历史 refresh cookie，判据走「会话不存在 → `1204`」而非「未携带 cookie → `1204`」。**本批未改**（改夹具 cookie 行为会波及 43 例既有语义，超出 `51:OBS-12` 面）。**若要严格对齐用例名**，可选：① 该用例改用独立 client（`CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false })`）；② 或按契约订正用例名 / 判据。属**测试设计面**（契约归 `docs/50-testcases.md`），请裁决后另行调度 | 本批实测：修复前该例失败值 `1203` 只有在**请求带 cookie** 时才可能产生（控制器在 cookie 为空时直接抛 `1204`），故「带 cookie」为实测推论而非推测 |
+| QX-03 | **日志落盘路径与保留策略的取值**是否需裁决：本批按调度指令以「相对应用 CWD 的 `logs/luckydraw-.log` + `rollingInterval = Day` + `retainedFileCountLimit = 7`」落地。副作用 = 落点随**启动时的 CWD** 变（`dotnet test` → 测试输出目录；发布运行 → `<发布目录>/logs/`；仓库根启动 → `<仓库根>/logs/`），且 7 份 × 单文件体积的**盘占用上界未实测**。**若期望**「固定绝对路径 / 由环境变量可配的日志根 / 更低保留数 / 与控制台捕获合并」请裁决后另行调度。另：`tests/e2e/api/api-suite.mjs` 内含会被本次改动推翻的实然陈述（「应用控制台日志…未落盘文件」），其修订归 test-executor（见 `CHG-21` §9） | 调度指令（本批）；`CHG-21` §1 / §5 / §6 / §9 实测读数 |

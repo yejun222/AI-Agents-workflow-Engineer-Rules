@@ -12,6 +12,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = 'http://localhost:5180/api/v1';
 const PW = 'Abcd1234';
@@ -34,6 +37,130 @@ function sql(statement) {
   } catch (e) {
     return `ERR:${String(e.message).split('\n')[0].slice(0, 120)}`;
   }
+}
+
+// ═══ TC-81 判据面常量与扫描器（2026-09-20 升级；CHG-21 后应用日志落盘为文件） ═══
+// 判据 = 落盘日志正文本体 + 三面 DB 检索（AuditLog / DrawRequest / User.PasswordHash）。
+// 防自污染纪律：运行输出只回显「闸门模式编号」，不回显字面量 ——
+// 防止本脚本自身的输出（若被重定向进 tests/e2e/logs）成为下一轮扫描的命中源。
+// 编号对照（仅供人工核对源码，勿写进日志/产物）：
+//   #1 = 测试口令字面量（PW 常量）；#2 = JWT 前缀（三字符）；#3 = 刷新令牌字段名；
+//   #4 = 签名密钥配置名；#5 = 测试签名密钥取值；#6 = url 口令字段名；#7 = 连接串主机段；
+//   #8 = 连接串用户段；#9 = 回退签名密钥形态（32 个零）；#10 = BCrypt 哈希字段名；
+//   #11 / #12 = BCrypt 哈希前缀。
+// 词面 6 条（不判定、仅计数，实测存在良性命中）：password / devonly / 授权头方案词 /
+//   授权头字段名 / 测试库名 / 隔离实例端口号。
+// 字面量一律以拼接构造，降低源码被静态模式误扫的概率。
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
+const LOG_SCAN_SURFACES = [
+  { kind: 'file', rel: 'tests/integration/_tmp-rev-obs05-20260920-01/11-log-delta-after-baseline-run.log' },
+  { kind: 'dir', rel: 'src/backend/src/LuckyDraw.Api/logs' },
+  { kind: 'dir', rel: 'tests/e2e/deploy/publish-tc76/logs' },
+  { kind: 'dir', rel: 'tests/integration/LuckyDraw.IntegrationTests/bin/Debug/net10.0/logs' },
+  { kind: 'dir', rel: 'tests/e2e/logs' }
+];
+
+function buildGatePatterns() {
+  return [
+    PW,
+    'e' + 'y' + 'J',
+    'refresh' + '_token',
+    'Signing' + 'Key',
+    'testing-only-' + 'signing-key',
+    'pass' + 'wd',
+    'Server' + '=localhost',
+    'User ' + 'Id=',
+    '0'.repeat(32),
+    'Password' + 'Hash',
+    '$2a' + '$',
+    '$2b' + '$'
+  ];
+}
+
+// 词面模式（不判定、仅计数；与闸门的差别 = 已实测存在良性命中，见 TC-81 常量块注释）
+const WORD_PATTERNS = ['password', 'devonly', 'Bearer', 'Authorization', 'luckydraw_test', '3407'];
+
+function scanBufForPatterns(text, patterns) {
+  const hits = new Array(patterns.length).fill(0);
+  for (let i = 0; i < patterns.length; i++) {
+    const p = patterns[i];
+    if (!p) continue;
+    let idx = text.indexOf(p);
+    while (idx !== -1) {
+      hits[i]++;
+      idx = text.indexOf(p, idx + p.length);
+    }
+  }
+  return hits;
+}
+
+function scanPersistedLogs() {
+  const gate = buildGatePatterns();
+  const word = WORD_PATTERNS;
+  // 扫描器辨别力自证（docs/development-spec.md 7.5）：阳性样本由拼接构造，阴性样本为普通文本
+  const selfHit = scanBufForPatterns('x ' + ('e' + 'y' + 'J') + ' y', gate).reduce((a, b) => a + b, 0);
+  const selfClean = scanBufForPatterns('plain text without secrets', gate).reduce((a, b) => a + b, 0);
+  const selfTestOk = selfHit === 1 && selfClean === 0;
+  const surfaces = [];
+  const gateByIndex = [];
+  const wordByIndex = [];
+  let scannedBytes = 0;
+  let gateHits = 0;
+  for (const s of LOG_SCAN_SURFACES) {
+    const abs = join(REPO_ROOT, s.rel);
+    if (!existsSync(abs)) {
+      surfaces.push(`[不存在（未扫描）] ${s.rel}`);
+      continue;
+    }
+    let files = [];
+    if (s.kind === 'file') {
+      files = [abs];
+    } else {
+      files = readdirSync(abs)
+        .filter((f) => f.endsWith('.log'))
+        .map((f) => join(abs, f))
+        .filter((p) => {
+          try {
+            return statSync(p).isFile();
+          } catch {
+            return false;
+          }
+        });
+    }
+    let bytes = 0;
+    let body = '';
+    for (const f of files) {
+      try {
+        const b = readFileSync(f);
+        bytes += b.length;
+        body += '\n' + b.toString('latin1');
+      } catch {
+        /* 单文件读取失败：不计入已扫字节，由空转防护兜底 */
+      }
+    }
+    scannedBytes += bytes;
+    surfaces.push(`[已扫 ${files.length} 文件 / ${bytes} B] ${s.rel}`);
+    const g = scanBufForPatterns(body, gate);
+    const w = scanBufForPatterns(body, word);
+    for (let i = 0; i < g.length; i++) {
+      if (g[i] > 0) {
+        gateHits += g[i];
+        gateByIndex.push(`#${i + 1}=${g[i]}`);
+      }
+    }
+    for (let i = 0; i < w.length; i++) {
+      if (w[i] > 0) wordByIndex.push(`#${i + 1}=${w[i]}`);
+    }
+  }
+  return {
+    surfaces: surfaces.join('；'),
+    scannedBytes,
+    gateHits,
+    gateDetail: gateByIndex.length ? gateByIndex.join(' ') : '全部 12 个闸门模式 0 命中',
+    wordDetail: wordByIndex.length ? wordByIndex.join(' ') : '全部 6 个词面模式 0 命中',
+    selfTestOk
+  };
 }
 
 async function api(method, path, { token, body, idem, headers = {} } = {}) {
@@ -666,13 +793,21 @@ async function main() {
     record('TC-83', ok ? 'PASS' : 'FAIL', `物理表逻辑删除列检查：${detail.join(' | ')}；库存在=${del}`);
   }
 
-  // ═══ TC-81 日志不含密码 / token（以审计与业务表为可检索面） ═══
+  // ═══ TC-81 日志不含密码 / token（判据面 = 落盘日志正文 + 三面 DB 检索） ═══
   {
     const auditHits = sql("SELECT COUNT(*) FROM AuditLog WHERE CONCAT(COALESCE(BeforeJson,''),COALESCE(AfterJson,''),COALESCE(TargetObject,'')) LIKE '%Abcd1234%' OR CONCAT(COALESCE(BeforeJson,''),COALESCE(AfterJson,'')) LIKE '%Bearer%' OR CONCAT(COALESCE(BeforeJson,''),COALESCE(AfterJson,'')) LIKE '%refresh_token%'");
     const reqHits = sql("SELECT COUNT(*) FROM DrawRequest WHERE COALESCE(RequestHash,'') LIKE '%Abcd1234%'");
     const userHits = sql("SELECT COUNT(*) FROM AuditLog WHERE Module='auth' AND (AfterJson LIKE '%password%' OR AfterJson LIKE '%PasswordHash%')");
-    record('TC-81', auditHits === '0' && reqHits === '0' && userHits === '0' ? 'PASS' : 'FAIL',
-      `审计表命中明文密码/Bearer/refresh_token 行数=${auditHits}；抽奖流水命中明文密码=${reqHits}；注册审计出现密码字段=${userHits}（注册审计仅记 id+userName）。应用控制台日志（Serilog Console 输出，未落盘文件）无法离线检索，见 52 观察项`);
+    const scan = scanPersistedLogs();
+    const failures = [];
+    if (auditHits !== '0') failures.push('审计表三模式命中');
+    if (reqHits !== '0') failures.push('抽奖流水明文口令命中');
+    if (userHits !== '0') failures.push('注册审计含密码字段');
+    if (scan.gateHits !== 0) failures.push(`落盘日志闸门模式命中（${scan.gateDetail}）`);
+    if (scan.scannedBytes === 0) failures.push('无可用扫描面（防空转：无字节即不可判 PASS）');
+    if (!scan.selfTestOk) failures.push('扫描器辨别力自证未通过（阳性样本未命中 / 阴性样本误命中）');
+    record('TC-81', failures.length === 0 ? 'PASS' : 'FAIL',
+      `审计表三模式命中行数=${auditHits}（三模式字面量见本块 SQL）；抽奖流水命中明文口令=${reqHits}；注册审计出现密码字段=${userHits}（注册审计仅记 id+userName）。落盘日志正文扫描：扫描面=${scan.surfaces}；合计扫描字节=${scan.scannedBytes}；闸门模式命中=${scan.gateHits}（${scan.gateDetail}）；词面模式命中（不判定、仅计数）=${scan.wordDetail}；扫描器自证=${scan.selfTestOk ? '通过' : '未通过'}${failures.length ? '；失败项=' + failures.join('/') : ''}。注：模式编号→字面量对照见本脚本 TC-81 常量块注释（防自污染：日志内不回显字面量）；本行取代「应用控制台日志未落盘文件、无法离线检索」旧陈述（该陈述已被 CHG-21 推翻）`);
   }
 
   // ═══ TC-85 路由懒加载 + 强制分页（静态产物检查） ═══

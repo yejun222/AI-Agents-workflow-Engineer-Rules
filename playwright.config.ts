@@ -29,6 +29,11 @@ import { defineConfig, devices } from '@playwright/test'
  * 失败截图 / trace 只在本轮有效，会被任意一次后续运行抹掉（**不是人工删除**）。
  * 需要跨轮持久化的证据必须写到该目录**之外**（本仓库为 `tests/e2e/logs/*.log`），
  * 文件名含唯一序号——见 `docs/role-protocol.md` §7「证据卫生」。
+ *
+ * **2026-09-20（`51:OBS-08` / `52:OBS-09` 处置）**：`outputDir` 现可经环境变量 `PLAYWRIGHT_OUTPUT_DIR` 覆盖为
+ * **每轮独立目录**（不设该变量时取值与历史默认逐字一致 = `./tests/e2e/.artifacts`，默认行为不变）。
+ * 这样上一轮的失败截图 / trace 不会再被后续任意一次运行抹掉 —— 该变量与 `tests/e2e/logs/*.log` 是两条并存的
+ * 持久化通道。注意：本覆盖**不改变** Playwright「每次运行前清空所选 outputDir」的语义，只是允许把该目录指向每轮独立路径。
  */
 export default defineConfig({
   testDir: './tests/e2e',
@@ -40,7 +45,9 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   reporter: [['list']],
-  outputDir: './tests/e2e/.artifacts',
+  // 2026-09-20（`51:OBS-08` / `52:OBS-09` 处置）：可用环境变量 `PLAYWRIGHT_OUTPUT_DIR` 覆盖为**每轮独立目录**
+  // （未设该变量时取值与历史默认逐字一致，默认行为不变）。
+  outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR || './tests/e2e/.artifacts',
   use: {
     baseURL: 'http://localhost:5173',
     // 失败留痕：截图 + trace，供 test-executor 写缺陷证据

@@ -21,6 +21,19 @@ dist/
 bin/
 obj/
 
+# 后端运行时日志（Serilog File sink 落盘目录，`51:OBS-05` 的修复产物）
+# 注：本目录是**可重建的运行产物**——每次启动 / 每次测试都追加新行，内容持续变 →
+# 与 `tests/e2e/deploy/` 同因：入库只会永久制造 diff 噪声。需要作为证据留存的日志，
+# 由 test-executor 拷入 `tests/e2e/logs/`（那一份是**刻意入库**的交付证据，见下文该小节）。
+# 路径**必须根锚定**：写成无锚点的 `logs/` 会在**任意层级**匹配，把 `tests/e2e/logs/` 一并吃掉
+# ——已跟踪文件不受影响，但该目录下**新增**的证据文件会被静默忽略且零报错（取证缺失且无信号）。
+/logs/
+# 开发态落点（同一 File sink，另一条相对路径）：`dotnet run` 的 RunWorkingDirectory = Api 项目目录，
+# 故开发时日志写在 `src/backend/src/LuckyDraw.Api/logs/` —— 与上面的根 `/logs/` 同因不同落点。
+# 实测（`60:REV-23`）：本行加入前 `git check-ignore -v` 对 `…/LuckyDraw.Api/logs/x.log` 退出码 1，
+# 即 `dotnet run` 一跑就产生**含业务标识**（用户 / 奖品键值）的未跟踪文件，且**零报错、无信号**。
+/src/backend/src/LuckyDraw.Api/logs/
+
 # E2E（Playwright）运行产物：失败截图 / trace / 报告，均不入库
 # 注：tests/e2e/logs/ 是交付证据（被 docs/51、docs/52 逐条引用），刻意入库，不在此列
 tests/e2e/.artifacts/
